@@ -102,6 +102,9 @@ public record DatabaseQuery(
     }
 
     public static DatabaseQuery fromTag(CompoundTag tag, DatabaseScope fallbackScope) {
+        if (tag == null || tag.isEmpty()) {
+            return defaultQuery(fallbackScope);
+        }
         DatabaseScope scope = readEnum(tag.getString(SCOPE_KEY), DatabaseScope.class, DatabaseScope.normalize(fallbackScope));
         DatabaseCategory category = readEnum(tag.getString(CATEGORY_KEY), DatabaseCategory.class, DatabaseCategory.ALL);
         DatabaseSortOption sortOption = readEnum(tag.getString(SORT_OPTION_KEY), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED);
