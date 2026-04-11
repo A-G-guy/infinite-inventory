@@ -1,15 +1,25 @@
 package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseItemClassifier;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StoredItemDatabaseTest {
+    static {
+        MinecraftTestBootstrap.ensureBootstrapped();
+    }
+
     @Test
     void shouldPreserveLegacyInvalidEntriesWhenProviderUnavailable() {
         CompoundTag legacyRoot = new CompoundTag();
@@ -35,6 +45,7 @@ class StoredItemDatabaseTest {
     void shouldPreserveCurrentFormatUnresolvedEntriesWithoutDroppingThem() {
         CompoundTag currentRoot = new CompoundTag();
         currentRoot.putInt("schema_version", StoredItemDatabase.CURRENT_SCHEMA_VERSION);
+        currentRoot.putInt("classifier_version", DatabaseItemClassifier.CURRENT_VERSION);
         currentRoot.put("entries", new ListTag());
 
         ListTag unresolvedEntries = new ListTag();
@@ -48,6 +59,13 @@ class StoredItemDatabaseTest {
         assertEquals(0, restored.entryCount());
         assertEquals(1, restored.unresolvedEntryCount());
         assertEquals(10L, restored.serializeNBT(null).getLong("next_sequence"));
+    }
+
+    @Test
+    void serializeShouldWriteClassifierVersion() {
+        StoredItemDatabase database = new StoredItemDatabase();
+
+        assertEquals(DatabaseItemClassifier.CURRENT_VERSION, database.serializeNBT(null).getInt("classifier_version"));
     }
 
     @Test
@@ -79,6 +97,66 @@ class StoredItemDatabaseTest {
         targetDatabase.mergeFrom(sourceDatabase);
 
         assertEquals(26L, DatabaseTestReflectionHelper.readNextSequence(targetDatabase));
+    }
+
+    @Test
+    void oldSchemaShouldRequestResaveAfterDeserialize() {
+        CompoundTag oldSchemaRoot = new CompoundTag();
+        oldSchemaRoot.putInt("schema_version", 1);
+        oldSchemaRoot.put("entries", new ListTag());
+        oldSchemaRoot.put("unresolved_entries", new ListTag());
+        oldSchemaRoot.putLong("next_sequence", 1L);
+
+        StoredItemDatabase restored = new StoredItemDatabase();
+        restored.deserializeNBT(null, oldSchemaRoot);
+
+        assertTrue(restored.needsResave());
+        assertEquals(1L, restored.revision());
+    }
+
+    @Test
+    void recategorizeShouldApplyLatestClassifierRulesToResolvedEntries() throws ReflectiveOperationException {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.MINECART));
+        DatabaseTestReflectionHelper.forceEntry(database, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 4L, 12L));
+
+        assertTrue(DatabaseTestReflectionHelper.invokeRecategorizeResolvedEntriesIfNeeded(database, 0));
+
+        StoredStackEntry recategorizedEntry = database.entries().get(key);
+        assertEquals(DatabaseCategory.OTHER, recategorizedEntry.category());
+        assertEquals(4L, recategorizedEntry.amount());
+        assertEquals(12L, recategorizedEntry.lastModified());
+    }
+
+    @Test
+    void storeExtractMergeClearAndDeserializeShouldAdvanceRevision() throws ReflectiveOperationException {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredItemDatabase otherDatabase = new StoredItemDatabase();
+
+        assertEquals(0L, DatabaseTestReflectionHelper.readRevision(database));
+
+        database.store(new ItemStack(Items.STONE, 8));
+        assertEquals(1L, DatabaseTestReflectionHelper.readRevision(database));
+
+        database.extract(StoredStackKey.of(new ItemStack(Items.STONE)), 2);
+        assertEquals(2L, DatabaseTestReflectionHelper.readRevision(database));
+
+        otherDatabase.store(new ItemStack(Items.DIRT, 3));
+        database.mergeFrom(otherDatabase);
+        assertEquals(3L, DatabaseTestReflectionHelper.readRevision(database));
+
+        database.clear();
+        assertEquals(4L, DatabaseTestReflectionHelper.readRevision(database));
+
+        CompoundTag oldSchemaRoot = new CompoundTag();
+        oldSchemaRoot.putInt("schema_version", 1);
+        oldSchemaRoot.put("entries", new ListTag());
+        oldSchemaRoot.put("unresolved_entries", new ListTag());
+        oldSchemaRoot.putLong("next_sequence", 1L);
+        database.deserializeNBT(null, oldSchemaRoot);
+
+        assertEquals(5L, DatabaseTestReflectionHelper.readRevision(database));
+        assertTrue(database.needsResave());
     }
 
     private CompoundTag entryTag(CompoundTag stackTag, long count, DatabaseCategory category, long lastModified) {

@@ -180,7 +180,9 @@ public final class DatabaseStorageSavedData extends SavedData {
 
     private void loadCurrentFormat(CompoundTag tag, HolderLookup.Provider provider) {
         int storedSchemaVersion = Math.max(0, tag.getInt(SCHEMA_VERSION_KEY));
+        boolean needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.publicDatabase.deserializeNBT(provider, this.resolvePublicDatabaseTag(tag));
+        needsResave = needsResave || this.publicDatabase.needsResave();
 
         for (Tag entry : tag.getList(PERSONAL_DATABASES_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof CompoundTag personalDatabaseTag) || !personalDatabaseTag.hasUUID(PERSONAL_DATABASE_PLAYER_ID_KEY)) {
@@ -189,8 +191,10 @@ public final class DatabaseStorageSavedData extends SavedData {
             StoredItemDatabase database = new StoredItemDatabase();
             database.deserializeNBT(provider, personalDatabaseTag.getCompound(PERSONAL_DATABASE_DATA_KEY));
             if (database.entryCount() == 0 && database.unresolvedEntryCount() == 0) {
+                needsResave = needsResave || database.needsResave();
                 continue;
             }
+            needsResave = needsResave || database.needsResave();
             this.personalDatabases.put(personalDatabaseTag.getUUID(PERSONAL_DATABASE_PLAYER_ID_KEY), database);
         }
 
@@ -210,6 +214,9 @@ public final class DatabaseStorageSavedData extends SavedData {
                     this.exportStorageTag(provider)
             );
         }
+        if (needsResave) {
+            this.setDirty();
+        }
     }
 
     private CompoundTag resolvePublicDatabaseTag(CompoundTag rootTag) {
@@ -225,6 +232,7 @@ public final class DatabaseStorageSavedData extends SavedData {
                 "legacy-public-format",
                 this.exportStorageTag(provider)
         );
+        this.setDirty();
     }
 
     public record PendingMigrationBackup(String reason, CompoundTag storageSnapshot) {

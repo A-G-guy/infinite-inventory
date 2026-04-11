@@ -21,4 +21,17 @@ public record DatabaseSortSnapshot(
         lastModified = Math.max(0L, lastModified);
         searchRanking = searchRanking == null ? DatabaseSearchRanking.unfiltered() : searchRanking;
     }
+
+    public DatabaseSortSnapshot withSearchRanking(DatabaseSearchRanking ranking) {
+        return new DatabaseSortSnapshot(
+                this.displayNameNormalized,
+                this.registryName,
+                this.registryNamespace,
+                this.registryPath,
+                this.amount,
+                this.lastModified,
+                this.stackHash,
+                ranking
+        );
+    }
 }
