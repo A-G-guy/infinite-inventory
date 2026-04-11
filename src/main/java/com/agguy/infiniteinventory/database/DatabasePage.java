@@ -20,9 +20,10 @@ public record DatabasePage(DatabaseQuery query, int totalEntries, int totalPages
         return this.entries.get(slotIndex);
     }
 
-    public DatabaseViewState toViewState(int containerId, DatabaseQuery personalQuery, DatabaseQuery publicQuery) {
+    public DatabaseViewState toViewState(int containerId, long sessionId, DatabaseQuery personalQuery, DatabaseQuery publicQuery) {
         return new DatabaseViewState(
                 containerId,
+                sessionId,
                 this.query,
                 personalQuery,
                 publicQuery,

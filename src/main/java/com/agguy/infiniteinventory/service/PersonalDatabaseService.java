@@ -27,13 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.extensions.IMenuProviderExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,14 +52,7 @@ public final class PersonalDatabaseService {
 
     public void open(ServerPlayer player) {
         this.ensureLegacyPersonalMigration(player);
-        player.openMenu(new SimpleMenuProvider(
-                (containerId, playerInventory, ignored) -> {
-                    PersonalDatabaseMenu menu = new PersonalDatabaseMenu(containerId, playerInventory, player);
-                    menu.initializeFromPreferences(this.getViewPreferences(player));
-                    return menu;
-                },
-                Component.translatable("screen.infiniteinventory.database.title")
-        ));
+        player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
             menu.syncViewToClient();
             this.notifyAboutUnresolvedEntries(player, menu.activeScope());
@@ -370,5 +365,36 @@ public final class PersonalDatabaseService {
             ItemStack stack,
             DatabaseSortSnapshot sortSnapshot
     ) {
+    }
+
+    private static final class PersonalDatabaseMenuProvider implements MenuProvider, IMenuProviderExtension {
+        private final ServerPlayer player;
+        private final DatabaseViewPreferencesAttachment preferences;
+
+        private PersonalDatabaseMenuProvider(ServerPlayer player, DatabaseViewPreferencesAttachment preferences) {
+            this.player = player;
+            this.preferences = preferences;
+        }
+
+        @Override
+        public Component getDisplayName() {
+            return Component.translatable("screen.infiniteinventory.database.title");
+        }
+
+        @Override
+        public PersonalDatabaseMenu createMenu(int containerId, Inventory playerInventory, Player ignoredPlayer) {
+            PersonalDatabaseMenu menu = new PersonalDatabaseMenu(containerId, playerInventory, this.player);
+            menu.initializeFromPreferences(this.preferences);
+            return menu;
+        }
+
+        @Override
+        public void writeClientSideData(net.minecraft.world.inventory.AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
+            if (menu instanceof PersonalDatabaseMenu databaseMenu) {
+                buffer.writeVarLong(databaseMenu.sessionId());
+            } else {
+                buffer.writeVarLong(0L);
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public record DatabaseViewState(
         int containerId,
+        long sessionId,
         DatabaseQuery query,
         DatabaseQuery personalQuery,
         DatabaseQuery publicQuery,
@@ -22,6 +23,7 @@ public record DatabaseViewState(
         } else {
             personalQuery = query;
         }
+        sessionId = Math.max(0L, sessionId);
         totalEntries = Math.max(0, totalEntries);
         totalPages = Math.max(1, totalPages);
         totalItems = Math.max(0L, totalItems);
@@ -29,12 +31,17 @@ public record DatabaseViewState(
     }
 
     public static DatabaseViewState empty(int containerId) {
-        return empty(containerId, DatabaseQuery.defaultQuery());
+        return empty(containerId, 0L, DatabaseQuery.defaultQuery());
     }
 
     public static DatabaseViewState empty(int containerId, DatabaseQuery query) {
+        return empty(containerId, 0L, query);
+    }
+
+    public static DatabaseViewState empty(int containerId, long sessionId, DatabaseQuery query) {
         return new DatabaseViewState(
                 containerId,
+                sessionId,
                 query,
                 DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
                 DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
@@ -51,6 +58,7 @@ public record DatabaseViewState(
 
     public static DatabaseViewState read(RegistryFriendlyByteBuf buffer) {
         int containerId = buffer.readVarInt();
+        long sessionId = buffer.readVarLong();
         DatabaseQuery query = DatabaseQuery.read(buffer);
         DatabaseQuery personalQuery = DatabaseQuery.read(buffer);
         DatabaseQuery publicQuery = DatabaseQuery.read(buffer);
@@ -62,11 +70,12 @@ public record DatabaseViewState(
         for (int index = 0; index < entryCount; index++) {
             entries.add(VisibleDatabaseEntry.read(buffer));
         }
-        return new DatabaseViewState(containerId, query, personalQuery, publicQuery, totalEntries, totalPages, totalItems, entries);
+        return new DatabaseViewState(containerId, sessionId, query, personalQuery, publicQuery, totalEntries, totalPages, totalItems, entries);
     }
 
     public void write(RegistryFriendlyByteBuf buffer) {
         buffer.writeVarInt(this.containerId);
+        buffer.writeVarLong(this.sessionId);
         DatabaseQuery.write(buffer, this.query);
         DatabaseQuery.write(buffer, this.personalQuery);
         DatabaseQuery.write(buffer, this.publicQuery);

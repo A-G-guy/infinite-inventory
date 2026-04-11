@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-public record DatabaseClickPayload(int containerId, int pageSlotIndex, DatabaseClickAction action) implements CustomPacketPayload {
+public record DatabaseClickPayload(int containerId, long sessionId, int pageSlotIndex, DatabaseClickAction action) implements CustomPacketPayload {
     public static final Type<DatabaseClickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "database_click"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DatabaseClickPayload> STREAM_CODEC = StreamCodec.of(
             DatabaseClickPayload::write,
@@ -19,11 +19,12 @@ public record DatabaseClickPayload(int containerId, int pageSlotIndex, DatabaseC
     }
 
     private static DatabaseClickPayload read(RegistryFriendlyByteBuf buffer) {
-        return new DatabaseClickPayload(buffer.readVarInt(), buffer.readVarInt(), buffer.readEnum(DatabaseClickAction.class));
+        return new DatabaseClickPayload(buffer.readVarInt(), buffer.readVarLong(), buffer.readVarInt(), buffer.readEnum(DatabaseClickAction.class));
     }
 
     private static void write(RegistryFriendlyByteBuf buffer, DatabaseClickPayload payload) {
         buffer.writeVarInt(payload.containerId);
+        buffer.writeVarLong(payload.sessionId);
         buffer.writeVarInt(payload.pageSlotIndex);
         buffer.writeEnum(payload.action);
     }

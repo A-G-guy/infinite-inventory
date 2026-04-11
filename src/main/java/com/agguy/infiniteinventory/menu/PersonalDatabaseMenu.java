@@ -16,6 +16,7 @@ import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.mojang.datafixers.util.Pair;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -41,6 +42,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, CraftingRecipe> {
+    private static final AtomicLong NEXT_SESSION_ID = new AtomicLong(1L);
     private static final EquipmentSlot[] ARMOR_ORDER = {
             EquipmentSlot.FEET,
             EquipmentSlot.LEGS,
@@ -73,6 +75,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private final int offhandSlotIndex;
     private final List<AccessorySlotGroup> accessorySlotGroups;
     private final MenuSlotRange accessorySlotRange;
+    private long sessionId;
     private DatabaseScope activeScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
@@ -81,13 +84,22 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private DatabasePage currentPage;
 
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory) {
-        this(containerId, playerInventory, playerInventory.player);
+        this(containerId, playerInventory, playerInventory.player, 0L);
+    }
+
+    public PersonalDatabaseMenu(int containerId, Inventory playerInventory, long sessionId) {
+        this(containerId, playerInventory, playerInventory.player, sessionId);
     }
 
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory, Player owner) {
+        this(containerId, playerInventory, owner, NEXT_SESSION_ID.getAndIncrement());
+    }
+
+    public PersonalDatabaseMenu(int containerId, Inventory playerInventory, Player owner, long sessionId) {
         super(ModMenus.PERSONAL_DATABASE_MENU.get(), containerId);
         this.owner = owner;
-        this.viewState = DatabaseViewState.empty(containerId, this.currentQuery());
+        this.sessionId = Math.max(0L, sessionId);
+        this.viewState = DatabaseViewState.empty(containerId, this.sessionId, this.currentQuery());
         this.resultSlotIndex = this.addTrackedSlot(new ResultSlot(owner, this.craftSlots, this.resultSlots, 0, TOP_SECTION_RESULT_X, TOP_SECTION_RESULT_Y));
         this.craftingSlotRange = this.addCraftingSlots();
         this.armorSlotRange = this.addArmorSlots(playerInventory, owner);
@@ -107,6 +119,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return this.activeScope;
     }
 
+    public long sessionId() {
+        return this.sessionId;
+    }
+
     public List<AccessorySlotGroup> accessorySlotGroups() {
         return this.accessorySlotGroups;
     }
@@ -118,10 +134,11 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, preferences.queryFor(DatabaseScope.PERSONAL));
         this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, preferences.queryFor(DatabaseScope.PUBLIC));
         this.activeScope = DatabaseScope.normalize(preferences.lastScope());
-        this.viewState = DatabaseViewState.empty(this.containerId, this.currentQuery());
+        this.viewState = DatabaseViewState.empty(this.containerId, this.sessionId, this.currentQuery());
     }
 
     public void applyViewState(DatabaseViewState newState) {
+        this.sessionId = newState.sessionId();
         this.viewState = newState;
         this.activeScope = newState.query().scope();
         this.personalQuery = newState.personalQuery();
@@ -165,7 +182,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.currentPage = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, this.currentQuery());
         this.setActiveQuery(this.currentPage.query());
         this.persistPreferences(serverPlayer);
-        this.viewState = this.currentPage.toViewState(this.containerId, this.personalQuery, this.publicQuery);
+        this.viewState = this.currentPage.toViewState(this.containerId, this.sessionId, this.personalQuery, this.publicQuery);
         PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(this.viewState));
     }
 

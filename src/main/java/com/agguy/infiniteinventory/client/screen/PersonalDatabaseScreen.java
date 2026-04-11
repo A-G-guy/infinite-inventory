@@ -327,7 +327,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.depositButton = this.addRenderableWidget(Button.builder(Component.translatable("screen.infiniteinventory.deposit_all"), button -> {
                     this.closeContextMenu();
                     this.sortDropdownExpanded = false;
-                    PacketDistributor.sendToServer(new DepositAllPayload(this.menu.containerId));
+                    PacketDistributor.sendToServer(new DepositAllPayload(this.menu.containerId, this.menu.viewState().sessionId()));
                 })
                 .bounds(depositRect.x(), depositRect.y(), depositRect.width(), depositRect.height())
                 .build());
@@ -539,11 +539,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     private void dispatchQuery(DatabaseQuery query) {
-        PacketDistributor.sendToServer(new DatabaseQueryPayload(this.menu.containerId, query));
+        PacketDistributor.sendToServer(new DatabaseQueryPayload(this.menu.containerId, this.menu.viewState().sessionId(), query));
     }
 
     private void sendDatabaseClick(int slotIndex, DatabaseClickAction action) {
-        PacketDistributor.sendToServer(new DatabaseClickPayload(this.menu.containerId, slotIndex, action));
+        PacketDistributor.sendToServer(new DatabaseClickPayload(this.menu.containerId, this.menu.viewState().sessionId(), slotIndex, action));
     }
 
     private void prepareForServerQuery() {

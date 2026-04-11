@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "6";
+    private static final String NETWORK_VERSION = "7";
 
     private ModNetwork() {
     }
@@ -37,7 +37,7 @@ public final class ModNetwork {
         if (!(context.player() instanceof ServerPlayer player)) {
             return;
         }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId());
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
             menu.updateQuery(payload.query());
         }
@@ -47,7 +47,7 @@ public final class ModNetwork {
         if (!(context.player() instanceof ServerPlayer player)) {
             return;
         }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId());
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
             menu.handleDatabaseClick(payload.pageSlotIndex(), payload.action());
         }
@@ -57,7 +57,7 @@ public final class ModNetwork {
         if (!(context.player() instanceof ServerPlayer player)) {
             return;
         }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId());
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
             menu.depositAllFromMainInventory();
         }
@@ -74,8 +74,10 @@ public final class ModNetwork {
     }
 
     @Nullable
-    private static PersonalDatabaseMenu resolveMenu(ServerPlayer player, int containerId) {
-        if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.containerId == containerId) {
+    private static PersonalDatabaseMenu resolveMenu(ServerPlayer player, int containerId, long sessionId) {
+        if (player.containerMenu instanceof PersonalDatabaseMenu menu
+                && menu.containerId == containerId
+                && menu.sessionId() == sessionId) {
             return menu;
         }
         return null;
