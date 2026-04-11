@@ -133,12 +133,13 @@ neoForge {
 // a dependency that will be present for runtime testing but that is
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
+    embeddedLibrary
+    implementation.extendsFrom embeddedLibrary
     runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-    implementation 'io.github.tokenjan:pinyin4j:2.6.1'
-    implementation 'org.apache.commons:commons-text:1.12.0'
+    embeddedLibrary 'io.github.tokenjan:pinyin4j:2.6.1'
     compileOnly "io.wispforest:accessories-common:${project.accessories_version}-mojmap"
     localRuntime "io.wispforest:accessories-neoforge:${project.accessories_version}"
 
@@ -187,6 +188,19 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.named('jar', Jar).configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from({
+        configurations.embeddedLibrary.collect { dependencyFile ->
+            dependencyFile.isDirectory() ? dependencyFile : zipTree(dependencyFile)
+        }
+    }) {
+        exclude 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.SF'
+        exclude 'META-INF/INDEX.LIST', 'META-INF/LICENSE*', 'META-INF/MANIFEST.MF', 'META-INF/NOTICE*'
+        exclude 'module-info.class'
+    }
 }
 
 tasks.named('test', Test).configure {
