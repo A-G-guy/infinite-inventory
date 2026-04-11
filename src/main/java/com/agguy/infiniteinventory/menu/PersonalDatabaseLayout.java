@@ -43,7 +43,7 @@ public record PersonalDatabaseLayout(
     private static final int TITLE_GAP = 6;
     private static final int SEARCH_MIN_WIDTH = 140;
     private static final int ADVANCED_SEARCH_BUTTON_WIDTH = 40;
-    private static final int SORT_BUTTON_WIDTH = 112;
+    private static final int SORT_BUTTON_WIDTH = 128;
     private static final int DEPOSIT_BUTTON_WIDTH = 88;
     private static final int SCOPE_BUTTON_WIDTH = 72;
 

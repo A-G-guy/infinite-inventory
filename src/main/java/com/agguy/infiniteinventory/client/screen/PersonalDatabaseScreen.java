@@ -38,7 +38,7 @@ import org.lwjgl.glfw.GLFW;
 
 public final class PersonalDatabaseScreen extends AbstractContainerScreen<PersonalDatabaseMenu> {
     private static final int DROPDOWN_ROW_HEIGHT = 20;
-    private static final int SORT_DROPDOWN_WIDTH = 140;
+    private static final int SORT_DROPDOWN_WIDTH = 168;
     private static final int CONTEXT_MENU_WIDTH = 112;
     private static final int CONTEXT_MENU_ROW_HEIGHT = 20;
     private static final int CONTEXT_MENU_MARGIN = 4;
@@ -657,8 +657,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         VanillaWidgetRenderer.renderPanel(guiGraphics, dropdownRect);
         DatabaseSortOption currentSort = this.menu.viewState().query().sortOption();
-        for (int index = 0; index < DatabaseSortOption.values().length; index++) {
-            DatabaseSortOption option = DatabaseSortOption.values()[index];
+        List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
+        for (int index = 0; index < sortOptions.size(); index++) {
+            DatabaseSortOption option = sortOptions.get(index);
             int rowY = dropdownRect.y() + index * DROPDOWN_ROW_HEIGHT;
             boolean hovered = mouseX >= dropdownRect.x() && mouseX < dropdownRect.right() && mouseY >= rowY && mouseY < rowY + DROPDOWN_ROW_HEIGHT;
             if (hovered) {
@@ -718,12 +719,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (dropdownRect == null) {
             return false;
         }
-        for (int index = 0; index < DatabaseSortOption.values().length; index++) {
+        List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
+        for (int index = 0; index < sortOptions.size(); index++) {
             int rowY = dropdownRect.y() + index * DROPDOWN_ROW_HEIGHT;
             if (mouseX < dropdownRect.x() || mouseX >= dropdownRect.right() || mouseY < rowY || mouseY >= rowY + DROPDOWN_ROW_HEIGHT) {
                 continue;
             }
-            this.sendQuery(this.menu.viewState().query().withSortOption(DatabaseSortOption.values()[index]));
+            this.sendQuery(this.menu.viewState().query().withSortOption(sortOptions.get(index)));
             return true;
         }
         if (!this.layout.sortButtonRect().contains(mouseX, mouseY)) {
@@ -1048,7 +1050,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return null;
         }
         int width = Math.max(SORT_DROPDOWN_WIDTH, this.layout.sortButtonRect().width());
-        int height = DatabaseSortOption.values().length * DROPDOWN_ROW_HEIGHT;
+        int height = DatabaseSortOption.orderedValues().size() * DROPDOWN_ROW_HEIGHT;
         int minX = this.layout.frameRect().x() + CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, this.layout.frameRect().right() - width - CONTEXT_MENU_MARGIN);
         int x = Mth.clamp(this.layout.sortButtonRect().x(), minX, maxX);
