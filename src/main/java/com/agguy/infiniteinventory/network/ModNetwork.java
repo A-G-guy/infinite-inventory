@@ -1,7 +1,10 @@
 package com.agguy.infiniteinventory.network;
 
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
+import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
+import com.agguy.infiniteinventory.registry.ModItems;
+import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -10,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "5";
+    private static final String NETWORK_VERSION = "6";
 
     private ModNetwork() {
     }
@@ -21,6 +24,7 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseClickPayload.TYPE, DatabaseClickPayload.STREAM_CODEC, ModNetwork::handleDatabaseClick);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
+        registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
@@ -57,6 +61,16 @@ public final class ModNetwork {
         if (menu != null) {
             menu.depositAllFromMainInventory();
         }
+    }
+
+    private static void handleOpenEquippedDatabase(OpenEquippedDatabasePayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!AccessoriesCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get())) {
+            return;
+        }
+        PersonalDatabaseService.INSTANCE.open(player);
     }
 
     @Nullable

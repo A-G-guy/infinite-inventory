@@ -54,6 +54,8 @@
   "screen.infiniteinventory.context.take_single": "拿出 1 个",
   "screen.infiniteinventory.context.take_stack": "拿出一组",
   "screen.infiniteinventory.context.take_all": "全部取出",
+  "key.categories.infiniteinventory": "无限库存",
+  "key.infiniteinventory.open_equipped_database": "打开已装备数据库",
   "message.infiniteinventory.database.unresolved.personal": "个人库中有 %s 个条目暂时无法解析，当前已保留占位，相关模组或物品恢复后会自动尝试恢复。",
   "message.infiniteinventory.database.unresolved.public": "公共库中有 %s 个条目暂时无法解析，当前已保留占位，相关模组或物品恢复后会自动尝试恢复。",
   "command.infiniteinventory.database.backup.created": "数据库备份已创建：%s",
