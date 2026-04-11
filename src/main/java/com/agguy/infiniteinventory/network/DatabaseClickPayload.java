@@ -4,9 +4,10 @@ import com.agguy.infiniteinventory.InfiniteInventory;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
 public record DatabaseClickPayload(int containerId, int pageSlotIndex, DatabaseClickAction action) implements CustomPacketPayload {
-    public static final Type<DatabaseClickPayload> TYPE = CustomPacketPayload.createType(InfiniteInventory.MODID + ":database_click");
+    public static final Type<DatabaseClickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "database_click"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DatabaseClickPayload> STREAM_CODEC = StreamCodec.of(
             DatabaseClickPayload::write,
             DatabaseClickPayload::read

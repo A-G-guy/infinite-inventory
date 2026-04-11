@@ -4,9 +4,10 @@ import com.agguy.infiniteinventory.InfiniteInventory;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
 public record DepositAllPayload(int containerId) implements CustomPacketPayload {
-    public static final Type<DepositAllPayload> TYPE = CustomPacketPayload.createType(InfiniteInventory.MODID + ":deposit_all");
+    public static final Type<DepositAllPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "deposit_all"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DepositAllPayload> STREAM_CODEC = StreamCodec.of(
             DepositAllPayload::write,
             DepositAllPayload::read
