@@ -4,9 +4,11 @@ public record PersonalDatabaseLayout(
         Rect frameRect,
         Rect tabBarRect,
         Rect titleRect,
+        Rect toolbarRect,
         Rect searchFieldRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
+        Rect pageLabelRect,
         Rect equipmentPanelRect,
         Rect bottomInventoryRect,
         Rect databasePanelRect,
@@ -25,26 +27,30 @@ public record PersonalDatabaseLayout(
     public static final int TOOLBAR_GAP = 6;
     public static final int SECTION_GAP = 12;
     public static final int SLOT_SIZE = 18;
-    public static final int GRID_PADDING = 8;
-    public static final int FOOTER_HEIGHT = 24;
+    public static final int DATABASE_SLOT_SIZE = 20;
+    public static final int GRID_PADDING = 10;
+    public static final int FOOTER_HEIGHT = 20;
     public static final int PAGE_BUTTON_WIDTH = 20;
-    public static final int PAGE_CONTROLS_WIDTH = 108;
-    public static final int MAX_COLUMNS = 14;
-    public static final int MAX_ROWS = 8;
+    public static final int PAGE_BUTTON_GAP = 4;
+    public static final int PAGE_LABEL_WIDTH = 64;
+    public static final int PAGE_CONTROLS_WIDTH = PAGE_BUTTON_WIDTH * 2 + PAGE_BUTTON_GAP * 2 + PAGE_LABEL_WIDTH;
+    public static final int MAX_COLUMNS = 40;
+    public static final int MAX_ROWS = 16;
     private static final int TITLE_HEIGHT = 12;
-    private static final int TITLE_GAP = 8;
-    private static final int SEARCH_MIN_WIDTH = 96;
-    private static final int SEARCH_MAX_WIDTH = 280;
-    private static final int SORT_BUTTON_WIDTH = 110;
-    private static final int DEPOSIT_BUTTON_WIDTH = 86;
+    private static final int TITLE_GAP = 6;
+    private static final int SEARCH_MIN_WIDTH = 140;
+    private static final int SORT_BUTTON_WIDTH = 112;
+    private static final int DEPOSIT_BUTTON_WIDTH = 88;
 
     public PersonalDatabaseLayout {
         frameRect = frameRect == null ? Rect.empty() : frameRect;
         tabBarRect = tabBarRect == null ? Rect.empty() : tabBarRect;
         titleRect = titleRect == null ? Rect.empty() : titleRect;
+        toolbarRect = toolbarRect == null ? Rect.empty() : toolbarRect;
         searchFieldRect = searchFieldRect == null ? Rect.empty() : searchFieldRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
+        pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;
         equipmentPanelRect = equipmentPanelRect == null ? Rect.empty() : equipmentPanelRect;
         bottomInventoryRect = bottomInventoryRect == null ? Rect.empty() : bottomInventoryRect;
         databasePanelRect = databasePanelRect == null ? Rect.empty() : databasePanelRect;
@@ -83,61 +89,68 @@ public record PersonalDatabaseLayout(
                 Math.max(1, frameRect.width() - INNER_PADDING * 2),
                 TITLE_HEIGHT
         );
-
-        int toolbarLeft = frameRect.x() + INNER_PADDING;
-        int toolbarRight = frameRect.right() - INNER_PADDING;
-        int searchWidth = Math.min(
-                SEARCH_MAX_WIDTH,
-                Math.max(SEARCH_MIN_WIDTH, toolbarRight - toolbarLeft - SORT_BUTTON_WIDTH - DEPOSIT_BUTTON_WIDTH - TOOLBAR_GAP * 2)
+        int toolbarY = titleRect.bottom() + TITLE_GAP;
+        Rect toolbarRect = new Rect(
+                frameRect.x() + INNER_PADDING,
+                toolbarY,
+                Math.max(1, frameRect.width() - INNER_PADDING * 2),
+                CONTROL_HEIGHT
         );
-        int searchY = titleRect.bottom() + TITLE_GAP;
-        Rect searchFieldRect = new Rect(toolbarLeft, searchY, searchWidth, CONTROL_HEIGHT);
-        Rect sortButtonRect = new Rect(searchFieldRect.right() + TOOLBAR_GAP, searchY, SORT_BUTTON_WIDTH, CONTROL_HEIGHT);
-        Rect depositButtonRect = new Rect(sortButtonRect.right() + TOOLBAR_GAP, searchY, DEPOSIT_BUTTON_WIDTH, CONTROL_HEIGHT);
 
-        int contentTop = searchFieldRect.bottom() + SECTION_GAP;
+        int toolbarLeft = toolbarRect.x();
+        int toolbarRight = toolbarRect.right();
+        Rect previousPageButtonRect = new Rect(toolbarRight - PAGE_CONTROLS_WIDTH, toolbarY, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect pageLabelRect = new Rect(previousPageButtonRect.right() + PAGE_BUTTON_GAP, toolbarY, PAGE_LABEL_WIDTH, CONTROL_HEIGHT);
+        Rect nextPageButtonRect = new Rect(pageLabelRect.right() + PAGE_BUTTON_GAP, toolbarY, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect depositButtonRect = new Rect(previousPageButtonRect.x() - TOOLBAR_GAP - DEPOSIT_BUTTON_WIDTH, toolbarY, DEPOSIT_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect sortButtonRect = new Rect(depositButtonRect.x() - TOOLBAR_GAP - SORT_BUTTON_WIDTH, toolbarY, SORT_BUTTON_WIDTH, CONTROL_HEIGHT);
+        int searchWidth = Math.max(SEARCH_MIN_WIDTH, sortButtonRect.x() - TOOLBAR_GAP - toolbarLeft);
+        Rect searchFieldRect = new Rect(toolbarLeft, toolbarY, searchWidth, CONTROL_HEIGHT);
+
+        int contentTop = toolbarRect.bottom() + SECTION_GAP;
+        int playerColumnX = frameRect.x() + INNER_PADDING;
+        int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         Rect bottomInventoryRect = new Rect(
-                frameRect.x() + (frameRect.width() - bottomInventoryWidth) / 2,
-                frameRect.bottom() - INNER_PADDING - bottomInventoryHeight,
+                playerColumnX,
+                contentTop + equipmentHeight + SECTION_GAP,
                 bottomInventoryWidth,
                 bottomInventoryHeight
         );
-        Rect equipmentPanelRect = new Rect(frameRect.x() + INNER_PADDING, contentTop, equipmentWidth, equipmentHeight);
+        Rect equipmentPanelRect = new Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
 
-        int databasePanelX = equipmentPanelRect.right() + SECTION_GAP;
+        int databasePanelX = playerColumnX + playerColumnWidth + SECTION_GAP;
         int databasePanelWidth = Math.max(1, frameRect.right() - INNER_PADDING - databasePanelX);
-        int databasePanelHeight = Math.max(1, bottomInventoryRect.y() - SECTION_GAP - contentTop);
+        Rect databaseFooterRect = new Rect(
+                databasePanelX,
+                frameRect.bottom() - INNER_PADDING - FOOTER_HEIGHT,
+                databasePanelWidth,
+                FOOTER_HEIGHT
+        );
+        int databasePanelHeight = Math.max(1, databaseFooterRect.y() - SECTION_GAP - contentTop);
         Rect databasePanelRect = new Rect(databasePanelX, contentTop, databasePanelWidth, databasePanelHeight);
 
-        int availableGridWidth = Math.max(SLOT_SIZE, databasePanelRect.width() - GRID_PADDING * 2);
-        int availableGridHeight = Math.max(SLOT_SIZE, databasePanelRect.height() - GRID_PADDING * 2 - FOOTER_HEIGHT);
-        int databaseColumns = clamp(availableGridWidth / SLOT_SIZE, 1, MAX_COLUMNS);
-        int databaseRows = clamp(availableGridHeight / SLOT_SIZE, 1, MAX_ROWS);
-        int gridWidth = databaseColumns * SLOT_SIZE;
-        int gridHeight = databaseRows * SLOT_SIZE;
+        int availableGridWidth = Math.max(DATABASE_SLOT_SIZE, databasePanelRect.width() - GRID_PADDING * 2);
+        int availableGridHeight = Math.max(DATABASE_SLOT_SIZE, databasePanelRect.height() - GRID_PADDING * 2);
+        int databaseColumns = clamp(availableGridWidth / DATABASE_SLOT_SIZE, 1, MAX_COLUMNS);
+        int databaseRows = clamp(availableGridHeight / DATABASE_SLOT_SIZE, 1, MAX_ROWS);
+        int gridWidth = databaseColumns * DATABASE_SLOT_SIZE;
+        int gridHeight = databaseRows * DATABASE_SLOT_SIZE;
         Rect databaseGridRect = new Rect(
-                databasePanelRect.x() + Math.max(0, (databasePanelRect.width() - gridWidth) / 2),
+                databasePanelRect.x() + GRID_PADDING,
                 databasePanelRect.y() + GRID_PADDING,
                 gridWidth,
                 gridHeight
         );
-        Rect databaseFooterRect = new Rect(
-                databasePanelRect.x() + GRID_PADDING,
-                databasePanelRect.bottom() - GRID_PADDING - FOOTER_HEIGHT,
-                Math.max(1, databasePanelRect.width() - GRID_PADDING * 2),
-                FOOTER_HEIGHT
-        );
-        int pageButtonsX = Math.max(databaseFooterRect.x(), databaseFooterRect.right() - PAGE_CONTROLS_WIDTH);
-        Rect previousPageButtonRect = new Rect(pageButtonsX, databaseFooterRect.y() + 2, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
-        Rect nextPageButtonRect = new Rect(databaseFooterRect.right() - PAGE_BUTTON_WIDTH, databaseFooterRect.y() + 2, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
 
         return new PersonalDatabaseLayout(
                 frameRect,
                 tabBarRect,
                 titleRect,
+                toolbarRect,
                 searchFieldRect,
                 sortButtonRect,
                 depositButtonRect,
+                pageLabelRect,
                 equipmentPanelRect,
                 bottomInventoryRect,
                 databasePanelRect,
@@ -155,15 +168,15 @@ public record PersonalDatabaseLayout(
     }
 
     public int databaseSlotX(int slotIndex) {
-        return this.databaseGridRect.x() + slotIndex % this.databaseColumns * SLOT_SIZE;
+        return this.databaseGridRect.x() + slotIndex % this.databaseColumns * DATABASE_SLOT_SIZE;
     }
 
     public int databaseSlotY(int slotIndex) {
-        return this.databaseGridRect.y() + slotIndex / this.databaseColumns * SLOT_SIZE;
+        return this.databaseGridRect.y() + slotIndex / this.databaseColumns * DATABASE_SLOT_SIZE;
     }
 
     public Rect databaseSlotBounds(int slotIndex) {
-        return new Rect(this.databaseSlotX(slotIndex), this.databaseSlotY(slotIndex), SLOT_SIZE, SLOT_SIZE);
+        return new Rect(this.databaseSlotX(slotIndex), this.databaseSlotY(slotIndex), DATABASE_SLOT_SIZE, DATABASE_SLOT_SIZE);
     }
 
     public Rect tabBounds(int index, int totalTabs) {
