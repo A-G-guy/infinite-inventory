@@ -5,6 +5,19 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
 final class VanillaWidgetRenderer {
+    private static final int OVERLAY_SHADOW_COLOR = 0x70000000;
+    private static final int OVERLAY_OUTLINE_COLOR = 0xFF433A31;
+    private static final int OVERLAY_BACKGROUND_COLOR = 0xFFF2ECDD;
+    private static final int OVERLAY_TOP_EDGE_COLOR = 0x90FFFDF7;
+    private static final int OVERLAY_BOTTOM_EDGE_COLOR = 0x50261E16;
+    private static final int OVERLAY_ROW_COLOR = 0x80E1D9C9;
+    private static final int OVERLAY_ROW_HOVERED_COLOR = 0xE0D8CFBD;
+    private static final int OVERLAY_ROW_SELECTED_COLOR = 0xE0D6C193;
+    private static final int OVERLAY_ROW_DIVIDER_COLOR = 0x70A89E8C;
+    private static final int OVERLAY_CHIP_ACTIVE_COLOR = 0xFFF5F0E4;
+    private static final int OVERLAY_CHIP_HOVERED_COLOR = 0xFFE8DDC6;
+    private static final int OVERLAY_CHIP_SELECTED_COLOR = 0xFFE3D0A4;
+    private static final int OVERLAY_CHIP_DISABLED_COLOR = 0xFFD3CCBE;
     private static final ResourceLocation PANEL_SPRITE = ResourceLocation.withDefaultNamespace("container/bundle/background");
     private static final ResourceLocation SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/slot");
     private static final ResourceLocation TAB_SPRITE = ResourceLocation.withDefaultNamespace("widget/tab");
@@ -37,11 +50,38 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderSlotHighlight(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
-        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), 0x22FFFFFF);
-        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.y() + 1, 0xE0FFF7D6);
-        guiGraphics.fill(rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), 0xB05B5B5B);
-        guiGraphics.fill(rect.x(), rect.y(), rect.x() + 1, rect.bottom(), 0xE0FFF7D6);
-        guiGraphics.fill(rect.right() - 1, rect.y(), rect.right(), rect.bottom(), 0xB05B5B5B);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0x48000000);
+    }
+
+    static void renderOverlayPanel(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() + 2, rect.bottom() + 2, OVERLAY_SHADOW_COLOR);
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), OVERLAY_OUTLINE_COLOR);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, OVERLAY_BACKGROUND_COLOR);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, OVERLAY_TOP_EDGE_COLOR);
+        guiGraphics.fill(rect.x() + 2, rect.bottom() - 3, rect.right() - 2, rect.bottom() - 2, OVERLAY_BOTTOM_EDGE_COLOR);
+    }
+
+    static void renderOverlayRow(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean hovered, boolean selected) {
+        int fillColor = selected ? OVERLAY_ROW_SELECTED_COLOR : hovered ? OVERLAY_ROW_HOVERED_COLOR : OVERLAY_ROW_COLOR;
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), fillColor);
+        guiGraphics.fill(rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), OVERLAY_ROW_DIVIDER_COLOR);
+    }
+
+    static void renderOverlayChip(
+            GuiGraphics guiGraphics,
+            PersonalDatabaseLayout.Rect rect,
+            boolean hovered,
+            boolean selected,
+            boolean enabled
+    ) {
+        int fillColor = !enabled
+                ? OVERLAY_CHIP_DISABLED_COLOR
+                : selected ? OVERLAY_CHIP_SELECTED_COLOR
+                : hovered ? OVERLAY_CHIP_HOVERED_COLOR
+                : OVERLAY_CHIP_ACTIVE_COLOR;
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), OVERLAY_OUTLINE_COLOR);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, fillColor);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, OVERLAY_TOP_EDGE_COLOR);
     }
 
     static void renderSearchGlyph(GuiGraphics guiGraphics, int x, int y, int color) {
