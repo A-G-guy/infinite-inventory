@@ -4,6 +4,7 @@ import com.agguy.infiniteinventory.compat.PlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.compat.VanillaPlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
@@ -57,6 +58,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private Button previousPageButton;
     private Button nextPageButton;
     private Button sortButton;
+    private Button personalScopeButton;
+    private Button publicScopeButton;
     private boolean syncingSearchBox;
     private boolean sortDropdownExpanded;
     private boolean contextMenuExpanded;
@@ -227,6 +230,22 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 .bounds(sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height())
                 .build());
 
+        PersonalDatabaseLayout.Rect personalScopeRect = this.layout.personalScopeButtonRect();
+        this.personalScopeButton = this.addRenderableWidget(Button.builder(
+                        Component.translatable(DatabaseScope.PERSONAL.translationKey()),
+                        button -> this.switchScope(DatabaseScope.PERSONAL)
+                )
+                .bounds(personalScopeRect.x(), personalScopeRect.y(), personalScopeRect.width(), personalScopeRect.height())
+                .build());
+
+        PersonalDatabaseLayout.Rect publicScopeRect = this.layout.publicScopeButtonRect();
+        this.publicScopeButton = this.addRenderableWidget(Button.builder(
+                        Component.translatable(DatabaseScope.PUBLIC.translationKey()),
+                        button -> this.switchScope(DatabaseScope.PUBLIC)
+                )
+                .bounds(publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height())
+                .build());
+
         PersonalDatabaseLayout.Rect depositRect = this.layout.depositButtonRect();
         this.depositButton = this.addRenderableWidget(Button.builder(Component.translatable("screen.infiniteinventory.deposit_all"), button -> {
                     this.closeContextMenu();
@@ -251,6 +270,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private void syncWidgetsFromState() {
         DatabaseViewState viewState = this.menu.viewState();
         DatabaseQuery query = viewState.query();
+        DatabaseScope activeScope = query.scope();
         if (this.searchBox != null && !this.searchBox.isFocused() && !this.searchBox.getValue().equals(query.searchText())) {
             this.syncingSearchBox = true;
             this.searchBox.setValue(query.searchText());
@@ -267,6 +287,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.depositButton != null) {
             this.depositButton.active = this.minecraft != null && this.minecraft.player != null;
+        }
+        if (this.personalScopeButton != null) {
+            this.personalScopeButton.active = activeScope != DatabaseScope.PERSONAL;
+        }
+        if (this.publicScopeButton != null) {
+            this.publicScopeButton.active = activeScope != DatabaseScope.PUBLIC;
         }
         if (!this.menu.getCarried().isEmpty()) {
             this.closeContextMenu();
@@ -340,6 +366,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.sortDropdownExpanded = false;
     }
 
+    private void switchScope(DatabaseScope scope) {
+        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
+        if (normalizedScope == this.menu.viewState().query().scope()) {
+            return;
+        }
+        this.sendQuery(this.menu.viewState().queryForScope(normalizedScope));
+    }
+
     private void renderTabs(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (this.layout == null) {
             return;
@@ -406,7 +440,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         DatabaseQuery query = this.menu.viewState().query();
         Component message = Component.translatable(query.searchText().isEmpty()
-                ? "screen.infiniteinventory.empty"
+                ? query.scope().emptyTranslationKey()
                 : "screen.infiniteinventory.no_results");
         PersonalDatabaseLayout.Rect gridRect = this.layout.databaseGridRect();
         int y = gridRect.y() + Math.max(0, gridRect.height() / 2 - 4);
@@ -418,11 +452,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return;
         }
         DatabaseViewState viewState = this.menu.viewState();
-        guiGraphics.drawString(this.font, this.title, this.layout.titleRect().x(), this.layout.titleRect().y(), 0x404040, true);
+        guiGraphics.drawString(this.font, this.title, this.layout.titleRect().x(), this.layout.titleRect().y() + 6, 0x404040, true);
 
-        Component footerStats = Component.translatable("screen.infiniteinventory.total_entries", viewState.totalEntries())
-                .append(Component.literal("   "))
-                .append(Component.translatable("screen.infiniteinventory.total_items", CompactNumberFormatter.format(viewState.totalItems())));
+        Component footerStats = Component.translatable(
+                "screen.infiniteinventory.footer_stats",
+                Component.translatable(viewState.query().scope().translationKey()),
+                viewState.totalEntries(),
+                CompactNumberFormatter.format(viewState.totalItems())
+        );
         guiGraphics.drawString(
                 this.font,
                 footerStats,
@@ -655,7 +692,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         );
         guiGraphics.drawString(
                 this.font,
-                Component.translatable("screen.infiniteinventory.database.section"),
+                Component.translatable(this.menu.viewState().query().scope().sectionTranslationKey()),
                 this.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
                 this.layout.databasePanelRect().y() - 12,
                 0x404040,
