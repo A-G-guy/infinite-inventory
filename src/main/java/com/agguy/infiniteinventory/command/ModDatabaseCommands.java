@@ -90,7 +90,7 @@ public final class ModDatabaseCommands {
         try {
             Path preRestoreBackup = DatabaseBackupManager.createPreRestoreBackup(source.getServer(), "before-restore");
             DatabaseBackupInfo restoredBackup = DatabaseBackupManager.restoreBackup(source.getServer(), snapshotFileName);
-            PersonalDatabaseService.INSTANCE.syncAllViewers(source.getServer());
+            PersonalDatabaseService.INSTANCE.syncAllViewersAndNotifyCurrentScope(source.getServer());
             source.sendSuccess(() -> Component.translatable(
                     "command.infiniteinventory.database.restore.completed",
                     restoredBackup.fileName(),
