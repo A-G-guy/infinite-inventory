@@ -225,12 +225,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private void renderTabs(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         DatabaseCategory selectedCategory = this.menu.viewState().query().category();
         int tabWidth = (this.imageWidth - 16 - TAB_GAP * (DatabaseCategory.values().length - 1)) / DatabaseCategory.values().length;
-        int tabY = 18;
+        int tabY = this.topPos + 18;
         for (int index = 0; index < DatabaseCategory.values().length; index++) {
             DatabaseCategory category = DatabaseCategory.values()[index];
-            int x = 8 + index * (tabWidth + TAB_GAP);
+            int x = this.leftPos + 8 + index * (tabWidth + TAB_GAP);
             boolean selected = category == selectedCategory;
-            boolean hovered = this.isWithin(x, tabY, tabWidth, TAB_HEIGHT, mouseX, mouseY);
+            boolean hovered = this.isWithinAbsolute(x, tabY, tabWidth, TAB_HEIGHT, mouseX, mouseY);
             int fillColor = selected ? 0xFFC6C6C6 : hovered ? 0xFF8B8B8B : 0xFF555555;
             int borderColor = selected ? 0xFFFFFFFF : 0xFF2B2B2B;
             guiGraphics.fill(x, tabY, x + tabWidth, tabY + TAB_HEIGHT, fillColor);
@@ -245,15 +245,15 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private void renderDatabaseEntries(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
         for (int slotIndex = 0; slotIndex < PersonalDatabaseLayout.DATABASE_SLOT_COUNT; slotIndex++) {
-            int slotX = PersonalDatabaseLayout.databaseSlotX(slotIndex);
-            int slotY = PersonalDatabaseLayout.databaseSlotY(slotIndex);
+            int slotX = this.leftPos + PersonalDatabaseLayout.databaseSlotX(slotIndex);
+            int slotY = this.topPos + PersonalDatabaseLayout.databaseSlotY(slotIndex);
             if (slotIndex < entries.size()) {
                 VisibleDatabaseEntry entry = entries.get(slotIndex);
                 ItemStack stack = entry.stack();
                 guiGraphics.renderItem(stack, slotX + 1, slotY + 1);
                 guiGraphics.renderItemDecorations(this.font, stack, slotX + 1, slotY + 1, CompactNumberFormatter.format(entry.amount()));
             }
-            if (this.isWithin(slotX, slotY, 18, 18, mouseX, mouseY)) {
+            if (this.isWithinAbsolute(slotX, slotY, 18, 18, mouseX, mouseY)) {
                 guiGraphics.fill(slotX, slotY, slotX + 18, slotY + 18, 0x66FFFFFF);
             }
         }
