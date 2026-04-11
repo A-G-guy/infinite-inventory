@@ -82,34 +82,63 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void accessoriesPanelShouldSitBetweenEquipmentAndBottomInventory() {
+    void collapsedAccessoriesShouldReserveOnlyToggleRow() {
         List<AccessorySlotGroup> accessoryGroups = List.of(
                 new AccessorySlotGroup("back", "accessories.slot.back", 46, 1),
                 new AccessorySlotGroup("ring", "accessories.slot.ring", 47, 2)
         );
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups);
 
-        assertTrue(layout.accessoriesPanelRect().height() > 0);
-        assertTrue(layout.accessoriesPanelRect().y() >= layout.equipmentPanelRect().bottom() + PersonalDatabaseLayout.SECTION_GAP);
-        assertTrue(layout.bottomInventoryRect().y() >= layout.accessoriesPanelRect().bottom() + PersonalDatabaseLayout.SECTION_GAP);
-        assertTrue(layout.accessoriesPanelRect().x() == layout.equipmentPanelRect().x());
+        assertTrue(layout.accessoryToggleRect().height() == PersonalDatabaseLayout.CONTROL_HEIGHT);
+        assertTrue(layout.accessoriesPanelRect().height() == 0);
+        assertTrue(layout.bottomInventoryRect().y() == layout.accessoryToggleRect().bottom() + PersonalDatabaseLayout.SECTION_GAP);
+        assertTrue(layout.accessorySlotLayouts().stream().noneMatch(PersonalDatabaseLayout.AccessorySlotLayout::visible));
     }
 
     @Test
-    void accessoriesSlotBoundsShouldStayInsideAccessoriesPanel() {
+    void expandedAccessoriesPanelShouldOverlayDatabaseAreaWithoutMovingBottomInventory() {
         List<AccessorySlotGroup> accessoryGroups = List.of(
                 new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 10)
         );
-        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups);
+        PersonalDatabaseLayout collapsedLayout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups);
+        PersonalDatabaseLayout expandedLayout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
 
-        for (PersonalDatabaseLayout.AccessoryGroupLayout groupLayout : layout.accessoryGroupLayouts()) {
-            for (int slotIndex = 0; slotIndex < groupLayout.group().slotCount(); slotIndex++) {
-                PersonalDatabaseLayout.Rect slotRect = groupLayout.slotBounds(slotIndex);
-                assertTrue(slotRect.x() >= layout.accessoriesPanelRect().x());
-                assertTrue(slotRect.right() <= layout.accessoriesPanelRect().right());
-                assertTrue(slotRect.y() >= layout.accessoriesPanelRect().y());
-                assertTrue(slotRect.bottom() <= layout.accessoriesPanelRect().bottom());
+        assertTrue(expandedLayout.accessoriesPanelRect().height() > 0);
+        assertTrue(expandedLayout.accessoriesPanelRect().x() >= collapsedLayout.bottomInventoryRect().right() + PersonalDatabaseLayout.SECTION_GAP);
+        assertTrue(expandedLayout.bottomInventoryRect().y() == collapsedLayout.bottomInventoryRect().y());
+        assertTrue(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
+    }
+
+    @Test
+    void visibleAccessorySlotsShouldStayInsideExpandedAccessoriesPanel() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 24)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
+
+        assertTrue(layout.accessoryVisibleSlotCount() > 0);
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : layout.accessorySlotLayouts()) {
+            if (!slotLayout.visible()) {
+                continue;
             }
+            PersonalDatabaseLayout.Rect slotRect = slotLayout.slotRect();
+            assertTrue(slotRect.x() >= layout.accessoriesPanelRect().x());
+            assertTrue(slotRect.right() <= layout.accessoriesPanelRect().right());
+            assertTrue(slotRect.y() >= layout.accessoriesPanelRect().y());
+            assertTrue(slotRect.bottom() <= layout.accessoriesPanelRect().bottom());
         }
+    }
+
+    @Test
+    void scrollingAccessoriesShouldClampAndRevealLaterRows() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 260)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 1);
+
+        assertTrue(layout.accessoryMaxScrollRow() > 0);
+        assertTrue(layout.accessoryScrollRow() == 1);
+        assertTrue(layout.accessorySlotLayouts().getFirst().visible() == false);
+        assertTrue(layout.accessorySlotLayouts().stream().anyMatch(slotLayout -> slotLayout.visible() && slotLayout.slotOffset() >= layout.accessoryColumns()));
     }
 }

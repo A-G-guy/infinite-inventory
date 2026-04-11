@@ -77,12 +77,15 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private Button advancedSearchButton;
     private Button personalScopeButton;
     private Button publicScopeButton;
+    private Button accessoriesToggleButton;
     private final Map<DatabaseSearchField, Button> advancedSearchToggleButtons = new EnumMap<>(DatabaseSearchField.class);
     private final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
     private boolean syncingSearchBox;
     private boolean sortDropdownExpanded;
     private boolean advancedSearchExpanded;
+    private boolean accessoriesExpanded;
     private boolean contextMenuExpanded;
+    private int accessoryScrollRow;
     private int contextMenuSlotIndex = -1;
     private int contextMenuX;
     private int contextMenuY;
@@ -100,16 +103,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.imageHeight = this.height;
         super.init();
 
-        this.layout = PersonalDatabaseLayout.create(
-                this.width,
-                this.height,
-                this.inventoryPaneProvider.equipmentPanelWidth(),
-                this.inventoryPaneProvider.equipmentPanelHeight(),
-                this.inventoryPaneProvider.bottomInventoryWidth(),
-                this.inventoryPaneProvider.bottomInventoryHeight(),
-                this.menu.accessorySlotGroups()
-        );
-        this.menu.applySlotLayout(this.layout);
+        if (!this.hasAccessorySlots()) {
+            this.accessoriesExpanded = false;
+            this.accessoryScrollRow = 0;
+        }
+        this.rebuildLayout();
         this.pendingLayoutQuery = null;
         this.sortDropdownExpanded = false;
         this.advancedSearchExpanded = false;
@@ -164,12 +162,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     mouseY
             );
         }
-        this.renderAccessoriesPanel(guiGraphics);
         this.inventoryPaneProvider.renderBottomInventory(
                 guiGraphics,
                 this.layout.bottomInventoryRect().x(),
                 this.layout.bottomInventoryRect().y()
         );
+        if (this.accessoriesExpanded) {
+            this.renderAccessoriesPanel(guiGraphics, mouseX, mouseY);
+        }
 
         this.renderDatabaseSlots(guiGraphics);
         this.renderDatabaseEntries(guiGraphics, mouseX, mouseY);
@@ -196,6 +196,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.sortDropdownExpanded && this.handleSortDropdownClick(mouseX, mouseY)) {
             return true;
         }
+        if (this.accessoriesExpanded && this.isWithinAccessoriesPanel(mouseX, mouseY)) {
+            super.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
         if (this.handleCategoryClick(mouseX, mouseY)) {
             return true;
         }
@@ -208,6 +212,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             this.closeContextMenu();
         }
         return handled;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (this.accessoriesExpanded && this.isWithinAccessoriesPanel(mouseX, mouseY) && this.scrollAccessories((int) -Math.signum(scrollY))) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
@@ -229,6 +241,26 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return true;
         }
         return super.charTyped(codePoint, modifiers);
+    }
+
+    private void rebuildLayout() {
+        this.layout = PersonalDatabaseLayout.create(
+                this.width,
+                this.height,
+                this.inventoryPaneProvider.equipmentPanelWidth(),
+                this.inventoryPaneProvider.equipmentPanelHeight(),
+                this.inventoryPaneProvider.bottomInventoryWidth(),
+                this.inventoryPaneProvider.bottomInventoryHeight(),
+                this.menu.accessorySlotGroups(),
+                this.accessoriesExpanded,
+                this.accessoryScrollRow
+        );
+        this.accessoryScrollRow = this.layout.accessoryScrollRow();
+        this.menu.applySlotLayout(this.layout);
+    }
+
+    private boolean hasAccessorySlots() {
+        return !this.menu.accessorySlotGroups().isEmpty();
     }
 
     private void buildWidgets() {
@@ -309,6 +341,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.nextPageButton = this.addRenderableWidget(Button.builder(Component.literal(">"), button -> this.changePage(1))
                 .bounds(nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height())
                 .build());
+
+        this.accessoriesToggleButton = null;
+        if (this.hasAccessorySlots() && this.layout.accessoryToggleRect().height() > 0) {
+            PersonalDatabaseLayout.Rect accessoryToggleRect = this.layout.accessoryToggleRect();
+            this.accessoriesToggleButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> this.toggleAccessoriesPanel())
+                    .bounds(accessoryToggleRect.x(), accessoryToggleRect.y(), accessoryToggleRect.width(), accessoryToggleRect.height())
+                    .build());
+        }
 
     }
 
@@ -428,6 +468,15 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.publicScopeButton != null) {
             this.publicScopeButton.active = activeScope != DatabaseScope.PUBLIC;
         }
+        if (this.accessoriesToggleButton != null) {
+            this.accessoriesToggleButton.visible = this.hasAccessorySlots() && this.layout != null && this.layout.accessoryToggleRect().height() > 0;
+            this.accessoriesToggleButton.active = this.hasAccessorySlots();
+            this.accessoriesToggleButton.setMessage(Component.translatable(
+                    this.accessoriesExpanded
+                            ? "screen.infiniteinventory.accessories_toggle.collapse"
+                            : "screen.infiniteinventory.accessories_toggle.expand"
+            ));
+        }
         this.syncAdvancedSearchButtons(query);
         if (!this.menu.getCarried().isEmpty()) {
             this.closeContextMenu();
@@ -509,6 +558,32 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.sendQuery(this.menu.viewState().queryForScope(normalizedScope));
     }
 
+    private void toggleAccessoriesPanel() {
+        if (!this.hasAccessorySlots()) {
+            return;
+        }
+        this.accessoriesExpanded = !this.accessoriesExpanded;
+        if (!this.accessoriesExpanded) {
+            this.accessoryScrollRow = 0;
+        }
+        this.closeContextMenu();
+        this.sortDropdownExpanded = false;
+        this.rebuildLayout();
+    }
+
+    private boolean scrollAccessories(int deltaRows) {
+        if (deltaRows == 0 || this.layout == null || !this.accessoriesExpanded) {
+            return false;
+        }
+        int nextScrollRow = Mth.clamp(this.accessoryScrollRow + deltaRows, 0, this.layout.accessoryMaxScrollRow());
+        if (nextScrollRow == this.accessoryScrollRow) {
+            return false;
+        }
+        this.accessoryScrollRow = nextScrollRow;
+        this.rebuildLayout();
+        return true;
+    }
+
     private void renderTabs(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (this.layout == null) {
             return;
@@ -544,28 +619,59 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
             PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
+            if (this.isCoveredByAccessoriesPanel(slotRect)) {
+                continue;
+            }
             VanillaWidgetRenderer.renderSlot(guiGraphics, slotRect.x(), slotRect.y());
         }
     }
 
-    private void renderAccessoriesPanel(GuiGraphics guiGraphics) {
+    private void renderAccessoriesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (this.layout == null || this.layout.accessoriesPanelRect().height() <= 0) {
             return;
         }
-        VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.accessoriesPanelRect());
-        for (PersonalDatabaseLayout.AccessoryGroupLayout groupLayout : this.layout.accessoryGroupLayouts()) {
-            Component label = I18n.exists(groupLayout.group().translationKey())
-                    ? Component.translatable(groupLayout.group().translationKey())
-                    : Component.literal(groupLayout.group().slotName());
-            guiGraphics.drawString(
-                    this.font,
-                    this.truncateToWidth(label.getString(), groupLayout.labelRect().width()),
-                    groupLayout.labelRect().x(),
-                    groupLayout.labelRect().y(),
-                    0x404040,
-                    true
+        PersonalDatabaseLayout.Rect panelRect = this.layout.accessoriesPanelRect();
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 220.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
+        guiGraphics.drawString(
+                this.font,
+                Component.translatable("screen.infiniteinventory.accessories_panel"),
+                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                OVERLAY_TEXT_COLOR,
+                true
+        );
+        if (this.layout.accessoryTotalRows() > 0) {
+            Component pageLabel = Component.translatable(
+                    "screen.infiniteinventory.accessories_scroll",
+                    this.layout.accessoryScrollRow() + 1,
+                    Math.max(1, this.layout.accessoryTotalRows())
+            );
+            int indicatorRight = panelRect.right() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING;
+            int indicatorLeft = Math.max(panelRect.x(), indicatorRight - 56);
+            this.drawCenteredShadow(
+                    guiGraphics,
+                    pageLabel,
+                    indicatorLeft,
+                    indicatorRight,
+                    panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                    OVERLAY_MUTED_TEXT_COLOR
             );
         }
+        guiGraphics.fill(
+                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 1,
+                panelRect.right() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 2,
+                0x70A89E8C
+        );
+        PersonalDatabaseLayout.AccessorySlotLayout hoveredSlot = this.findHoveredAccessorySlot(mouseX, mouseY);
+        if (hoveredSlot != null) {
+            PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
+            guiGraphics.fill(slotRect.x() + 1, slotRect.y() + 1, slotRect.right() - 1, slotRect.bottom() - 1, 0x35000000);
+        }
+        guiGraphics.pose().popPose();
     }
 
     private void renderDatabaseEntries(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -575,6 +681,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
         for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
             PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
+            if (this.isCoveredByAccessoriesPanel(slotRect)) {
+                continue;
+            }
             if (slotRect.contains(mouseX, mouseY)) {
                 VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
             }
@@ -887,6 +996,25 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.contextMenuExpanded || this.sortDropdownExpanded || this.advancedSearchExpanded) {
             return;
         }
+        PersonalDatabaseLayout.AccessorySlotLayout accessorySlotLayout = this.findHoveredAccessorySlot(mouseX, mouseY);
+        if (accessorySlotLayout != null) {
+            ItemStack hoveredStack = accessorySlotLayout.slotIndex() >= 0 && accessorySlotLayout.slotIndex() < this.menu.slots.size()
+                    ? this.menu.getSlot(accessorySlotLayout.slotIndex()).getItem()
+                    : ItemStack.EMPTY;
+            if (hoveredStack.isEmpty()) {
+                Component slotLabel = I18n.exists(accessorySlotLayout.group().translationKey())
+                        ? Component.translatable(accessorySlotLayout.group().translationKey())
+                        : Component.literal(accessorySlotLayout.group().slotName());
+                guiGraphics.renderTooltip(
+                        this.font,
+                        List.of(slotLabel),
+                        ItemStack.EMPTY.getTooltipImage(),
+                        mouseX,
+                        mouseY
+                );
+            }
+            return;
+        }
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
         if (slotIndex >= 0 && slotIndex < this.menu.viewState().entries().size()) {
             VisibleDatabaseEntry entry = this.menu.viewState().entries().get(slotIndex);
@@ -1129,12 +1257,42 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         return !field.isTextField() || weight == DatabaseSearchWeight.OFF || this.enabledTextFieldCount(searchConfig) > 1;
     }
 
+    private boolean isWithinAccessoriesPanel(double mouseX, double mouseY) {
+        return this.layout != null
+                && this.accessoriesExpanded
+                && this.layout.accessoriesPanelRect().contains(mouseX, mouseY);
+    }
+
+    private boolean isCoveredByAccessoriesPanel(PersonalDatabaseLayout.Rect rect) {
+        return this.accessoriesExpanded
+                && this.layout != null
+                && this.layout.accessoriesPanelRect().height() > 0
+                && this.layout.accessoriesPanelRect().intersects(rect);
+    }
+
+    @Nullable
+    private PersonalDatabaseLayout.AccessorySlotLayout findHoveredAccessorySlot(double mouseX, double mouseY) {
+        if (this.layout == null || !this.accessoriesExpanded) {
+            return null;
+        }
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : this.layout.accessorySlotLayouts()) {
+            if (slotLayout.visible() && slotLayout.slotRect().contains(mouseX, mouseY)) {
+                return slotLayout;
+            }
+        }
+        return null;
+    }
+
     private int findDatabaseSlot(double mouseX, double mouseY) {
         if (this.layout == null) {
             return -1;
         }
         for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
-            if (this.layout.databaseSlotBounds(slotIndex).contains(mouseX, mouseY)) {
+            PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
+            if (this.isCoveredByAccessoriesPanel(slotRect)) {
+                continue;
+            }
+            if (slotRect.contains(mouseX, mouseY)) {
                 return slotIndex;
             }
         }
