@@ -69,6 +69,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private final MenuSlotRange armorSlotRange;
     private final MenuSlotRange mainInventorySlotRange;
     private final MenuSlotRange hotbarSlotRange;
+    private final MenuSlotRange playerStorageSlotRange;
     private final int offhandSlotIndex;
     private final List<AccessorySlotGroup> accessorySlotGroups;
     private final MenuSlotRange accessorySlotRange;
@@ -92,6 +93,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.armorSlotRange = this.addArmorSlots(playerInventory, owner);
         this.mainInventorySlotRange = this.addMainInventorySlots(playerInventory);
         this.hotbarSlotRange = this.addHotbarSlots(playerInventory);
+        this.playerStorageSlotRange = MenuSlotRange.span(this.mainInventorySlotRange, this.hotbarSlotRange);
         this.offhandSlotIndex = this.addTrackedSlot(new OffhandDisplaySlot(playerInventory, owner, 40, TOP_SECTION_OFFHAND_X, TOP_SECTION_OFFHAND_Y));
         this.accessorySlotGroups = List.copyOf(AccessoriesCompat.appendAccessorySlots(owner, this::addTrackedSlot));
         this.accessorySlotRange = MenuSlotRange.fromGroups(this.accessorySlotGroups);
@@ -435,7 +437,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     private boolean moveToPlayerStorage(ItemStack stack, boolean reverse) {
-        return this.moveItemStackTo(stack, this.mainInventorySlotRange.firstIndex(), this.offhandSlotIndex + 1, reverse);
+        if (this.playerStorageSlotRange.isEmpty()) {
+            return false;
+        }
+        return this.moveItemStackTo(stack, this.playerStorageSlotRange.firstIndex(), this.playerStorageSlotRange.lastIndexExclusive(), reverse);
     }
 
     private boolean tryMoveToAccessorySlots(ItemStack stack) {
@@ -557,37 +562,6 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 @Nullable RecipeHolder<CraftingRecipe> recipe
         ) {
             slotChangedCraftingGrid(menu, level, player, craftingSlots, resultSlots, recipe);
-        }
-    }
-
-    private record MenuSlotRange(int firstIndex, int slotCount) {
-        private static MenuSlotRange of(int firstIndex, int slotCount) {
-            return new MenuSlotRange(firstIndex, Math.max(0, slotCount));
-        }
-
-        private static MenuSlotRange empty() {
-            return new MenuSlotRange(0, 0);
-        }
-
-        private static MenuSlotRange fromGroups(List<AccessorySlotGroup> groups) {
-            if (groups == null || groups.isEmpty()) {
-                return empty();
-            }
-            AccessorySlotGroup firstGroup = groups.getFirst();
-            AccessorySlotGroup lastGroup = groups.getLast();
-            return of(firstGroup.firstSlotIndex(), lastGroup.lastSlotIndexExclusive() - firstGroup.firstSlotIndex());
-        }
-
-        private int lastIndexExclusive() {
-            return this.firstIndex + this.slotCount;
-        }
-
-        private boolean contains(int slotIndex) {
-            return slotIndex >= this.firstIndex && slotIndex < this.lastIndexExclusive();
-        }
-
-        private boolean isEmpty() {
-            return this.slotCount <= 0;
         }
     }
 
