@@ -27,6 +27,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
@@ -102,7 +103,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 this.inventoryPaneProvider.equipmentPanelWidth(),
                 this.inventoryPaneProvider.equipmentPanelHeight(),
                 this.inventoryPaneProvider.bottomInventoryWidth(),
-                this.inventoryPaneProvider.bottomInventoryHeight()
+                this.inventoryPaneProvider.bottomInventoryHeight(),
+                this.menu.accessorySlotGroups()
         );
         this.menu.applySlotLayout(this.layout);
         this.pendingLayoutQuery = null;
@@ -162,6 +164,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     mouseY
             );
         }
+        this.renderAccessoriesPanel(guiGraphics);
         this.inventoryPaneProvider.renderBottomInventory(
                 guiGraphics,
                 this.layout.bottomInventoryRect().x(),
@@ -538,6 +541,26 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
             PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
             VanillaWidgetRenderer.renderSlot(guiGraphics, slotRect.x(), slotRect.y());
+        }
+    }
+
+    private void renderAccessoriesPanel(GuiGraphics guiGraphics) {
+        if (this.layout == null || this.layout.accessoriesPanelRect().height() <= 0) {
+            return;
+        }
+        VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.accessoriesPanelRect());
+        for (PersonalDatabaseLayout.AccessoryGroupLayout groupLayout : this.layout.accessoryGroupLayouts()) {
+            Component label = I18n.exists(groupLayout.group().translationKey())
+                    ? Component.translatable(groupLayout.group().translationKey())
+                    : Component.literal(groupLayout.group().slotName());
+            guiGraphics.drawString(
+                    this.font,
+                    this.truncateToWidth(label.getString(), groupLayout.labelRect().width()),
+                    groupLayout.labelRect().x(),
+                    groupLayout.labelRect().y(),
+                    0x404040,
+                    true
+            );
         }
     }
 

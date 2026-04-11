@@ -1,5 +1,7 @@
 package com.agguy.infiniteinventory.menu;
 
+import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -13,6 +15,7 @@ import com.agguy.infiniteinventory.registry.ModMenus;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.mojang.datafixers.util.Pair;
 import java.lang.reflect.Field;
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -44,12 +47,6 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             EquipmentSlot.CHEST,
             EquipmentSlot.HEAD
     };
-    private static final int RESULT_SLOT_MENU_INDEX = 0;
-    private static final int FIRST_CRAFT_SLOT_MENU_INDEX = 1;
-    private static final int FIRST_ARMOR_SLOT_MENU_INDEX = 5;
-    private static final int FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX = 9;
-    private static final int FIRST_HOTBAR_SLOT_MENU_INDEX = 36;
-    private static final int OFFHAND_SLOT_MENU_INDEX = 45;
     private static final int TOP_SECTION_RESULT_X = 154;
     private static final int TOP_SECTION_RESULT_Y = 28;
     private static final int TOP_SECTION_CRAFT_X = 98;
@@ -67,6 +64,14 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private final CraftingContainer craftSlots = new TransientCraftingContainer(this, 2, 2);
     private final ResultContainer resultSlots = new ResultContainer();
     private final Player owner;
+    private final int resultSlotIndex;
+    private final MenuSlotRange craftingSlotRange;
+    private final MenuSlotRange armorSlotRange;
+    private final MenuSlotRange mainInventorySlotRange;
+    private final MenuSlotRange hotbarSlotRange;
+    private final int offhandSlotIndex;
+    private final List<AccessorySlotGroup> accessorySlotGroups;
+    private final MenuSlotRange accessorySlotRange;
     private DatabaseScope activeScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
@@ -82,7 +87,14 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         super(ModMenus.PERSONAL_DATABASE_MENU.get(), containerId);
         this.owner = owner;
         this.viewState = DatabaseViewState.empty(containerId, this.currentQuery());
-        this.addVanillaInventorySlots(playerInventory, owner);
+        this.resultSlotIndex = this.addTrackedSlot(new ResultSlot(owner, this.craftSlots, this.resultSlots, 0, TOP_SECTION_RESULT_X, TOP_SECTION_RESULT_Y));
+        this.craftingSlotRange = this.addCraftingSlots();
+        this.armorSlotRange = this.addArmorSlots(playerInventory, owner);
+        this.mainInventorySlotRange = this.addMainInventorySlots(playerInventory);
+        this.hotbarSlotRange = this.addHotbarSlots(playerInventory);
+        this.offhandSlotIndex = this.addTrackedSlot(new OffhandDisplaySlot(playerInventory, owner, 40, TOP_SECTION_OFFHAND_X, TOP_SECTION_OFFHAND_Y));
+        this.accessorySlotGroups = List.copyOf(AccessoriesCompat.appendAccessorySlots(owner, this::addTrackedSlot));
+        this.accessorySlotRange = MenuSlotRange.fromGroups(this.accessorySlotGroups);
     }
 
     public DatabaseViewState viewState() {
@@ -91,6 +103,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
 
     public DatabaseScope activeScope() {
         return this.activeScope;
+    }
+
+    public List<AccessorySlotGroup> accessorySlotGroups() {
+        return this.accessorySlotGroups;
     }
 
     public void initializeFromPreferences(DatabaseViewPreferencesAttachment preferences) {
@@ -111,31 +127,33 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     public void applySlotLayout(PersonalDatabaseLayout layout) {
-        if (layout == null || this.slots.size() <= OFFHAND_SLOT_MENU_INDEX) {
+        if (layout == null) {
             return;
         }
         PersonalDatabaseLayout.Rect equipmentPanel = layout.equipmentPanelRect();
         PersonalDatabaseLayout.Rect bottomInventory = layout.bottomInventoryRect();
-        this.moveSlot(RESULT_SLOT_MENU_INDEX, equipmentPanel.x() + TOP_SECTION_RESULT_X, equipmentPanel.y() + TOP_SECTION_RESULT_Y);
+        this.moveSlot(this.resultSlotIndex, equipmentPanel.x() + TOP_SECTION_RESULT_X, equipmentPanel.y() + TOP_SECTION_RESULT_Y);
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 2; column++) {
-                int slotIndex = FIRST_CRAFT_SLOT_MENU_INDEX + column + row * 2;
+                int slotIndex = this.craftingSlotRange.firstIndex() + column + row * 2;
                 this.moveSlot(slotIndex, equipmentPanel.x() + TOP_SECTION_CRAFT_X + column * PersonalDatabaseLayout.SLOT_SIZE, equipmentPanel.y() + TOP_SECTION_CRAFT_Y + row * PersonalDatabaseLayout.SLOT_SIZE);
             }
         }
         for (int index = 0; index < ARMOR_ORDER.length; index++) {
-            this.moveSlot(FIRST_ARMOR_SLOT_MENU_INDEX + index, equipmentPanel.x() + TOP_SECTION_ARMOR_X, equipmentPanel.y() + TOP_SECTION_ARMOR_Y + index * PersonalDatabaseLayout.SLOT_SIZE);
+            this.moveSlot(this.armorSlotRange.firstIndex() + index, equipmentPanel.x() + TOP_SECTION_ARMOR_X, equipmentPanel.y() + TOP_SECTION_ARMOR_Y + index * PersonalDatabaseLayout.SLOT_SIZE);
         }
+        this.moveSlot(this.offhandSlotIndex, equipmentPanel.x() + TOP_SECTION_OFFHAND_X, equipmentPanel.y() + TOP_SECTION_OFFHAND_Y);
+        this.moveAccessorySlots(layout);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                int slotIndex = FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX + column + row * 9;
+                int slotIndex = this.mainInventorySlotRange.firstIndex() + column + row * 9;
                 this.moveSlot(slotIndex, bottomInventory.x() + BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE, bottomInventory.y() + BOTTOM_SECTION_INVENTORY_Y + row * PersonalDatabaseLayout.SLOT_SIZE);
             }
         }
         for (int column = 0; column < 9; column++) {
-            this.moveSlot(FIRST_HOTBAR_SLOT_MENU_INDEX + column, bottomInventory.x() + BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE, bottomInventory.y() + BOTTOM_SECTION_HOTBAR_Y);
+            int slotIndex = this.hotbarSlotRange.firstIndex() + column;
+            this.moveSlot(slotIndex, bottomInventory.x() + BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE, bottomInventory.y() + BOTTOM_SECTION_HOTBAR_Y);
         }
-        this.moveSlot(OFFHAND_SLOT_MENU_INDEX, equipmentPanel.x() + TOP_SECTION_OFFHAND_X, equipmentPanel.y() + TOP_SECTION_OFFHAND_Y);
     }
 
     public void syncViewToClient() {
@@ -243,45 +261,40 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             return copy;
         }
 
+        boolean moved = false;
         EquipmentSlot equipmentSlot = player.getEquipmentSlotForItem(copy);
-        if (slotIndex == RESULT_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX + 1, true)) {
-                return ItemStack.EMPTY;
+        if (slotIndex == this.resultSlotIndex) {
+            moved = this.moveToPlayerStorage(rawStack, true);
+            if (moved) {
+                slot.onQuickCraft(rawStack, copy);
             }
-            slot.onQuickCraft(rawStack, copy);
-        } else if (slotIndex >= FIRST_CRAFT_SLOT_MENU_INDEX && slotIndex < FIRST_ARMOR_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX + 1, false)) {
-                return ItemStack.EMPTY;
+        } else if (this.craftingSlotRange.contains(slotIndex)
+                || this.armorSlotRange.contains(slotIndex)
+                || slotIndex == this.offhandSlotIndex
+                || this.accessorySlotRange.contains(slotIndex)) {
+            moved = this.moveToPlayerStorage(rawStack, false);
+        } else if (this.mainInventorySlotRange.contains(slotIndex) || this.hotbarSlotRange.contains(slotIndex)) {
+            moved = this.tryMoveToAccessorySlots(rawStack);
+            if (!rawStack.isEmpty() && equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+                int armorSlotIndex = this.armorSlotRange.firstIndex() + (3 - equipmentSlot.getIndex());
+                if (!this.slots.get(armorSlotIndex).hasItem()) {
+                    moved = this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false) || moved;
+                }
+            } else if (!rawStack.isEmpty() && equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(this.offhandSlotIndex).hasItem()) {
+                moved = this.moveItemStackTo(rawStack, this.offhandSlotIndex, this.offhandSlotIndex + 1, false) || moved;
             }
-        } else if (slotIndex >= FIRST_ARMOR_SLOT_MENU_INDEX && slotIndex < FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX + 1, false)) {
-                return ItemStack.EMPTY;
+            if (!rawStack.isEmpty() && this.mainInventorySlotRange.contains(slotIndex)) {
+                moved = this.moveItemStackTo(rawStack, this.hotbarSlotRange.firstIndex(), this.hotbarSlotRange.lastIndexExclusive(), false) || moved;
+            } else if (!rawStack.isEmpty() && this.hotbarSlotRange.contains(slotIndex)) {
+                moved = this.moveItemStackTo(rawStack, this.mainInventorySlotRange.firstIndex(), this.mainInventorySlotRange.lastIndexExclusive(), false) || moved;
             }
-        } else if (slotIndex == OFFHAND_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
-            int armorSlotIndex = FIRST_ARMOR_SLOT_MENU_INDEX + (3 - equipmentSlot.getIndex());
-            if (!this.slots.get(armorSlotIndex).hasItem() && !this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(OFFHAND_SLOT_MENU_INDEX).hasItem()) {
-            if (!this.moveItemStackTo(rawStack, OFFHAND_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX + 1, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (slotIndex >= FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX && slotIndex < FIRST_HOTBAR_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_HOTBAR_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (slotIndex >= FIRST_HOTBAR_SLOT_MENU_INDEX && slotIndex < OFFHAND_SLOT_MENU_INDEX) {
-            if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, FIRST_HOTBAR_SLOT_MENU_INDEX, false)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (!this.moveItemStackTo(rawStack, FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX, OFFHAND_SLOT_MENU_INDEX, false)) {
-            return ItemStack.EMPTY;
+        } else {
+            moved = this.moveToPlayerStorage(rawStack, false);
         }
 
+        if (!moved) {
+            return ItemStack.EMPTY;
+        }
         if (rawStack.isEmpty()) {
             slot.setByPlayer(ItemStack.EMPTY, copy);
         } else {
@@ -312,7 +325,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
 
     @Override
     public int getResultSlotIndex() {
-        return RESULT_SLOT_MENU_INDEX;
+        return this.resultSlotIndex;
     }
 
     @Override
@@ -340,13 +353,23 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return slotIndex != this.getResultSlotIndex();
     }
 
-    private void addVanillaInventorySlots(Inventory playerInventory, Player owner) {
-        this.addSlot(new ResultSlot(owner, this.craftSlots, this.resultSlots, 0, TOP_SECTION_RESULT_X, TOP_SECTION_RESULT_Y));
+    private MenuSlotRange addCraftingSlots() {
+        int start = this.slots.size();
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 2; column++) {
-                this.addSlot(new Slot(this.craftSlots, column + row * 2, TOP_SECTION_CRAFT_X + column * PersonalDatabaseLayout.SLOT_SIZE, TOP_SECTION_CRAFT_Y + row * PersonalDatabaseLayout.SLOT_SIZE));
+                this.addTrackedSlot(new Slot(
+                        this.craftSlots,
+                        column + row * 2,
+                        TOP_SECTION_CRAFT_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                        TOP_SECTION_CRAFT_Y + row * PersonalDatabaseLayout.SLOT_SIZE
+                ));
             }
         }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    private MenuSlotRange addArmorSlots(Inventory playerInventory, Player owner) {
+        int start = this.slots.size();
         for (int index = 0; index < ARMOR_ORDER.length; index++) {
             EquipmentSlot equipmentSlot = ARMOR_ORDER[index];
             int inventoryIndex = 39 - index;
@@ -359,22 +382,74 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 case FEET -> InventoryMenu.EMPTY_ARMOR_SLOT_BOOTS;
                 default -> null;
             };
-            this.addSlot(new EquipmentDisplaySlot(playerInventory, owner, equipmentSlot, inventoryIndex, x, y, icon));
+            this.addTrackedSlot(new EquipmentDisplaySlot(playerInventory, owner, equipmentSlot, inventoryIndex, x, y, icon));
         }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    private MenuSlotRange addMainInventorySlots(Inventory playerInventory) {
+        int start = this.slots.size();
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 int slotIndex = column + (row + 1) * 9;
-                this.addSlot(new Slot(playerInventory, slotIndex, BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE, BOTTOM_SECTION_INVENTORY_Y + row * PersonalDatabaseLayout.SLOT_SIZE));
+                this.addTrackedSlot(new Slot(
+                        playerInventory,
+                        slotIndex,
+                        BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                        BOTTOM_SECTION_INVENTORY_Y + row * PersonalDatabaseLayout.SLOT_SIZE
+                ));
             }
         }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    private MenuSlotRange addHotbarSlots(Inventory playerInventory) {
+        int start = this.slots.size();
         for (int column = 0; column < 9; column++) {
-            this.addSlot(new Slot(playerInventory, column, BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE, BOTTOM_SECTION_HOTBAR_Y));
+            this.addTrackedSlot(new Slot(
+                    playerInventory,
+                    column,
+                    BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                    BOTTOM_SECTION_HOTBAR_Y
+            ));
         }
-        this.addSlot(new OffhandDisplaySlot(playerInventory, owner, 40, TOP_SECTION_OFFHAND_X, TOP_SECTION_OFFHAND_Y));
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    private int addTrackedSlot(Slot slot) {
+        int index = this.slots.size();
+        this.addSlot(slot);
+        return index;
+    }
+
+    private void moveAccessorySlots(PersonalDatabaseLayout layout) {
+        List<PersonalDatabaseLayout.AccessoryGroupLayout> groupLayouts = layout.accessoryGroupLayouts();
+        int groupCount = Math.min(this.accessorySlotGroups.size(), groupLayouts.size());
+        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
+            AccessorySlotGroup group = this.accessorySlotGroups.get(groupIndex);
+            PersonalDatabaseLayout.AccessoryGroupLayout groupLayout = groupLayouts.get(groupIndex);
+            for (int slotOffset = 0; slotOffset < group.slotCount(); slotOffset++) {
+                PersonalDatabaseLayout.Rect slotRect = groupLayout.slotBounds(slotOffset);
+                this.moveSlot(group.firstSlotIndex() + slotOffset, slotRect.x(), slotRect.y());
+            }
+        }
     }
 
     private boolean shouldDepositQuickMovedSlot(int slotIndex) {
-        return slotIndex >= FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX && slotIndex < OFFHAND_SLOT_MENU_INDEX;
+        return this.mainInventorySlotRange.contains(slotIndex)
+                || this.hotbarSlotRange.contains(slotIndex)
+                || this.accessorySlotRange.contains(slotIndex);
+    }
+
+    private boolean moveToPlayerStorage(ItemStack stack, boolean reverse) {
+        return this.moveItemStackTo(stack, this.mainInventorySlotRange.firstIndex(), this.offhandSlotIndex + 1, reverse);
+    }
+
+    private boolean tryMoveToAccessorySlots(ItemStack stack) {
+        if (this.accessorySlotRange.isEmpty()) {
+            return false;
+        }
+        return this.moveItemStackTo(stack, this.accessorySlotRange.firstIndex(), this.accessorySlotRange.lastIndexExclusive(), false);
     }
 
     private boolean storeCarriedStack(ServerPlayer player, boolean singleItem) {
@@ -489,6 +564,37 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 @Nullable RecipeHolder<CraftingRecipe> recipe
         ) {
             slotChangedCraftingGrid(menu, level, player, craftingSlots, resultSlots, recipe);
+        }
+    }
+
+    private record MenuSlotRange(int firstIndex, int slotCount) {
+        private static MenuSlotRange of(int firstIndex, int slotCount) {
+            return new MenuSlotRange(firstIndex, Math.max(0, slotCount));
+        }
+
+        private static MenuSlotRange empty() {
+            return new MenuSlotRange(0, 0);
+        }
+
+        private static MenuSlotRange fromGroups(List<AccessorySlotGroup> groups) {
+            if (groups == null || groups.isEmpty()) {
+                return empty();
+            }
+            AccessorySlotGroup firstGroup = groups.getFirst();
+            AccessorySlotGroup lastGroup = groups.getLast();
+            return of(firstGroup.firstSlotIndex(), lastGroup.lastSlotIndexExclusive() - firstGroup.firstSlotIndex());
+        }
+
+        private int lastIndexExclusive() {
+            return this.firstIndex + this.slotCount;
+        }
+
+        private boolean contains(int slotIndex) {
+            return slotIndex >= this.firstIndex && slotIndex < this.lastIndexExclusive();
+        }
+
+        private boolean isEmpty() {
+            return this.slotCount <= 0;
         }
     }
 
