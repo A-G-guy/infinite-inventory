@@ -4,9 +4,13 @@ import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabasePagination;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
+import com.agguy.infiniteinventory.database.PublicDatabaseSavedData;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
@@ -18,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -33,7 +38,11 @@ public final class PersonalDatabaseService {
 
     public void open(ServerPlayer player) {
         player.openMenu(new SimpleMenuProvider(
-                (containerId, playerInventory, ignored) -> new PersonalDatabaseMenu(containerId, playerInventory, player),
+                (containerId, playerInventory, ignored) -> {
+                    PersonalDatabaseMenu menu = new PersonalDatabaseMenu(containerId, playerInventory, player);
+                    menu.initializeFromPreferences(this.getViewPreferences(player));
+                    return menu;
+                },
                 Component.translatable("screen.infiniteinventory.database.title")
         ));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
@@ -41,27 +50,33 @@ public final class PersonalDatabaseService {
         }
     }
 
-    public PlayerDatabaseAttachment getDatabase(Player player) {
+    public PlayerDatabaseAttachment getPersonalDatabase(Player player) {
         return player.getData(ModAttachments.PERSONAL_DATABASE.get());
+    }
+
+    public DatabaseViewPreferencesAttachment getViewPreferences(Player player) {
+        return player.getData(ModAttachments.DATABASE_VIEW_PREFERENCES.get());
     }
 
     public boolean canStore(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() != ModItems.DATABASE_ACCESS_ITEM.get();
     }
 
-    public boolean depositSlot(ServerPlayer player, Slot slot) {
+    public boolean depositSlot(ServerPlayer player, DatabaseScope scope, Slot slot) {
         ItemStack stack = slot.getItem();
         if (!this.canStore(stack)) {
             return false;
         }
-        this.getDatabase(player).store(stack.copy());
+        this.resolveDatabase(player, scope).store(stack.copy());
+        this.markScopeDirty(player, scope);
         slot.setByPlayer(ItemStack.EMPTY, stack.copy());
         slot.setChanged();
         return true;
     }
 
-    public int depositMainInventory(ServerPlayer player) {
+    public int depositMainInventory(ServerPlayer player, DatabaseScope scope) {
         Inventory inventory = player.getInventory();
+        StoredItemDatabase database = this.resolveDatabase(player, scope);
         int movedItems = 0;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
             ItemStack stack = inventory.items.get(slotIndex);
@@ -69,25 +84,43 @@ public final class PersonalDatabaseService {
                 continue;
             }
             movedItems += stack.getCount();
-            this.getDatabase(player).store(stack.copy());
+            database.store(stack.copy());
             inventory.items.set(slotIndex, ItemStack.EMPTY);
         }
         if (movedItems > 0) {
+            this.markScopeDirty(player, scope);
             inventory.setChanged();
         }
         return movedItems;
     }
 
-    public long extractAllToInventory(Player player, StoredStackKey key) {
-        return this.extractToInventory(player, key, Long.MAX_VALUE);
+    public boolean storeStack(ServerPlayer player, DatabaseScope scope, ItemStack stack) {
+        if (!this.canStore(stack)) {
+            return false;
+        }
+        this.resolveDatabase(player, scope).store(stack);
+        this.markScopeDirty(player, scope);
+        return true;
     }
 
-    public long extractToInventory(Player player, StoredStackKey key, long requestedAmount) {
+    public ItemStack extractToCarried(ServerPlayer player, DatabaseScope scope, StoredStackKey key, int requestedAmount) {
+        ItemStack extracted = this.resolveDatabase(player, scope).extract(key, requestedAmount);
+        if (!extracted.isEmpty()) {
+            this.markScopeDirty(player, scope);
+        }
+        return extracted;
+    }
+
+    public long extractAllToInventory(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
+        return this.extractToInventory(player, scope, key, Long.MAX_VALUE);
+    }
+
+    public long extractToInventory(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
         if (requestedAmount <= 0L) {
             return 0L;
         }
         Inventory inventory = player.getInventory();
-        PlayerDatabaseAttachment database = this.getDatabase(player);
+        StoredItemDatabase database = this.resolveDatabase(player, scope);
         long movedItems = 0L;
         long remainingAmount = requestedAmount;
         while (remainingAmount > 0L && this.hasSpaceFor(inventory, key)) {
@@ -111,6 +144,7 @@ public final class PersonalDatabaseService {
             }
         }
         if (movedItems > 0L) {
+            this.markScopeDirty(player, scope);
             inventory.setChanged();
         }
         return movedItems;
@@ -118,7 +152,7 @@ public final class PersonalDatabaseService {
 
     public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        List<QueryCandidate> filteredEntries = this.collectCandidates(player, normalizedQuery);
+        List<QueryCandidate> filteredEntries = this.collectCandidates(this.resolveDatabase(player, normalizedQuery.scope()), normalizedQuery);
         filteredEntries.sort(this.comparatorFor(normalizedQuery.sortOption()));
 
         int safePageSize = Math.max(1, normalizedQuery.pageSize());
@@ -141,10 +175,18 @@ public final class PersonalDatabaseService {
         return new DatabasePage(resolvedQuery, totalEntries, totalPages, totalItems, pageEntries);
     }
 
-    private List<QueryCandidate> collectCandidates(ServerPlayer player, DatabaseQuery query) {
+    public void syncPublicViewers(MinecraftServer server) {
+        for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
+            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PUBLIC) {
+                menu.syncViewToClient();
+            }
+        }
+    }
+
+    private List<QueryCandidate> collectCandidates(StoredItemDatabase database, DatabaseQuery query) {
         List<QueryCandidate> candidates = new ArrayList<>();
         String searchNeedle = query.searchText().toLowerCase(Locale.ROOT);
-        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.getDatabase(player).entries().entrySet()) {
+        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
             StoredStackKey key = mapEntry.getKey();
             StoredStackEntry entry = mapEntry.getValue();
             if (query.category() != com.agguy.infiniteinventory.database.DatabaseCategory.ALL && entry.category() != query.category()) {
@@ -190,6 +232,19 @@ public final class PersonalDatabaseService {
             total += candidate.entry().amount();
         }
         return total;
+    }
+
+    private StoredItemDatabase resolveDatabase(ServerPlayer player, DatabaseScope scope) {
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            return PublicDatabaseSavedData.get(player.server).database();
+        }
+        return this.getPersonalDatabase(player);
+    }
+
+    private void markScopeDirty(ServerPlayer player, DatabaseScope scope) {
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            PublicDatabaseSavedData.get(player.server).setDirty();
+        }
     }
 
     private record QueryCandidate(

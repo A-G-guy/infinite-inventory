@@ -67,4 +67,15 @@ class PersonalDatabaseLayoutTest {
         assertTrue(layout.nextPageButtonRect().right() <= layout.toolbarRect().right());
         assertTrue(layout.previousPageButtonRect().y() == layout.toolbarRect().y());
     }
+
+    @Test
+    void scopeButtonsShouldStayInsideFrameTitleArea() {
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT);
+
+        assertTrue(layout.personalScopeButtonRect().x() >= layout.frameRect().x());
+        assertTrue(layout.personalScopeButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.publicScopeButtonRect().x() == layout.personalScopeButtonRect().right());
+        assertTrue(layout.publicScopeButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.personalScopeButtonRect().y() == layout.titleRect().y());
+    }
 }

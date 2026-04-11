@@ -3,6 +3,8 @@ package com.agguy.infiniteinventory.menu;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
@@ -65,7 +67,9 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private final CraftingContainer craftSlots = new TransientCraftingContainer(this, 2, 2);
     private final ResultContainer resultSlots = new ResultContainer();
     private final Player owner;
-    private DatabaseQuery query = DatabaseQuery.defaultQuery();
+    private DatabaseScope activeScope = DatabaseScope.defaultScope();
+    private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
+    private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     private DatabaseViewState viewState;
     @Nullable
     private DatabasePage currentPage;
@@ -77,7 +81,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory, Player owner) {
         super(ModMenus.PERSONAL_DATABASE_MENU.get(), containerId);
         this.owner = owner;
-        this.viewState = DatabaseViewState.empty(containerId);
+        this.viewState = DatabaseViewState.empty(containerId, this.currentQuery());
         this.addVanillaInventorySlots(playerInventory, owner);
     }
 
@@ -85,9 +89,25 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return this.viewState;
     }
 
+    public DatabaseScope activeScope() {
+        return this.activeScope;
+    }
+
+    public void initializeFromPreferences(DatabaseViewPreferencesAttachment preferences) {
+        if (preferences == null) {
+            return;
+        }
+        this.personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, preferences.queryFor(DatabaseScope.PERSONAL));
+        this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, preferences.queryFor(DatabaseScope.PUBLIC));
+        this.activeScope = DatabaseScope.normalize(preferences.lastScope());
+        this.viewState = DatabaseViewState.empty(this.containerId, this.currentQuery());
+    }
+
     public void applyViewState(DatabaseViewState newState) {
         this.viewState = newState;
-        this.query = newState.query();
+        this.activeScope = newState.query().scope();
+        this.personalQuery = newState.personalQuery();
+        this.publicQuery = newState.publicQuery();
     }
 
     public void applySlotLayout(PersonalDatabaseLayout layout) {
@@ -122,32 +142,38 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
-        this.currentPage = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, this.query);
-        this.query = this.currentPage.query();
-        this.viewState = this.currentPage.toViewState(this.containerId);
+        this.currentPage = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, this.currentQuery());
+        this.setActiveQuery(this.currentPage.query());
+        this.persistPreferences(serverPlayer);
+        this.viewState = this.currentPage.toViewState(this.containerId, this.personalQuery, this.publicQuery);
         PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(this.viewState));
     }
 
     public void updateQuery(DatabaseQuery newQuery) {
-        this.query = newQuery == null ? DatabaseQuery.defaultQuery() : newQuery;
+        this.setActiveQuery(newQuery == null ? this.currentQuery() : newQuery);
+        if (this.owner instanceof ServerPlayer serverPlayer) {
+            this.persistPreferences(serverPlayer);
+        }
         this.syncViewToClient();
     }
 
     public void depositAllFromMainInventory() {
-        if (this.owner instanceof ServerPlayer serverPlayer && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer) > 0) {
+        if (this.owner instanceof ServerPlayer serverPlayer
+                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope) > 0) {
             this.broadcastChanges();
-            this.syncViewToClient();
+            this.syncAfterDatabaseMutation(serverPlayer);
         }
     }
 
     public void handleDatabaseClick(int pageSlotIndex, DatabaseClickAction action) {
-        if (!(this.owner instanceof ServerPlayer)) {
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
         boolean changed = false;
+        boolean refreshSharedView = false;
         if (action.isStoreAction()) {
             if (!this.getCarried().isEmpty()) {
-                changed = this.storeCarriedStack(action.storesSingleItem());
+                changed = this.storeCarriedStack(serverPlayer, action.storesSingleItem());
             }
         } else {
             if (!this.getCarried().isEmpty()) {
@@ -155,20 +181,26 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             }
             DatabasePageEntry pageEntry = this.getPageEntry(pageSlotIndex);
             if (pageEntry == null) {
-                return;
-            }
-            if (action.extractsToInventory()) {
-                long requestedAmount = action.extractsEntireEntry()
-                        ? Long.MAX_VALUE
-                        : action.resolveRequestedAmount(pageEntry.key().maxStackSize());
-                changed = PersonalDatabaseService.INSTANCE.extractToInventory(this.owner, pageEntry.key(), requestedAmount) > 0L;
+                refreshSharedView = this.activeScope == DatabaseScope.PUBLIC;
             } else {
-                changed = this.withdrawToCarried(pageEntry.key(), action.resolveRequestedAmount(pageEntry.key().maxStackSize()));
+                if (action.extractsToInventory()) {
+                    long requestedAmount = action.extractsEntireEntry()
+                            ? Long.MAX_VALUE
+                            : action.resolveRequestedAmount(pageEntry.key().maxStackSize());
+                    changed = PersonalDatabaseService.INSTANCE.extractToInventory(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
+                } else {
+                    changed = this.withdrawToCarried(serverPlayer, pageEntry.key(), action.resolveRequestedAmount(pageEntry.key().maxStackSize()));
+                }
+                if (!changed && this.activeScope == DatabaseScope.PUBLIC) {
+                    refreshSharedView = true;
+                }
             }
         }
         if (changed) {
             this.broadcastChanges();
-            this.syncViewToClient();
+            this.syncAfterDatabaseMutation(serverPlayer);
+        } else if (refreshSharedView) {
+            PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
         }
     }
 
@@ -203,9 +235,11 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         ItemStack rawStack = slot.getItem();
         ItemStack copy = rawStack.copy();
 
-        if (this.shouldDepositQuickMovedSlot(slotIndex) && player instanceof ServerPlayer serverPlayer && PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, slot)) {
+        if (this.shouldDepositQuickMovedSlot(slotIndex)
+                && player instanceof ServerPlayer serverPlayer
+                && PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, slot)) {
             this.broadcastChanges();
-            this.syncViewToClient();
+            this.syncAfterDatabaseMutation(serverPlayer);
             return copy;
         }
 
@@ -343,7 +377,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return slotIndex >= FIRST_MAIN_INVENTORY_SLOT_MENU_INDEX && slotIndex < OFFHAND_SLOT_MENU_INDEX;
     }
 
-    private boolean storeCarriedStack(boolean singleItem) {
+    private boolean storeCarriedStack(ServerPlayer player, boolean singleItem) {
         ItemStack carried = this.getCarried();
         if (!PersonalDatabaseService.INSTANCE.canStore(carried)) {
             return false;
@@ -352,12 +386,15 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (storedStack.isEmpty()) {
             return false;
         }
-        PersonalDatabaseService.INSTANCE.getDatabase(this.owner).store(storedStack);
+        if (!PersonalDatabaseService.INSTANCE.storeStack(player, this.activeScope, storedStack)) {
+            this.setCarried(singleItem ? carried.copyWithCount(carried.getCount() + storedStack.getCount()) : storedStack);
+            return false;
+        }
         this.setCarried(carried);
         return true;
     }
 
-    private boolean withdrawToCarried(StoredStackKey key, int requestedAmount) {
+    private boolean withdrawToCarried(ServerPlayer player, StoredStackKey key, int requestedAmount) {
         ItemStack carried = this.getCarried();
         if (!carried.isEmpty() && !ItemStack.isSameItemSameComponents(carried, key.displayStack())) {
             return false;
@@ -366,7 +403,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (room <= 0) {
             return false;
         }
-        ItemStack extracted = PersonalDatabaseService.INSTANCE.getDatabase(this.owner).extract(key, Math.min(room, requestedAmount));
+        ItemStack extracted = PersonalDatabaseService.INSTANCE.extractToCarried(player, this.activeScope, key, Math.min(room, requestedAmount));
         if (extracted.isEmpty()) {
             return false;
         }
@@ -405,6 +442,37 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         } catch (ReflectiveOperationException exception) {
             throw new ExceptionInInitializerError(exception);
         }
+    }
+
+    private DatabaseQuery currentQuery() {
+        return this.activeScope == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
+    }
+
+    private void setActiveQuery(DatabaseQuery query) {
+        DatabaseQuery normalizedQuery = query == null
+                ? DatabaseQuery.defaultQuery(this.activeScope)
+                : query;
+        this.activeScope = normalizedQuery.scope();
+        if (this.activeScope == DatabaseScope.PUBLIC) {
+            this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, normalizedQuery);
+        } else {
+            this.personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, normalizedQuery);
+        }
+    }
+
+    private void persistPreferences(ServerPlayer player) {
+        DatabaseViewPreferencesAttachment preferences = PersonalDatabaseService.INSTANCE.getViewPreferences(player);
+        preferences.setQuery(DatabaseScope.PERSONAL, this.personalQuery);
+        preferences.setQuery(DatabaseScope.PUBLIC, this.publicQuery);
+        preferences.setLastScope(this.activeScope);
+    }
+
+    private void syncAfterDatabaseMutation(ServerPlayer player) {
+        if (this.activeScope == DatabaseScope.PUBLIC) {
+            PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+            return;
+        }
+        this.syncViewToClient();
     }
 
     private static final class CraftingMenuAccess extends CraftingMenu {

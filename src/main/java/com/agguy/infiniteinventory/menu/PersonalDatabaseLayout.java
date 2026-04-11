@@ -4,6 +4,8 @@ public record PersonalDatabaseLayout(
         Rect frameRect,
         Rect tabBarRect,
         Rect titleRect,
+        Rect personalScopeButtonRect,
+        Rect publicScopeButtonRect,
         Rect toolbarRect,
         Rect searchFieldRect,
         Rect sortButtonRect,
@@ -36,16 +38,19 @@ public record PersonalDatabaseLayout(
     public static final int PAGE_CONTROLS_WIDTH = PAGE_BUTTON_WIDTH * 2 + PAGE_BUTTON_GAP * 2 + PAGE_LABEL_WIDTH;
     public static final int MAX_COLUMNS = 40;
     public static final int MAX_ROWS = 16;
-    private static final int TITLE_HEIGHT = 12;
+    private static final int TITLE_HEIGHT = CONTROL_HEIGHT;
     private static final int TITLE_GAP = 6;
     private static final int SEARCH_MIN_WIDTH = 140;
     private static final int SORT_BUTTON_WIDTH = 112;
     private static final int DEPOSIT_BUTTON_WIDTH = 88;
+    private static final int SCOPE_BUTTON_WIDTH = 72;
 
     public PersonalDatabaseLayout {
         frameRect = frameRect == null ? Rect.empty() : frameRect;
         tabBarRect = tabBarRect == null ? Rect.empty() : tabBarRect;
         titleRect = titleRect == null ? Rect.empty() : titleRect;
+        personalScopeButtonRect = personalScopeButtonRect == null ? Rect.empty() : personalScopeButtonRect;
+        publicScopeButtonRect = publicScopeButtonRect == null ? Rect.empty() : publicScopeButtonRect;
         toolbarRect = toolbarRect == null ? Rect.empty() : toolbarRect;
         searchFieldRect = searchFieldRect == null ? Rect.empty() : searchFieldRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
@@ -89,6 +94,9 @@ public record PersonalDatabaseLayout(
                 Math.max(1, frameRect.width() - INNER_PADDING * 2),
                 TITLE_HEIGHT
         );
+        int scopeButtonsX = Math.max(titleRect.x(), frameRect.right() - INNER_PADDING - SCOPE_BUTTON_WIDTH * 2);
+        Rect personalScopeButtonRect = new Rect(scopeButtonsX, titleRect.y(), SCOPE_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect publicScopeButtonRect = new Rect(personalScopeButtonRect.right(), titleRect.y(), SCOPE_BUTTON_WIDTH, CONTROL_HEIGHT);
         int toolbarY = titleRect.bottom() + TITLE_GAP;
         Rect toolbarRect = new Rect(
                 frameRect.x() + INNER_PADDING,
@@ -146,6 +154,8 @@ public record PersonalDatabaseLayout(
                 frameRect,
                 tabBarRect,
                 titleRect,
+                personalScopeButtonRect,
+                publicScopeButtonRect,
                 toolbarRect,
                 searchFieldRect,
                 sortButtonRect,
