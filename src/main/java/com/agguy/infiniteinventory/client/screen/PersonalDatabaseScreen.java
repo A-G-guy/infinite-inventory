@@ -25,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -35,6 +36,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private static final int CONTEXT_MENU_WIDTH = 112;
     private static final int CONTEXT_MENU_ROW_HEIGHT = 20;
     private static final int CONTEXT_MENU_MARGIN = 4;
+    private static final int SEARCH_ICON_SIZE = 9;
+    private static final int SEARCH_TEXT_LEFT_PADDING = 18;
+    private static final int TAB_ICON_SIZE = 16;
+    private static final int TAB_ICON_LEFT_PADDING = 4;
+    private static final int TAB_TEXT_GAP = 3;
     private static final DatabaseClickAction[] CONTEXT_MENU_ACTIONS = {
             DatabaseClickAction.TAKE_SINGLE,
             DatabaseClickAction.TAKE_STACK,
@@ -99,6 +105,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+        this.renderToolbarOverlays(guiGraphics);
         this.renderSearchHint(guiGraphics);
         if (this.sortDropdownExpanded) {
             this.renderSortDropdown(guiGraphics, mouseX, mouseY);
@@ -117,6 +124,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.frameRect());
         this.renderTabs(guiGraphics, mouseX, mouseY);
         VanillaWidgetRenderer.renderTextField(guiGraphics, this.layout.searchFieldRect(), this.searchBox != null && this.searchBox.isFocused());
+        this.renderDatabaseScaffold(guiGraphics);
 
         if (this.minecraft != null && this.minecraft.player != null) {
             this.inventoryPaneProvider.renderEquipmentPanel(
@@ -134,7 +142,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 this.layout.bottomInventoryRect().y()
         );
 
-        VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.databasePanelRect());
         this.renderDatabaseSlots(guiGraphics);
         this.renderDatabaseEntries(guiGraphics, mouseX, mouseY);
         this.renderEmptyState(guiGraphics);
@@ -196,16 +203,16 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseLayout.Rect searchRect = this.layout.searchFieldRect();
         this.searchBox = new EditBox(
                 this.font,
-                searchRect.x() + 4,
+                searchRect.x() + SEARCH_TEXT_LEFT_PADDING,
                 searchRect.y() + 4,
-                Math.max(1, searchRect.width() - 8),
+                Math.max(1, searchRect.width() - SEARCH_TEXT_LEFT_PADDING - 4),
                 12,
                 Component.translatable("screen.infiniteinventory.search")
         );
         this.searchBox.setMaxLength(DatabaseQuery.MAX_SEARCH_LENGTH);
         this.searchBox.setBordered(false);
-        this.searchBox.setTextColor(0xE0E0E0);
-        this.searchBox.setTextColorUneditable(0xE0E0E0);
+        this.searchBox.setTextColor(0x303030);
+        this.searchBox.setTextColorUneditable(0x606060);
         this.syncingSearchBox = true;
         this.searchBox.setValue(query.searchText());
         this.syncingSearchBox = false;
@@ -239,9 +246,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 .bounds(nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height())
                 .build());
 
-        this.setInitialFocus(this.searchBox);
-        this.setFocused(this.searchBox);
-        this.searchBox.setFocused(true);
     }
 
     private void syncWidgetsFromState() {
@@ -348,9 +352,20 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             boolean selected = category == selectedCategory;
             boolean hovered = tabRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderTab(guiGraphics, tabRect, selected, hovered);
-            Component label = Component.translatable(category.translationKey());
+            guiGraphics.renderItem(this.categoryIcon(category), tabRect.x() + TAB_ICON_LEFT_PADDING, tabRect.y() + 4);
+
+            String shortLabel = Component.translatable(this.categoryShortTranslationKey(category)).getString();
+            int labelX = tabRect.x() + TAB_ICON_LEFT_PADDING + TAB_ICON_SIZE + TAB_TEXT_GAP;
+            int labelWidth = Math.max(0, tabRect.right() - 4 - labelX);
             int color = selected ? 0x404040 : 0xFFFFFF;
-            this.drawCenteredShadow(guiGraphics, label, tabRect.x(), tabRect.right(), tabRect.y() + 8, color);
+            guiGraphics.drawString(
+                    this.font,
+                    this.truncateToWidth(shortLabel, labelWidth),
+                    labelX,
+                    tabRect.y() + 8,
+                    color,
+                    true
+            );
         }
     }
 
@@ -374,11 +389,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             if (slotIndex < entries.size()) {
                 VisibleDatabaseEntry entry = entries.get(slotIndex);
                 ItemStack stack = entry.stack();
-                guiGraphics.renderItem(stack, slotRect.x() + 1, slotRect.y() + 1);
-                guiGraphics.renderItemDecorations(this.font, stack, slotRect.x() + 1, slotRect.y() + 1, CompactNumberFormatter.format(entry.amount()));
+                int itemX = slotRect.x() + (PersonalDatabaseLayout.DATABASE_SLOT_SIZE - 16) / 2;
+                int itemY = slotRect.y() + (PersonalDatabaseLayout.DATABASE_SLOT_SIZE - 16) / 2;
+                guiGraphics.renderItem(stack, itemX, itemY);
+                guiGraphics.renderItemDecorations(this.font, stack, itemX, itemY, CompactNumberFormatter.format(entry.amount()));
             }
             if (slotRect.contains(mouseX, mouseY)) {
-                guiGraphics.fill(slotRect.x(), slotRect.y(), slotRect.right(), slotRect.bottom(), 0x66FFFFFF);
+                VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
             }
         }
     }
@@ -410,20 +427,18 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 this.font,
                 footerStats,
                 this.layout.databaseFooterRect().x(),
-                this.layout.databaseFooterRect().y() + 8,
+                this.layout.databaseFooterRect().y() + 6,
                 0x404040,
                 true
         );
 
-        PersonalDatabaseLayout.Rect previousRect = this.layout.previousPageButtonRect();
-        PersonalDatabaseLayout.Rect nextRect = this.layout.nextPageButtonRect();
-        Component pageLabel = Component.translatable("screen.infiniteinventory.page", viewState.query().pageIndex() + 1, viewState.totalPages());
+        Component pageLabel = Component.translatable("screen.infiniteinventory.page_compact", viewState.query().pageIndex() + 1, viewState.totalPages());
         this.drawCenteredShadow(
                 guiGraphics,
                 pageLabel,
-                previousRect.right() + 4,
-                nextRect.x() - 4,
-                this.layout.databaseFooterRect().y() + 8,
+                this.layout.pageLabelRect().x(),
+                this.layout.pageLabelRect().right(),
+                this.layout.pageLabelRect().y() + 6,
                 0x404040
         );
     }
@@ -435,10 +450,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         guiGraphics.drawString(
                 this.font,
                 Component.translatable("screen.infiniteinventory.search_hint"),
-                this.layout.searchFieldRect().x() + 5,
+                this.layout.searchFieldRect().x() + SEARCH_TEXT_LEFT_PADDING,
                 this.layout.searchFieldRect().y() + 6,
                 0x777777,
-                true
+                false
         );
     }
 
@@ -586,16 +601,121 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return;
         }
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
-        if (slotIndex < 0 || slotIndex >= this.menu.viewState().entries().size()) {
+        if (slotIndex >= 0 && slotIndex < this.menu.viewState().entries().size()) {
+            VisibleDatabaseEntry entry = this.menu.viewState().entries().get(slotIndex);
+            List<Component> tooltip = new ArrayList<>();
+            tooltip.add(entry.stack().getHoverName());
+            tooltip.add(Component.translatable("screen.infiniteinventory.tooltip.amount", CompactNumberFormatter.format(entry.amount())).withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable(entry.category().translationKey()).withStyle(ChatFormatting.BLUE));
+            tooltip.add(Component.literal(entry.registryName()).withStyle(ChatFormatting.DARK_GRAY));
+            guiGraphics.renderTooltip(this.font, tooltip, ItemStack.EMPTY.getTooltipImage(), mouseX, mouseY);
             return;
         }
-        VisibleDatabaseEntry entry = this.menu.viewState().entries().get(slotIndex);
-        List<Component> tooltip = new ArrayList<>();
-        tooltip.add(entry.stack().getHoverName());
-        tooltip.add(Component.translatable("screen.infiniteinventory.tooltip.amount", CompactNumberFormatter.format(entry.amount())).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable(entry.category().translationKey()).withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal(entry.registryName()).withStyle(ChatFormatting.DARK_GRAY));
-        guiGraphics.renderTooltip(this.font, tooltip, ItemStack.EMPTY.getTooltipImage(), mouseX, mouseY);
+        DatabaseCategory hoveredCategory = this.findHoveredCategory(mouseX, mouseY);
+        if (hoveredCategory != null) {
+            guiGraphics.renderTooltip(
+                    this.font,
+                    List.of(Component.translatable(hoveredCategory.translationKey())),
+                    ItemStack.EMPTY.getTooltipImage(),
+                    mouseX,
+                    mouseY
+            );
+        }
+    }
+
+    private void renderToolbarOverlays(GuiGraphics guiGraphics) {
+        if (this.layout == null) {
+            return;
+        }
+        PersonalDatabaseLayout.Rect searchRect = this.layout.searchFieldRect();
+        int iconX = searchRect.x() + 6;
+        int iconY = searchRect.y() + (searchRect.height() - SEARCH_ICON_SIZE) / 2;
+        VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFF6D6D6D);
+
+        PersonalDatabaseLayout.Rect sortRect = this.layout.sortButtonRect();
+        VanillaWidgetRenderer.renderDropdownIndicator(
+                guiGraphics,
+                sortRect.right() - 10,
+                sortRect.y() + sortRect.height() / 2,
+                0xFF3F3F3F
+        );
+    }
+
+    private void renderDatabaseScaffold(GuiGraphics guiGraphics) {
+        if (this.layout == null) {
+            return;
+        }
+        VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.databasePanelRect());
+        guiGraphics.fill(
+                this.layout.databaseFooterRect().x(),
+                this.layout.databaseFooterRect().y() - 6,
+                this.layout.databaseFooterRect().right(),
+                this.layout.databaseFooterRect().y() - 5,
+                0x66FFFFFF
+        );
+        guiGraphics.drawString(
+                this.font,
+                Component.translatable("screen.infiniteinventory.database.section"),
+                this.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
+                this.layout.databasePanelRect().y() - 12,
+                0x404040,
+                true
+        );
+    }
+
+    @Nullable
+    private DatabaseCategory findHoveredCategory(double mouseX, double mouseY) {
+        if (this.layout == null) {
+            return null;
+        }
+        DatabaseCategory[] categories = DatabaseCategory.values();
+        for (int index = 0; index < categories.length; index++) {
+            if (this.layout.tabBounds(index, categories.length).contains(mouseX, mouseY)) {
+                return categories[index];
+            }
+        }
+        return null;
+    }
+
+    private String categoryShortTranslationKey(DatabaseCategory category) {
+        return switch (category) {
+            case ALL -> "screen.infiniteinventory.category_short.all";
+            case BLOCKS -> "screen.infiniteinventory.category_short.blocks";
+            case TOOLS_WEAPONS -> "screen.infiniteinventory.category_short.tools_weapons";
+            case EQUIPMENT -> "screen.infiniteinventory.category_short.equipment";
+            case CONSUMABLES -> "screen.infiniteinventory.category_short.consumables";
+            case MATERIALS -> "screen.infiniteinventory.category_short.materials";
+            case OTHER -> "screen.infiniteinventory.category_short.other";
+        };
+    }
+
+    private ItemStack categoryIcon(DatabaseCategory category) {
+        return switch (category) {
+            case ALL -> new ItemStack(Items.CHEST);
+            case BLOCKS -> new ItemStack(Items.GRASS_BLOCK);
+            case TOOLS_WEAPONS -> new ItemStack(Items.IRON_SWORD);
+            case EQUIPMENT -> new ItemStack(Items.IRON_CHESTPLATE);
+            case CONSUMABLES -> new ItemStack(Items.GOLDEN_CARROT);
+            case MATERIALS -> new ItemStack(Items.IRON_INGOT);
+            case OTHER -> new ItemStack(Items.COMPASS);
+        };
+    }
+
+    private String truncateToWidth(String text, int maxWidth) {
+        if (maxWidth <= 0 || this.font.width(text) <= maxWidth) {
+            return text;
+        }
+        String suffix = "...";
+        int suffixWidth = this.font.width(suffix);
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < text.length(); index++) {
+            char character = text.charAt(index);
+            if (this.font.width(builder.toString() + character) + suffixWidth > maxWidth) {
+                break;
+            }
+            builder.append(character);
+        }
+        return builder.isEmpty() ? "" : builder.append(suffix).toString();
     }
 
     private void validateContextMenu(DatabaseViewState viewState) {
