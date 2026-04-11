@@ -185,17 +185,29 @@ public final class PersonalDatabaseService {
     }
 
     public void syncPublicViewers(MinecraftServer server) {
-        for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
-            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PUBLIC) {
-                menu.syncViewToClient();
-            }
-        }
+        this.syncViewers(server, true, false);
     }
 
     public void syncAllViewers(MinecraftServer server) {
+        this.syncViewers(server, false, false);
+    }
+
+    public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) {
+        this.syncViewers(server, false, true);
+    }
+
+    public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
+        this.notifyAboutUnresolvedEntries(player, scope);
+    }
+
+    private void syncViewers(MinecraftServer server, boolean publicOnly, boolean notifyCurrentScope) {
         for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
-            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu) {
+            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu
+                    && (!publicOnly || menu.activeScope() == DatabaseScope.PUBLIC)) {
                 menu.syncViewToClient();
+                if (notifyCurrentScope) {
+                    this.notifyAboutUnresolvedEntries(onlinePlayer, menu.activeScope());
+                }
             }
         }
     }

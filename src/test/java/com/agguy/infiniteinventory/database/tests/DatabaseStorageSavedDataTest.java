@@ -31,6 +31,20 @@ class DatabaseStorageSavedDataTest {
     }
 
     @Test
+    void shouldFallbackToLegacyPublicKeyWhenCurrentSchemaSnapshotMissesNewKey() {
+        CompoundTag currentRoot = new CompoundTag();
+        currentRoot.putInt("schema_version", DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION);
+        currentRoot.put("database", this.unresolvedDatabase().serializeNBT(null));
+        currentRoot.put("personal_databases", new ListTag());
+        currentRoot.put("migration_states", new ListTag());
+
+        DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(currentRoot, null);
+
+        assertEquals(0, restored.publicDatabase().entryCount());
+        assertEquals(1, restored.publicDatabase().unresolvedEntryCount());
+    }
+
+    @Test
     void shouldPersistPersonalDatabasesAndMigrationStates() {
         UUID playerId = UUID.fromString("11111111-2222-3333-4444-555555555555");
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);

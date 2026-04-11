@@ -180,7 +180,7 @@ public final class DatabaseStorageSavedData extends SavedData {
 
     private void loadCurrentFormat(CompoundTag tag, HolderLookup.Provider provider) {
         int storedSchemaVersion = Math.max(0, tag.getInt(SCHEMA_VERSION_KEY));
-        this.publicDatabase.deserializeNBT(provider, tag.getCompound(PUBLIC_DATABASE_KEY));
+        this.publicDatabase.deserializeNBT(provider, this.resolvePublicDatabaseTag(tag));
 
         for (Tag entry : tag.getList(PERSONAL_DATABASES_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof CompoundTag personalDatabaseTag) || !personalDatabaseTag.hasUUID(PERSONAL_DATABASE_PLAYER_ID_KEY)) {
@@ -210,6 +210,13 @@ public final class DatabaseStorageSavedData extends SavedData {
                     this.exportStorageTag(provider)
             );
         }
+    }
+
+    private CompoundTag resolvePublicDatabaseTag(CompoundTag rootTag) {
+        if (rootTag.contains(PUBLIC_DATABASE_KEY, Tag.TAG_COMPOUND)) {
+            return rootTag.getCompound(PUBLIC_DATABASE_KEY);
+        }
+        return rootTag.getCompound(LEGACY_PUBLIC_DATABASE_KEY);
     }
 
     private void loadLegacyPublicFormat(CompoundTag tag, HolderLookup.Provider provider) {

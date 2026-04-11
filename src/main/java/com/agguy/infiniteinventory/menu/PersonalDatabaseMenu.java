@@ -187,11 +187,15 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     public void updateQuery(DatabaseQuery newQuery) {
+        DatabaseScope previousScope = this.activeScope;
         this.setActiveQuery(newQuery == null ? this.currentQuery() : newQuery);
         if (this.owner instanceof ServerPlayer serverPlayer) {
             this.persistPreferences(serverPlayer);
         }
         this.syncViewToClient();
+        if (this.owner instanceof ServerPlayer serverPlayer && previousScope != this.activeScope) {
+            PersonalDatabaseService.INSTANCE.notifyViewerAboutUnresolvedEntries(serverPlayer, this.activeScope);
+        }
     }
 
     public void depositAllFromMainInventory() {
