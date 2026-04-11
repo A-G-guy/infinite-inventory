@@ -5,9 +5,10 @@ import com.agguy.infiniteinventory.database.DatabaseQuery;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
 public record DatabaseQueryPayload(int containerId, DatabaseQuery query) implements CustomPacketPayload {
-    public static final Type<DatabaseQueryPayload> TYPE = CustomPacketPayload.createType(InfiniteInventory.MODID + ":database_query");
+    public static final Type<DatabaseQueryPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "database_query"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DatabaseQueryPayload> STREAM_CODEC = StreamCodec.of(
             DatabaseQueryPayload::write,
             DatabaseQueryPayload::read
