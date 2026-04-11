@@ -53,5 +53,13 @@
   "screen.infiniteinventory.sort.item_id_desc": "Item ID Z-A",
   "screen.infiniteinventory.context.take_single": "Take 1",
   "screen.infiniteinventory.context.take_stack": "Take Stack",
-  "screen.infiniteinventory.context.take_all": "Take All"
+  "screen.infiniteinventory.context.take_all": "Take All",
+  "message.infiniteinventory.database.unresolved.personal": "Your personal database has %s unresolved entries. They are being preserved and will be retried automatically when the missing mods or items return.",
+  "message.infiniteinventory.database.unresolved.public": "The public database has %s unresolved entries. They are being preserved and will be retried automatically when the missing mods or items return.",
+  "command.infiniteinventory.database.backup.created": "Created database backup: %s",
+  "command.infiniteinventory.database.backup.empty": "No database backups are currently available.",
+  "command.infiniteinventory.database.backup.list_header": "Database backups (%s total):",
+  "command.infiniteinventory.database.backup.list_entry": "%s | type=%s | reason=%s | time=%s",
+  "command.infiniteinventory.database.restore.completed": "Restored the database from %s and created a pre-restore safeguard backup %s.",
+  "command.infiniteinventory.database.error": "Database operation failed: %s"
 }
