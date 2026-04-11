@@ -1,0 +1,23 @@
+{
+  "item.infiniteinventory.database_access_item": "Database Access Terminal",
+  "screen.infiniteinventory.database.title": "Personal Database",
+  "screen.infiniteinventory.database.section": "Database Storage",
+  "screen.infiniteinventory.search": "Search",
+  "screen.infiniteinventory.deposit_all": "Store All",
+  "screen.infiniteinventory.total_entries": "Entries: %s",
+  "screen.infiniteinventory.total_items": "Items: %s",
+  "screen.infiniteinventory.page": "Page %s/%s",
+  "screen.infiniteinventory.tooltip.amount": "Amount: %s",
+  "screen.infiniteinventory.category.all": "All",
+  "screen.infiniteinventory.category.blocks": "Blocks",
+  "screen.infiniteinventory.category.tools_weapons": "Tools",
+  "screen.infiniteinventory.category.equipment": "Gear",
+  "screen.infiniteinventory.category.consumables": "Food",
+  "screen.infiniteinventory.category.materials": "Materials",
+  "screen.infiniteinventory.category.other": "Other",
+  "screen.infiniteinventory.sort.recent": "Recent",
+  "screen.infiniteinventory.sort.name_asc": "Name A-Z",
+  "screen.infiniteinventory.sort.name_desc": "Name Z-A",
+  "screen.infiniteinventory.sort.count_desc": "Count High",
+  "screen.infiniteinventory.sort.count_asc": "Count Low"
+}
