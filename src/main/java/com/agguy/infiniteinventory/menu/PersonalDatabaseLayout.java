@@ -8,6 +8,7 @@ public record PersonalDatabaseLayout(
         Rect publicScopeButtonRect,
         Rect toolbarRect,
         Rect searchFieldRect,
+        Rect advancedSearchButtonRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
         Rect pageLabelRect,
@@ -41,6 +42,7 @@ public record PersonalDatabaseLayout(
     private static final int TITLE_HEIGHT = CONTROL_HEIGHT;
     private static final int TITLE_GAP = 6;
     private static final int SEARCH_MIN_WIDTH = 140;
+    private static final int ADVANCED_SEARCH_BUTTON_WIDTH = 40;
     private static final int SORT_BUTTON_WIDTH = 112;
     private static final int DEPOSIT_BUTTON_WIDTH = 88;
     private static final int SCOPE_BUTTON_WIDTH = 72;
@@ -53,6 +55,7 @@ public record PersonalDatabaseLayout(
         publicScopeButtonRect = publicScopeButtonRect == null ? Rect.empty() : publicScopeButtonRect;
         toolbarRect = toolbarRect == null ? Rect.empty() : toolbarRect;
         searchFieldRect = searchFieldRect == null ? Rect.empty() : searchFieldRect;
+        advancedSearchButtonRect = advancedSearchButtonRect == null ? Rect.empty() : advancedSearchButtonRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;
@@ -112,7 +115,8 @@ public record PersonalDatabaseLayout(
         Rect nextPageButtonRect = new Rect(pageLabelRect.right() + PAGE_BUTTON_GAP, toolbarY, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
         Rect depositButtonRect = new Rect(previousPageButtonRect.x() - TOOLBAR_GAP - DEPOSIT_BUTTON_WIDTH, toolbarY, DEPOSIT_BUTTON_WIDTH, CONTROL_HEIGHT);
         Rect sortButtonRect = new Rect(depositButtonRect.x() - TOOLBAR_GAP - SORT_BUTTON_WIDTH, toolbarY, SORT_BUTTON_WIDTH, CONTROL_HEIGHT);
-        int searchWidth = Math.max(SEARCH_MIN_WIDTH, sortButtonRect.x() - TOOLBAR_GAP - toolbarLeft);
+        Rect advancedSearchButtonRect = new Rect(sortButtonRect.x() - TOOLBAR_GAP - ADVANCED_SEARCH_BUTTON_WIDTH, toolbarY, ADVANCED_SEARCH_BUTTON_WIDTH, CONTROL_HEIGHT);
+        int searchWidth = Math.max(SEARCH_MIN_WIDTH, advancedSearchButtonRect.x() - TOOLBAR_GAP - toolbarLeft);
         Rect searchFieldRect = new Rect(toolbarLeft, toolbarY, searchWidth, CONTROL_HEIGHT);
 
         int contentTop = toolbarRect.bottom() + SECTION_GAP;
@@ -158,6 +162,7 @@ public record PersonalDatabaseLayout(
                 publicScopeButtonRect,
                 toolbarRect,
                 searchFieldRect,
+                advancedSearchButtonRect,
                 sortButtonRect,
                 depositButtonRect,
                 pageLabelRect,

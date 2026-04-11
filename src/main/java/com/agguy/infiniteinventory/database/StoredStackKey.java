@@ -9,6 +9,7 @@ public final class StoredStackKey {
     private final ItemStack displayStack;
     private final int hashCode;
     private final String registryName;
+    private final String registryNamespace;
     private final String registryPath;
 
     private StoredStackKey(ItemStack stack) {
@@ -16,6 +17,7 @@ public final class StoredStackKey {
         this.hashCode = ItemStack.hashItemAndComponents(this.displayStack);
         ResourceLocation itemId = Objects.requireNonNull(BuiltInRegistries.ITEM.getKey(this.displayStack.getItem()));
         this.registryName = itemId.toString();
+        this.registryNamespace = itemId.getNamespace();
         this.registryPath = itemId.getPath();
     }
 
@@ -43,6 +45,10 @@ public final class StoredStackKey {
 
     public String registryPath() {
         return this.registryPath;
+    }
+
+    public String registryNamespace() {
+        return this.registryNamespace;
     }
 
     public int maxStackSize() {

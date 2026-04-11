@@ -2,6 +2,9 @@ package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
+import com.agguy.infiniteinventory.database.DatabaseSearchField;
+import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
@@ -13,8 +16,13 @@ class DatabaseViewPreferencesAttachmentTest {
     @Test
     void shouldPersistQueriesPerScopeAndLastScope() {
         DatabaseViewPreferencesAttachment preferences = new DatabaseViewPreferencesAttachment();
-        DatabaseQuery personalQuery = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.NAME_ASC, "iron", 2, 81);
-        DatabaseQuery publicQuery = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.BLOCKS, DatabaseSortOption.COUNT_DESC, "stone", 1, 96);
+        DatabaseSearchConfig personalConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.LOW);
+        DatabaseSearchConfig publicConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.HIGH)
+                .withWeight(DatabaseSearchField.COUNT_BOOST, DatabaseSearchWeight.HIGH);
+        DatabaseQuery personalQuery = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.NAME_ASC, "iron", personalConfig, 2, 81);
+        DatabaseQuery publicQuery = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.BLOCKS, DatabaseSortOption.COUNT_DESC, "stone", publicConfig, 1, 96);
         preferences.setQuery(DatabaseScope.PERSONAL, personalQuery);
         preferences.setQuery(DatabaseScope.PUBLIC, publicQuery);
         preferences.setLastScope(DatabaseScope.PUBLIC);
