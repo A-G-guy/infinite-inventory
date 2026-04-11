@@ -13,7 +13,9 @@ public final class PersonalDatabaseClient {
         if (minecraft.player == null) {
             return;
         }
-        if (minecraft.player.containerMenu instanceof PersonalDatabaseMenu menu && menu.containerId == viewState.containerId()) {
+        if (minecraft.player.containerMenu instanceof PersonalDatabaseMenu menu
+                && menu.containerId == viewState.containerId()
+                && menu.sessionId() == viewState.sessionId()) {
             menu.applyViewState(viewState);
         }
     }

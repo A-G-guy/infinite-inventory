@@ -14,14 +14,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DatabaseViewStateTest {
     @Test
     void activeQueryShouldOverrideMatchingStoredScopeQuery() {
+        long sessionId = 42L;
         DatabaseQuery personalQuery = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.BLOCKS, DatabaseSortOption.NAME_ASC, "stone", 2, 81);
         DatabaseQuery publicQuery = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.MATERIALS, DatabaseSortOption.COUNT_DESC, "iron", 1, 96);
         DatabaseQuery activePublicQuery = publicQuery.withSearchText("gold");
 
-        DatabaseViewState viewState = new DatabaseViewState(3, activePublicQuery, personalQuery, publicQuery, 5, 2, 64L, List.of());
+        DatabaseViewState viewState = new DatabaseViewState(3, sessionId, activePublicQuery, personalQuery, publicQuery, 5, 2, 64L, List.of());
 
         assertEquals(activePublicQuery, viewState.query());
+        assertEquals(sessionId, viewState.sessionId());
         assertEquals(personalQuery, viewState.queryForScope(DatabaseScope.PERSONAL));
         assertEquals(activePublicQuery, viewState.queryForScope(DatabaseScope.PUBLIC));
+    }
+
+    @Test
+    void emptyStateShouldRetainProvidedSessionId() {
+        DatabaseViewState viewState = DatabaseViewState.empty(5, 99L, DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC));
+
+        assertEquals(5, viewState.containerId());
+        assertEquals(99L, viewState.sessionId());
+        assertEquals(DatabaseScope.PUBLIC, viewState.query().scope());
     }
 }
