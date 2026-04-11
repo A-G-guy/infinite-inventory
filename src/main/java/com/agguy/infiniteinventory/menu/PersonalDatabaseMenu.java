@@ -110,7 +110,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 return;
             }
             if (action.extractsToInventory()) {
-                changed = PersonalDatabaseService.INSTANCE.extractAllToInventory(this.owner, pageEntry.key()) > 0L;
+                long requestedAmount = action.extractsEntireEntry()
+                        ? Long.MAX_VALUE
+                        : action.resolveRequestedAmount(pageEntry.key().maxStackSize());
+                changed = PersonalDatabaseService.INSTANCE.extractToInventory(this.owner, pageEntry.key(), requestedAmount) > 0L;
             } else {
                 changed = this.withdrawToCarried(pageEntry.key(), action.resolveRequestedAmount(pageEntry.key().maxStackSize()));
             }
