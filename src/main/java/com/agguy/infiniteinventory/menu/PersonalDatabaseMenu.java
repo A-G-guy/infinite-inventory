@@ -93,23 +93,29 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     public void handleDatabaseClick(int pageSlotIndex, DatabaseClickAction action) {
-        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
+        if (!(this.owner instanceof ServerPlayer)) {
             return;
         }
-        if (action == DatabaseClickAction.QUICK_MOVE) {
-            this.quickMoveFromDatabase(pageSlotIndex);
-            return;
+        boolean changed = false;
+        if (action.isStoreAction()) {
+            if (!this.getCarried().isEmpty()) {
+                changed = this.storeCarriedStack(action.storesSingleItem());
+            }
+        } else {
+            if (!this.getCarried().isEmpty()) {
+                return;
+            }
+            DatabasePageEntry pageEntry = this.getPageEntry(pageSlotIndex);
+            if (pageEntry == null) {
+                return;
+            }
+            if (action.extractsToInventory()) {
+                changed = PersonalDatabaseService.INSTANCE.extractAllToInventory(this.owner, pageEntry.key()) > 0L;
+            } else {
+                changed = this.withdrawToCarried(pageEntry.key(), action.resolveRequestedAmount(pageEntry.key().maxStackSize()));
+            }
         }
-        if (!this.getCarried().isEmpty()) {
-            this.storeCarriedStack(action == DatabaseClickAction.SECONDARY);
-            return;
-        }
-        DatabasePageEntry pageEntry = this.getPageEntry(pageSlotIndex);
-        if (pageEntry == null) {
-            return;
-        }
-        int requestedAmount = action == DatabaseClickAction.SECONDARY ? 1 : pageEntry.key().maxStackSize();
-        if (this.withdrawToCarried(pageEntry.key(), requestedAmount)) {
+        if (changed) {
             this.broadcastChanges();
             this.syncViewToClient();
         }
@@ -287,19 +293,18 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return slotIndex >= 9 && slotIndex < 45;
     }
 
-    private void storeCarriedStack(boolean singleItem) {
+    private boolean storeCarriedStack(boolean singleItem) {
         ItemStack carried = this.getCarried();
         if (!PersonalDatabaseService.INSTANCE.canStore(carried)) {
-            return;
+            return false;
         }
         ItemStack storedStack = singleItem ? carried.split(1) : carried.copyAndClear();
         if (storedStack.isEmpty()) {
-            return;
+            return false;
         }
         PersonalDatabaseService.INSTANCE.getDatabase(this.owner).store(storedStack);
         this.setCarried(carried);
-        this.broadcastChanges();
-        this.syncViewToClient();
+        return true;
     }
 
     private boolean withdrawToCarried(StoredStackKey key, int requestedAmount) {
@@ -322,17 +327,6 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             this.setCarried(carried);
         }
         return true;
-    }
-
-    private void quickMoveFromDatabase(int pageSlotIndex) {
-        DatabasePageEntry pageEntry = this.getPageEntry(pageSlotIndex);
-        if (pageEntry == null) {
-            return;
-        }
-        if (PersonalDatabaseService.INSTANCE.extractToInventory(this.owner, pageEntry.key()) > 0) {
-            this.broadcastChanges();
-            this.syncViewToClient();
-        }
     }
 
     @Nullable

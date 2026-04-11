@@ -22,6 +22,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -31,6 +32,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private static final int TAB_HEIGHT = 20;
     private static final int TAB_GAP = 4;
     private static final int DROPDOWN_ROW_HEIGHT = 18;
+    private static final int CONTEXT_MENU_WIDTH = 108;
+    private static final int CONTEXT_MENU_ROW_HEIGHT = 18;
+    private static final int CONTEXT_MENU_MARGIN = 4;
+    private static final DatabaseClickAction[] CONTEXT_MENU_ACTIONS = {
+            DatabaseClickAction.TAKE_SINGLE,
+            DatabaseClickAction.TAKE_STACK,
+            DatabaseClickAction.TAKE_ALL
+    };
 
     private final PlayerInventoryPaneProvider inventoryPaneProvider = new VanillaPlayerInventoryPaneProvider();
     private EditBox searchBox;
@@ -40,6 +49,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private Button sortButton;
     private boolean syncingSearchBox;
     private boolean sortDropdownExpanded;
+    private boolean contextMenuExpanded;
+    private int contextMenuSlotIndex = -1;
+    private int contextMenuX;
+    private int contextMenuY;
+    private ItemStack contextMenuEntryStack = ItemStack.EMPTY;
 
     public PersonalDatabaseScreen(PersonalDatabaseMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -60,10 +74,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
 
-        this.sortButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> this.sortDropdownExpanded = !this.sortDropdownExpanded)
+        this.sortButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
+                    this.closeContextMenu();
+                    this.sortDropdownExpanded = !this.sortDropdownExpanded;
+                })
                 .bounds(searchX + 96, searchY, 64, 16)
                 .build());
         this.depositButton = this.addRenderableWidget(Button.builder(Component.translatable("screen.infiniteinventory.deposit_all"), button -> {
+                    this.closeContextMenu();
                     this.sortDropdownExpanded = false;
                     PacketDistributor.sendToServer(new DepositAllPayload(this.menu.containerId));
                 })
@@ -88,10 +106,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        this.renderCustomTooltips(guiGraphics, mouseX, mouseY);
         if (this.sortDropdownExpanded) {
             this.renderSortDropdown(guiGraphics, mouseX, mouseY);
         }
+        if (this.contextMenuExpanded) {
+            this.renderContextMenu(guiGraphics, mouseX, mouseY);
+        }
+        this.renderCustomTooltips(guiGraphics, mouseX, mouseY);
     }
 
     @Override
@@ -113,7 +134,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 mouseY
         );
         this.renderDatabasePanel(guiGraphics);
-
         this.renderTabs(guiGraphics, mouseX, mouseY);
         this.renderDatabaseEntries(guiGraphics, mouseX, mouseY);
     }
@@ -133,6 +153,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (this.contextMenuExpanded && this.handleContextMenuClick(mouseX, mouseY)) {
+            return true;
+        }
         if (this.sortDropdownExpanded && this.handleSortDropdownClick(mouseX, mouseY)) {
             return true;
         }
@@ -145,6 +168,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         if (!handled) {
             this.sortDropdownExpanded = false;
+            this.closeContextMenu();
         }
         return handled;
     }
@@ -185,6 +209,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.depositButton != null) {
             this.depositButton.active = this.minecraft != null && this.minecraft.player != null;
         }
+        if (!this.menu.getCarried().isEmpty()) {
+            this.closeContextMenu();
+            return;
+        }
+        this.validateContextMenu(viewState);
     }
 
     private void onSearchChanged(String value) {
@@ -208,8 +237,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     private void sendQuery(DatabaseQuery query) {
+        this.closeContextMenu();
         this.sortDropdownExpanded = false;
         PacketDistributor.sendToServer(new DatabaseQueryPayload(this.menu.containerId, query));
+    }
+
+    private void sendDatabaseClick(int slotIndex, DatabaseClickAction action) {
+        PacketDistributor.sendToServer(new DatabaseClickPayload(this.menu.containerId, slotIndex, action));
     }
 
     private void renderTabs(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -231,7 +265,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             guiGraphics.drawCenteredString(this.font, Component.translatable(category.translationKey()), x + tabWidth / 2, tabY + 6, selected ? 0x202020 : 0xF0F0F0);
         }
     }
-
 
     private void renderDatabasePanel(GuiGraphics guiGraphics) {
         int panelLeft = this.leftPos + PersonalDatabaseLayout.DATABASE_PANEL_X;
@@ -302,6 +335,29 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
     }
 
+    private void renderContextMenu(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (!this.contextMenuExpanded) {
+            return;
+        }
+        int height = CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT;
+        guiGraphics.fill(this.contextMenuX, this.contextMenuY, this.contextMenuX + CONTEXT_MENU_WIDTH, this.contextMenuY + height, 0xFFC6C6C6);
+        guiGraphics.fill(this.contextMenuX, this.contextMenuY, this.contextMenuX + CONTEXT_MENU_WIDTH, this.contextMenuY + 1, 0xFFFFFFFF);
+        guiGraphics.fill(this.contextMenuX, this.contextMenuY, this.contextMenuX + 1, this.contextMenuY + height, 0xFFFFFFFF);
+        guiGraphics.fill(this.contextMenuX + CONTEXT_MENU_WIDTH - 1, this.contextMenuY, this.contextMenuX + CONTEXT_MENU_WIDTH, this.contextMenuY + height, 0xFF555555);
+        guiGraphics.fill(this.contextMenuX, this.contextMenuY + height - 1, this.contextMenuX + CONTEXT_MENU_WIDTH, this.contextMenuY + height, 0xFF555555);
+        for (int index = 0; index < CONTEXT_MENU_ACTIONS.length; index++) {
+            int rowY = this.contextMenuY + index * CONTEXT_MENU_ROW_HEIGHT;
+            if (index > 0) {
+                guiGraphics.fill(this.contextMenuX + 1, rowY, this.contextMenuX + CONTEXT_MENU_WIDTH - 1, rowY + 1, 0xFF8B8B8B);
+            }
+            boolean hovered = this.isWithinAbsolute(this.contextMenuX, rowY, CONTEXT_MENU_WIDTH, CONTEXT_MENU_ROW_HEIGHT, mouseX, mouseY);
+            if (hovered) {
+                guiGraphics.fill(this.contextMenuX + 1, rowY + 1, this.contextMenuX + CONTEXT_MENU_WIDTH - 1, rowY + CONTEXT_MENU_ROW_HEIGHT - 1, 0x6666A3D2);
+            }
+            guiGraphics.drawString(this.font, this.contextMenuLabel(CONTEXT_MENU_ACTIONS[index]), this.contextMenuX + 6, rowY + 5, 0x202020, false);
+        }
+    }
+
     private boolean handleCategoryClick(double mouseX, double mouseY) {
         int tabWidth = (this.imageWidth - 16 - TAB_GAP * (DatabaseCategory.values().length - 1)) / DatabaseCategory.values().length;
         int tabY = this.topPos + 18;
@@ -311,6 +367,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             if (!this.isWithinAbsolute(x, tabY, tabWidth, TAB_HEIGHT, mouseX, mouseY)) {
                 continue;
             }
+            this.closeContextMenu();
+            this.sortDropdownExpanded = false;
             if (category != this.menu.viewState().query().category()) {
                 this.sendQuery(this.menu.viewState().query().withCategory(category));
             }
@@ -340,27 +398,64 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         return false;
     }
 
+    private boolean handleContextMenuClick(double mouseX, double mouseY) {
+        if (!this.contextMenuExpanded) {
+            return false;
+        }
+        for (int index = 0; index < CONTEXT_MENU_ACTIONS.length; index++) {
+            int rowY = this.contextMenuY + index * CONTEXT_MENU_ROW_HEIGHT;
+            if (!this.isWithinAbsolute(this.contextMenuX, rowY, CONTEXT_MENU_WIDTH, CONTEXT_MENU_ROW_HEIGHT, mouseX, mouseY)) {
+                continue;
+            }
+            this.sendDatabaseClick(this.contextMenuSlotIndex, CONTEXT_MENU_ACTIONS[index]);
+            this.closeContextMenu();
+            return true;
+        }
+        if (this.isWithinContextMenu(mouseX, mouseY)) {
+            return true;
+        }
+        this.closeContextMenu();
+        return false;
+    }
+
     private boolean handleDatabaseClick(double mouseX, double mouseY, int button) {
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
         boolean carryingStack = !this.menu.getCarried().isEmpty();
         if (slotIndex < 0 || (slotIndex >= this.menu.viewState().entries().size() && !carryingStack)) {
             return false;
         }
-        DatabaseClickAction action;
-        if (!carryingStack && hasShiftDown()) {
-            action = DatabaseClickAction.QUICK_MOVE;
-        } else if (button == 1) {
-            action = DatabaseClickAction.SECONDARY;
-        } else if (button == 0) {
-            action = DatabaseClickAction.PRIMARY;
-        } else {
-            return false;
+        if (carryingStack) {
+            DatabaseClickAction action;
+            if (button == 0) {
+                action = DatabaseClickAction.STORE_STACK;
+            } else if (button == 1) {
+                action = DatabaseClickAction.STORE_SINGLE;
+            } else {
+                return false;
+            }
+            this.closeContextMenu();
+            this.sortDropdownExpanded = false;
+            this.sendDatabaseClick(slotIndex, action);
+            return true;
         }
-        PacketDistributor.sendToServer(new DatabaseClickPayload(this.menu.containerId, slotIndex, action));
-        return true;
+        if (button == 0) {
+            this.closeContextMenu();
+            this.sortDropdownExpanded = false;
+            this.sendDatabaseClick(slotIndex, DatabaseClickAction.TAKE_SINGLE);
+            return true;
+        }
+        if (button == 1) {
+            this.sortDropdownExpanded = false;
+            this.openContextMenu(slotIndex);
+            return true;
+        }
+        return false;
     }
 
     private void renderCustomTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (this.contextMenuExpanded) {
+            return;
+        }
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
         if (slotIndex < 0 || slotIndex >= this.menu.viewState().entries().size()) {
             return;
@@ -372,6 +467,67 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         tooltip.add(Component.translatable(entry.category().translationKey()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.literal(entry.registryName()).withStyle(ChatFormatting.DARK_GRAY));
         guiGraphics.renderTooltip(this.font, tooltip, ItemStack.EMPTY.getTooltipImage(), mouseX, mouseY);
+    }
+
+    private void validateContextMenu(DatabaseViewState viewState) {
+        if (!this.contextMenuExpanded) {
+            return;
+        }
+        if (this.contextMenuSlotIndex < 0 || this.contextMenuSlotIndex >= viewState.entries().size()) {
+            this.closeContextMenu();
+            return;
+        }
+        ItemStack currentStack = viewState.entries().get(this.contextMenuSlotIndex).stack();
+        if (!ItemStack.isSameItemSameComponents(this.contextMenuEntryStack, currentStack)) {
+            this.closeContextMenu();
+        }
+    }
+
+    private void openContextMenu(int slotIndex) {
+        List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
+        if (slotIndex < 0 || slotIndex >= entries.size()) {
+            this.closeContextMenu();
+            return;
+        }
+        VisibleDatabaseEntry entry = entries.get(slotIndex);
+        int slotX = this.leftPos + PersonalDatabaseLayout.databaseSlotX(slotIndex);
+        int slotY = this.topPos + PersonalDatabaseLayout.databaseSlotY(slotIndex);
+        int menuHeight = CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT;
+        int minX = this.leftPos + CONTEXT_MENU_MARGIN;
+        int maxX = Math.max(minX, this.leftPos + this.imageWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_MARGIN);
+        int preferredX = slotX + 20;
+        if (preferredX > maxX) {
+            preferredX = slotX - CONTEXT_MENU_WIDTH - 2;
+        }
+        this.contextMenuX = Mth.clamp(preferredX, minX, maxX);
+        int minY = this.topPos + CONTEXT_MENU_MARGIN;
+        int maxY = Math.max(minY, this.topPos + this.imageHeight - menuHeight - CONTEXT_MENU_MARGIN);
+        this.contextMenuY = Mth.clamp(slotY, minY, maxY);
+        this.contextMenuSlotIndex = slotIndex;
+        this.contextMenuEntryStack = entry.stack().copyWithCount(1);
+        this.contextMenuExpanded = true;
+    }
+
+    private void closeContextMenu() {
+        this.contextMenuExpanded = false;
+        this.contextMenuSlotIndex = -1;
+        this.contextMenuEntryStack = ItemStack.EMPTY;
+    }
+
+    private Component contextMenuLabel(DatabaseClickAction action) {
+        return switch (action) {
+            case TAKE_SINGLE -> Component.translatable("screen.infiniteinventory.context.take_single");
+            case TAKE_STACK -> Component.translatable("screen.infiniteinventory.context.take_stack");
+            case TAKE_ALL -> Component.translatable("screen.infiniteinventory.context.take_all");
+            default -> Component.empty();
+        };
+    }
+
+    private boolean isWithinContextMenu(double mouseX, double mouseY) {
+        if (!this.contextMenuExpanded) {
+            return false;
+        }
+        return this.isWithinAbsolute(this.contextMenuX, this.contextMenuY, CONTEXT_MENU_WIDTH, CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT, mouseX, mouseY);
     }
 
     private int findDatabaseSlot(double mouseX, double mouseY) {

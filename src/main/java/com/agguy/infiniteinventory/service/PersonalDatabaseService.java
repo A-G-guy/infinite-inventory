@@ -79,25 +79,39 @@ public final class PersonalDatabaseService {
         return movedItems;
     }
 
-    public int extractToInventory(Player player, StoredStackKey key) {
+    public long extractAllToInventory(Player player, StoredStackKey key) {
+        return this.extractToInventory(player, key, Long.MAX_VALUE);
+    }
+
+    public long extractToInventory(Player player, StoredStackKey key, long requestedAmount) {
+        if (requestedAmount <= 0L) {
+            return 0L;
+        }
         Inventory inventory = player.getInventory();
         PlayerDatabaseAttachment database = this.getDatabase(player);
-        int movedItems = 0;
-        while (this.hasSpaceFor(inventory, key)) {
-            ItemStack extracted = database.extract(key, key.maxStackSize());
+        long movedItems = 0L;
+        long remainingAmount = requestedAmount;
+        while (remainingAmount > 0L && this.hasSpaceFor(inventory, key)) {
+            int extractedCount = (int) Math.min((long) key.maxStackSize(), remainingAmount);
+            ItemStack extracted = database.extract(key, extractedCount);
             if (extracted.isEmpty()) {
                 break;
             }
             int originalCount = extracted.getCount();
             inventory.add(extracted);
             int movedNow = originalCount - extracted.getCount();
+            if (movedNow <= 0) {
+                database.store(extracted);
+                break;
+            }
             movedItems += movedNow;
+            remainingAmount -= movedNow;
             if (!extracted.isEmpty()) {
                 database.store(extracted);
                 break;
             }
         }
-        if (movedItems > 0) {
+        if (movedItems > 0L) {
             inventory.setChanged();
         }
         return movedItems;
@@ -141,7 +155,10 @@ public final class PersonalDatabaseService {
             String displayName = displayStack.getHoverName().getString();
             String displayNameLower = displayName.toLowerCase(Locale.ROOT);
             String registryNameLower = key.registryName().toLowerCase(Locale.ROOT);
-            if (!searchNeedle.isEmpty() && !displayNameLower.contains(searchNeedle) && !registryNameLower.contains(searchNeedle) && !key.registryPath().toLowerCase(Locale.ROOT).contains(searchNeedle)) {
+            if (!searchNeedle.isEmpty()
+                    && !displayNameLower.contains(searchNeedle)
+                    && !registryNameLower.contains(searchNeedle)
+                    && !key.registryPath().toLowerCase(Locale.ROOT).contains(searchNeedle)) {
                 continue;
             }
             candidates.add(new QueryCandidate(key, entry, displayStack, displayName, displayNameLower, registryNameLower));

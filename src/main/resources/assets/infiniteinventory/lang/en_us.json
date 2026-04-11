@@ -19,5 +19,8 @@
   "screen.infiniteinventory.sort.name_asc": "Name A-Z",
   "screen.infiniteinventory.sort.name_desc": "Name Z-A",
   "screen.infiniteinventory.sort.count_desc": "Count High",
-  "screen.infiniteinventory.sort.count_asc": "Count Low"
+  "screen.infiniteinventory.sort.count_asc": "Count Low",
+  "screen.infiniteinventory.context.take_single": "Take 1",
+  "screen.infiniteinventory.context.take_stack": "Take Stack",
+  "screen.infiniteinventory.context.take_all": "Take All"
 }
