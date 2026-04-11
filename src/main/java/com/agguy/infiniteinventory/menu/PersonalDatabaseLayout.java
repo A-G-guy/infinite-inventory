@@ -10,7 +10,7 @@ public final class PersonalDatabaseLayout {
     public static final int DATABASE_PANEL_X = 188;
     public static final int DATABASE_PANEL_Y = 102;
     public static final int DATABASE_PANEL_WIDTH = 176;
-    public static final int DATABASE_PANEL_HEIGHT = 222;
+    public static final int DATABASE_PANEL_HEIGHT = 166;
     public static final int DATABASE_COLUMNS = 9;
     public static final int DATABASE_ROWS = 6;
     public static final int DATABASE_SLOT_COUNT = DATABASE_COLUMNS * DATABASE_ROWS;

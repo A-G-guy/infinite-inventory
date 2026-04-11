@@ -22,13 +22,11 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class PersonalDatabaseScreen extends AbstractContainerScreen<PersonalDatabaseMenu> {
-    private static final ResourceLocation DATABASE_TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final int HEADER_HEIGHT = 94;
     private static final int TAB_HEIGHT = 20;
     private static final int TAB_GAP = 4;
@@ -114,15 +112,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 mouseX,
                 mouseY
         );
-        guiGraphics.blit(
-                DATABASE_TEXTURE,
-                left + PersonalDatabaseLayout.DATABASE_PANEL_X,
-                top + PersonalDatabaseLayout.DATABASE_PANEL_Y,
-                0,
-                0,
-                PersonalDatabaseLayout.DATABASE_PANEL_WIDTH,
-                PersonalDatabaseLayout.DATABASE_PANEL_HEIGHT
-        );
+        this.renderDatabasePanel(guiGraphics);
 
         this.renderTabs(guiGraphics, mouseX, mouseY);
         this.renderDatabaseEntries(guiGraphics, mouseX, mouseY);
@@ -242,6 +232,31 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
     }
 
+
+    private void renderDatabasePanel(GuiGraphics guiGraphics) {
+        int panelLeft = this.leftPos + PersonalDatabaseLayout.DATABASE_PANEL_X;
+        int panelTop = this.topPos + PersonalDatabaseLayout.DATABASE_PANEL_Y;
+        int panelRight = panelLeft + PersonalDatabaseLayout.DATABASE_PANEL_WIDTH;
+        int panelBottom = panelTop + PersonalDatabaseLayout.DATABASE_PANEL_HEIGHT;
+        guiGraphics.fill(panelLeft, panelTop, panelRight, panelBottom, 0xFFC6C6C6);
+        guiGraphics.fill(panelLeft, panelTop, panelRight, panelTop + 1, 0xFFFFFFFF);
+        guiGraphics.fill(panelLeft, panelTop, panelLeft + 1, panelBottom, 0xFFFFFFFF);
+        guiGraphics.fill(panelRight - 1, panelTop, panelRight, panelBottom, 0xFF555555);
+        guiGraphics.fill(panelLeft, panelBottom - 1, panelRight, panelBottom, 0xFF555555);
+        for (int slotIndex = 0; slotIndex < PersonalDatabaseLayout.DATABASE_SLOT_COUNT; slotIndex++) {
+            int slotX = this.leftPos + PersonalDatabaseLayout.databaseSlotX(slotIndex);
+            int slotY = this.topPos + PersonalDatabaseLayout.databaseSlotY(slotIndex);
+            this.renderDatabaseSlotFrame(guiGraphics, slotX, slotY);
+        }
+    }
+
+    private void renderDatabaseSlotFrame(GuiGraphics guiGraphics, int x, int y) {
+        guiGraphics.fill(x, y, x + 18, y + 18, 0xFF373737);
+        guiGraphics.fill(x + 1, y + 1, x + 18, y + 18, 0xFFFFFFFF);
+        guiGraphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF8B8B8B);
+        guiGraphics.fill(x + 2, y + 2, x + 16, y + 16, 0xFF7B7B7B);
+    }
+
     private void renderDatabaseEntries(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
         for (int slotIndex = 0; slotIndex < PersonalDatabaseLayout.DATABASE_SLOT_COUNT; slotIndex++) {
@@ -327,11 +342,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     private boolean handleDatabaseClick(double mouseX, double mouseY, int button) {
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
-        if (slotIndex < 0 || slotIndex >= this.menu.viewState().entries().size()) {
+        boolean carryingStack = !this.menu.getCarried().isEmpty();
+        if (slotIndex < 0 || (slotIndex >= this.menu.viewState().entries().size() && !carryingStack)) {
             return false;
         }
         DatabaseClickAction action;
-        if (hasShiftDown()) {
+        if (!carryingStack && hasShiftDown()) {
             action = DatabaseClickAction.QUICK_MOVE;
         } else if (button == 1) {
             action = DatabaseClickAction.SECONDARY;
