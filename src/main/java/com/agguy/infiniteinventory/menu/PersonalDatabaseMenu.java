@@ -423,15 +423,8 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     private void moveAccessorySlots(PersonalDatabaseLayout layout) {
-        List<PersonalDatabaseLayout.AccessoryGroupLayout> groupLayouts = layout.accessoryGroupLayouts();
-        int groupCount = Math.min(this.accessorySlotGroups.size(), groupLayouts.size());
-        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++) {
-            AccessorySlotGroup group = this.accessorySlotGroups.get(groupIndex);
-            PersonalDatabaseLayout.AccessoryGroupLayout groupLayout = groupLayouts.get(groupIndex);
-            for (int slotOffset = 0; slotOffset < group.slotCount(); slotOffset++) {
-                PersonalDatabaseLayout.Rect slotRect = groupLayout.slotBounds(slotOffset);
-                this.moveSlot(group.firstSlotIndex() + slotOffset, slotRect.x(), slotRect.y());
-            }
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : layout.accessorySlotLayouts()) {
+            this.moveSlot(slotLayout.slotIndex(), slotLayout.slotRect().x(), slotLayout.slotRect().y());
         }
     }
 

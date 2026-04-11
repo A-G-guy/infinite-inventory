@@ -17,6 +17,7 @@ public record PersonalDatabaseLayout(
         Rect depositButtonRect,
         Rect pageLabelRect,
         Rect equipmentPanelRect,
+        Rect accessoryToggleRect,
         Rect accessoriesPanelRect,
         Rect bottomInventoryRect,
         Rect databasePanelRect,
@@ -24,7 +25,11 @@ public record PersonalDatabaseLayout(
         Rect databaseFooterRect,
         Rect previousPageButtonRect,
         Rect nextPageButtonRect,
-        List<AccessoryGroupLayout> accessoryGroupLayouts,
+        List<AccessorySlotLayout> accessorySlotLayouts,
+        int accessoryColumns,
+        int accessoryVisibleRows,
+        int accessoryTotalRows,
+        int accessoryScrollRow,
         int databaseColumns,
         int databaseRows
 ) {
@@ -45,10 +50,9 @@ public record PersonalDatabaseLayout(
     public static final int PAGE_CONTROLS_WIDTH = PAGE_BUTTON_WIDTH * 2 + PAGE_BUTTON_GAP * 2 + PAGE_LABEL_WIDTH;
     public static final int MAX_COLUMNS = 40;
     public static final int MAX_ROWS = 16;
-    public static final int ACCESSORY_PANEL_PADDING = 8;
-    public static final int ACCESSORY_GROUP_LABEL_HEIGHT = 12;
-    public static final int ACCESSORY_GROUP_LABEL_GAP = 4;
-    public static final int ACCESSORY_GROUP_GAP = 6;
+    public static final int ACCESSORY_DRAWER_PADDING = 8;
+    public static final int ACCESSORY_DRAWER_TITLE_HEIGHT = 12;
+    public static final int ACCESSORY_DRAWER_TITLE_GAP = 8;
     private static final int TITLE_HEIGHT = CONTROL_HEIGHT;
     private static final int TITLE_GAP = 6;
     private static final int SEARCH_MIN_WIDTH = 140;
@@ -56,6 +60,10 @@ public record PersonalDatabaseLayout(
     private static final int SORT_BUTTON_WIDTH = 128;
     private static final int DEPOSIT_BUTTON_WIDTH = 88;
     private static final int SCOPE_BUTTON_WIDTH = 72;
+    private static final int ACCESSORY_DRAWER_MIN_WIDTH = 212;
+    private static final int ACCESSORY_DRAWER_TOP_GAP = 4;
+    private static final int HIDDEN_SLOT_X = -20_000;
+    private static final int HIDDEN_SLOT_Y = -20_000;
 
     public PersonalDatabaseLayout {
         frameRect = frameRect == null ? Rect.empty() : frameRect;
@@ -70,6 +78,7 @@ public record PersonalDatabaseLayout(
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;
         equipmentPanelRect = equipmentPanelRect == null ? Rect.empty() : equipmentPanelRect;
+        accessoryToggleRect = accessoryToggleRect == null ? Rect.empty() : accessoryToggleRect;
         accessoriesPanelRect = accessoriesPanelRect == null ? Rect.empty() : accessoriesPanelRect;
         bottomInventoryRect = bottomInventoryRect == null ? Rect.empty() : bottomInventoryRect;
         databasePanelRect = databasePanelRect == null ? Rect.empty() : databasePanelRect;
@@ -77,7 +86,11 @@ public record PersonalDatabaseLayout(
         databaseFooterRect = databaseFooterRect == null ? Rect.empty() : databaseFooterRect;
         previousPageButtonRect = previousPageButtonRect == null ? Rect.empty() : previousPageButtonRect;
         nextPageButtonRect = nextPageButtonRect == null ? Rect.empty() : nextPageButtonRect;
-        accessoryGroupLayouts = accessoryGroupLayouts == null ? List.of() : List.copyOf(accessoryGroupLayouts);
+        accessorySlotLayouts = accessorySlotLayouts == null ? List.of() : List.copyOf(accessorySlotLayouts);
+        accessoryColumns = Math.max(0, accessoryColumns);
+        accessoryVisibleRows = Math.max(0, accessoryVisibleRows);
+        accessoryTotalRows = Math.max(0, accessoryTotalRows);
+        accessoryScrollRow = Math.max(0, accessoryScrollRow);
         databaseColumns = Math.max(1, databaseColumns);
         databaseRows = Math.max(1, databaseRows);
     }
@@ -90,6 +103,30 @@ public record PersonalDatabaseLayout(
             int bottomInventoryWidth,
             int bottomInventoryHeight,
             List<AccessorySlotGroup> accessoryGroups
+    ) {
+        return create(
+                screenWidth,
+                screenHeight,
+                equipmentWidth,
+                equipmentHeight,
+                bottomInventoryWidth,
+                bottomInventoryHeight,
+                accessoryGroups,
+                false,
+                0
+        );
+    }
+
+    public static PersonalDatabaseLayout create(
+            int screenWidth,
+            int screenHeight,
+            int equipmentWidth,
+            int equipmentHeight,
+            int bottomInventoryWidth,
+            int bottomInventoryHeight,
+            List<AccessorySlotGroup> accessoryGroups,
+            boolean accessoriesExpanded,
+            int accessoryScrollRow
     ) {
         int frameY = FRAME_MARGIN + TAB_HEIGHT - 1;
         Rect frameRect = new Rect(
@@ -136,21 +173,18 @@ public record PersonalDatabaseLayout(
         int playerColumnX = frameRect.x() + INNER_PADDING;
         int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         Rect equipmentPanelRect = new Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
-        List<AccessoryGroupLayout> accessoryGroupLayouts = buildAccessoryGroupLayouts(
-                playerColumnX,
-                equipmentPanelRect.bottom() + SECTION_GAP,
-                playerColumnWidth,
-                accessoryGroups
-        );
-        Rect accessoriesPanelRect = resolveAccessoriesPanelRect(playerColumnX, equipmentPanelRect.bottom() + SECTION_GAP, playerColumnWidth, accessoryGroupLayouts);
-        int bottomInventoryTop = accessoriesPanelRect.height() > 0
-                ? accessoriesPanelRect.bottom() + SECTION_GAP
+        Rect accessoryToggleRect = accessoryGroups == null || accessoryGroups.isEmpty()
+                ? Rect.empty()
+                : new Rect(playerColumnX, equipmentPanelRect.bottom() + SECTION_GAP, playerColumnWidth, CONTROL_HEIGHT);
+        int bottomInventoryTop = accessoryToggleRect.height() > 0
+                ? accessoryToggleRect.bottom() + SECTION_GAP
                 : equipmentPanelRect.bottom() + SECTION_GAP;
-        Rect bottomInventoryRect = new Rect(
-                playerColumnX,
-                bottomInventoryTop,
-                bottomInventoryWidth,
-                bottomInventoryHeight
+        Rect bottomInventoryRect = new Rect(playerColumnX, bottomInventoryTop, bottomInventoryWidth, bottomInventoryHeight);
+        Rect accessoriesPanelRect = createAccessoriesPanelRect(frameRect, accessoryToggleRect, accessoriesExpanded);
+        AccessorySlotLayoutResult accessorySlotLayoutResult = buildAccessorySlotLayouts(
+                accessoryGroups,
+                accessoriesPanelRect,
+                accessoryScrollRow
         );
 
         int databasePanelX = playerColumnX + playerColumnWidth + SECTION_GAP;
@@ -190,6 +224,7 @@ public record PersonalDatabaseLayout(
                 depositButtonRect,
                 pageLabelRect,
                 equipmentPanelRect,
+                accessoryToggleRect,
                 accessoriesPanelRect,
                 bottomInventoryRect,
                 databasePanelRect,
@@ -197,7 +232,11 @@ public record PersonalDatabaseLayout(
                 databaseFooterRect,
                 previousPageButtonRect,
                 nextPageButtonRect,
-                accessoryGroupLayouts,
+                accessorySlotLayoutResult.slotLayouts(),
+                accessorySlotLayoutResult.columns(),
+                accessorySlotLayoutResult.visibleRows(),
+                accessorySlotLayoutResult.totalRows(),
+                accessorySlotLayoutResult.scrollRow(),
                 databaseColumns,
                 databaseRows
         );
@@ -205,6 +244,20 @@ public record PersonalDatabaseLayout(
 
     public int databaseSlotCount() {
         return this.databaseColumns * this.databaseRows;
+    }
+
+    public int accessoryMaxScrollRow() {
+        return Math.max(0, this.accessoryTotalRows - this.accessoryVisibleRows);
+    }
+
+    public int accessoryVisibleSlotCount() {
+        int count = 0;
+        for (AccessorySlotLayout slotLayout : this.accessorySlotLayouts) {
+            if (slotLayout.visible()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public int databaseSlotX(int slotIndex) {
@@ -230,67 +283,91 @@ public record PersonalDatabaseLayout(
         return new Rect(x, this.tabBarRect.y(), width, this.tabBarRect.height());
     }
 
-    private static List<AccessoryGroupLayout> buildAccessoryGroupLayouts(
-            int panelX,
-            int panelY,
-            int panelWidth,
-            List<AccessorySlotGroup> accessoryGroups
-    ) {
-        if (accessoryGroups == null || accessoryGroups.isEmpty()) {
-            return List.of();
-        }
-        List<AccessoryGroupLayout> layouts = new ArrayList<>();
-        int contentX = panelX + ACCESSORY_PANEL_PADDING;
-        int contentWidth = Math.max(SLOT_SIZE, panelWidth - ACCESSORY_PANEL_PADDING * 2);
-        int columns = Math.max(1, contentWidth / SLOT_SIZE);
-        int currentY = panelY + ACCESSORY_PANEL_PADDING;
-        for (AccessorySlotGroup group : accessoryGroups) {
-            int rows = Math.max(1, (group.slotCount() + columns - 1) / columns);
-            Rect labelRect = new Rect(contentX, currentY, contentWidth, ACCESSORY_GROUP_LABEL_HEIGHT);
-            Rect slotsRect = new Rect(
-                    contentX,
-                    labelRect.bottom() + ACCESSORY_GROUP_LABEL_GAP,
-                    columns * SLOT_SIZE,
-                    rows * SLOT_SIZE
-            );
-            layouts.add(new AccessoryGroupLayout(group, labelRect, slotsRect, columns));
-            currentY = slotsRect.bottom() + ACCESSORY_GROUP_GAP;
-        }
-        return List.copyOf(layouts);
-    }
-
-    private static Rect resolveAccessoriesPanelRect(
-            int panelX,
-            int panelY,
-            int panelWidth,
-            List<AccessoryGroupLayout> layouts
-    ) {
-        if (layouts == null || layouts.isEmpty()) {
+    private static Rect createAccessoriesPanelRect(Rect frameRect, Rect accessoryToggleRect, boolean accessoriesExpanded) {
+        if (!accessoriesExpanded || accessoryToggleRect.height() <= 0) {
             return Rect.empty();
         }
-        int panelBottom = layouts.getLast().slotsRect().bottom() + ACCESSORY_PANEL_PADDING;
-        return new Rect(panelX, panelY, panelWidth, panelBottom - panelY);
+        int drawerX = accessoryToggleRect.right() + SECTION_GAP;
+        int drawerY = accessoryToggleRect.bottom() + ACCESSORY_DRAWER_TOP_GAP;
+        int maxDrawerWidth = Math.max(1, frameRect.right() - INNER_PADDING - drawerX);
+        int drawerWidth = Math.min(maxDrawerWidth, Math.max(accessoryToggleRect.width(), ACCESSORY_DRAWER_MIN_WIDTH));
+        int drawerBottom = Math.max(drawerY + 1, frameRect.bottom() - INNER_PADDING - FOOTER_HEIGHT - SECTION_GAP);
+        return new Rect(drawerX, drawerY, drawerWidth, drawerBottom - drawerY);
+    }
+
+    private static AccessorySlotLayoutResult buildAccessorySlotLayouts(
+            List<AccessorySlotGroup> accessoryGroups,
+            Rect accessoriesPanelRect,
+            int requestedScrollRow
+    ) {
+        if (accessoryGroups == null || accessoryGroups.isEmpty()) {
+            return AccessorySlotLayoutResult.empty();
+        }
+
+        int totalSlotCount = 0;
+        for (AccessorySlotGroup accessoryGroup : accessoryGroups) {
+            totalSlotCount += Math.max(0, accessoryGroup.slotCount());
+        }
+        if (totalSlotCount <= 0) {
+            return AccessorySlotLayoutResult.empty();
+        }
+
+        int columns = 1;
+        int visibleRows = 0;
+        int totalRows = 0;
+        int scrollRow = 0;
+        boolean panelVisible = accessoriesPanelRect.height() > 0;
+        int gridLeft = HIDDEN_SLOT_X;
+        int gridTop = HIDDEN_SLOT_Y;
+        if (panelVisible) {
+            int contentWidth = Math.max(SLOT_SIZE, accessoriesPanelRect.width() - ACCESSORY_DRAWER_PADDING * 2);
+            columns = Math.max(1, contentWidth / SLOT_SIZE);
+            totalRows = Math.max(1, (totalSlotCount + columns - 1) / columns);
+            int gridHeight = Math.max(0, accessoriesPanelRect.height()
+                    - ACCESSORY_DRAWER_PADDING * 2
+                    - ACCESSORY_DRAWER_TITLE_HEIGHT
+                    - ACCESSORY_DRAWER_TITLE_GAP);
+            visibleRows = Math.max(1, gridHeight / SLOT_SIZE);
+            scrollRow = clamp(requestedScrollRow, 0, Math.max(0, totalRows - visibleRows));
+            gridLeft = accessoriesPanelRect.x() + ACCESSORY_DRAWER_PADDING;
+            gridTop = accessoriesPanelRect.y() + ACCESSORY_DRAWER_PADDING + ACCESSORY_DRAWER_TITLE_HEIGHT + ACCESSORY_DRAWER_TITLE_GAP;
+        }
+
+        List<AccessorySlotLayout> layouts = new ArrayList<>(totalSlotCount);
+        int displayIndex = 0;
+        for (AccessorySlotGroup group : accessoryGroups) {
+            for (int slotOffset = 0; slotOffset < group.slotCount(); slotOffset++) {
+                int row = displayIndex / columns - scrollRow;
+                int column = displayIndex % columns;
+                boolean visible = panelVisible && row >= 0 && row < visibleRows;
+                Rect slotRect = visible
+                        ? new Rect(gridLeft + column * SLOT_SIZE, gridTop + row * SLOT_SIZE, SLOT_SIZE, SLOT_SIZE)
+                        : hiddenSlotRect();
+                layouts.add(new AccessorySlotLayout(group, group.firstSlotIndex() + slotOffset, slotOffset, slotRect, visible));
+                displayIndex++;
+            }
+        }
+        return new AccessorySlotLayoutResult(
+                List.copyOf(layouts),
+                columns,
+                visibleRows,
+                totalRows,
+                scrollRow
+        );
+    }
+
+    private static Rect hiddenSlotRect() {
+        return new Rect(HIDDEN_SLOT_X, HIDDEN_SLOT_Y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
 
-    public record AccessoryGroupLayout(AccessorySlotGroup group, Rect labelRect, Rect slotsRect, int columns) {
-        public AccessoryGroupLayout {
+    public record AccessorySlotLayout(AccessorySlotGroup group, int slotIndex, int slotOffset, Rect slotRect, boolean visible) {
+        public AccessorySlotLayout {
             group = group == null ? new AccessorySlotGroup("", "", -1, 0) : group;
-            labelRect = labelRect == null ? Rect.empty() : labelRect;
-            slotsRect = slotsRect == null ? Rect.empty() : slotsRect;
-            columns = Math.max(1, columns);
-        }
-
-        public Rect slotBounds(int slotOffset) {
-            return new Rect(
-                    this.slotsRect.x() + slotOffset % this.columns * SLOT_SIZE,
-                    this.slotsRect.y() + slotOffset / this.columns * SLOT_SIZE,
-                    SLOT_SIZE,
-                    SLOT_SIZE
-            );
+            slotRect = slotRect == null ? hiddenSlotRect() : slotRect;
         }
     }
 
@@ -329,6 +406,18 @@ public record PersonalDatabaseLayout(
                     && this.right() > other.x
                     && this.y < other.bottom()
                     && this.bottom() > other.y;
+        }
+    }
+
+    private record AccessorySlotLayoutResult(
+            List<AccessorySlotLayout> slotLayouts,
+            int columns,
+            int visibleRows,
+            int totalRows,
+            int scrollRow
+    ) {
+        private static AccessorySlotLayoutResult empty() {
+            return new AccessorySlotLayoutResult(List.of(), 0, 0, 0, 0);
         }
     }
 }
