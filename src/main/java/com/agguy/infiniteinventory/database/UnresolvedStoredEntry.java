@@ -65,7 +65,7 @@ public final class UnresolvedStoredEntry {
         }
         return Optional.of(new ResolvedStoredEntry(
                 StoredStackKey.of(stack),
-                new StoredStackEntry(this.category, this.amount, this.lastModified)
+                new StoredStackEntry(DatabaseItemClassifier.INSTANCE.classify(stack), this.amount, this.lastModified)
         ));
     }
 

@@ -105,6 +105,22 @@ class DatabaseSearchEvaluatorTest {
     }
 
     @Test
+    void shortTermsShouldNotUseFuzzyMatching() {
+        DatabaseSearchConfig displayOnlyConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+
+        DatabaseSearchRanking shortTermRanking = this.evaluator.evaluate(
+                this.query("dm", displayOnlyConfig),
+                this.index("diamond", "minecraft:diamond", "minecraft", "", "", List.of()),
+                1L
+        );
+
+        assertFalse(shortTermRanking.matched());
+    }
+
+    @Test
     void weightsAndCountBoostShouldInfluenceScores() {
         DatabaseSearchIndex index = this.index("diamond", "minecraft:diamond", "minecraft", "", "", List.of());
         DatabaseSearchConfig highDisplayConfig = DatabaseSearchConfig.defaultConfig()
@@ -118,6 +134,49 @@ class DatabaseSearchEvaluatorTest {
 
         assertTrue(highWeightRanking.textScore() > lowWeightRanking.textScore());
         assertTrue(highWeightRanking.countBoostScore() > lowAmountRanking.countBoostScore());
+    }
+
+    @Test
+    void phraseMatchesShouldOutrankSeparatedTokenMatches() {
+        DatabaseSearchConfig displayOnlyConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+
+        DatabaseSearchRanking phraseRanking = this.evaluator.evaluate(
+                this.query("diamond sword", displayOnlyConfig),
+                this.index("diamond sword", "minecraft:diamond_sword", "minecraft", "", "", List.of()),
+                1L
+        );
+        DatabaseSearchRanking separatedRanking = this.evaluator.evaluate(
+                this.query("diamond sword", displayOnlyConfig),
+                this.index("diamond axe sword", "minecraft:diamond_axe_sword", "minecraft", "", "", List.of()),
+                1L
+        );
+
+        assertTrue(phraseRanking.textScore() > separatedRanking.textScore());
+    }
+
+    @Test
+    void multipleFieldsShouldReceiveCoverageBonus() {
+        DatabaseSearchConfig mixedFieldConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.DISPLAY_NAME, DatabaseSearchWeight.HIGH)
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.HIGH)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.HIGH)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+
+        DatabaseSearchRanking multiFieldRanking = this.evaluator.evaluate(
+                this.query("diamond zsj", mixedFieldConfig),
+                this.index("钻石剑", "minecraft:diamond_sword", "minecraft", "zuanshijian", "zsj", List.of("zuan", "shi", "jian")),
+                1L
+        );
+        DatabaseSearchRanking singleFieldRanking = this.evaluator.evaluate(
+                this.query("diamond zsj", mixedFieldConfig),
+                this.index("diamond shard zsj", "custom:item", "custom", "", "", List.of()),
+                1L
+        );
+
+        assertTrue(multiFieldRanking.textScore() > singleFieldRanking.textScore());
     }
 
     private DatabaseQuery query(String text, DatabaseSearchConfig searchConfig) {

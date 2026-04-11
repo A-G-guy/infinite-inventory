@@ -5,33 +5,46 @@ import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import java.lang.reflect.Field;
 import java.util.Map;
+import net.minecraft.world.item.ItemStack;
 import sun.misc.Unsafe;
 
-final class DatabaseTestReflectionHelper {
+public final class DatabaseTestReflectionHelper {
     private DatabaseTestReflectionHelper() {
     }
 
     @SuppressWarnings("unchecked")
-    static void forceEntry(StoredItemDatabase database, StoredStackKey key, StoredStackEntry entry) throws ReflectiveOperationException {
+    public static void forceEntry(StoredItemDatabase database, StoredStackKey key, StoredStackEntry entry) throws ReflectiveOperationException {
         Field entriesField = StoredItemDatabase.class.getDeclaredField("entries");
         entriesField.setAccessible(true);
         Map<StoredStackKey, StoredStackEntry> entries = (Map<StoredStackKey, StoredStackEntry>) entriesField.get(database);
         entries.put(key, entry);
     }
 
-    static void forceNextSequence(StoredItemDatabase database, long nextSequence) throws ReflectiveOperationException {
+    public static void forceNextSequence(StoredItemDatabase database, long nextSequence) throws ReflectiveOperationException {
         Field nextSequenceField = StoredItemDatabase.class.getDeclaredField("nextSequence");
         nextSequenceField.setAccessible(true);
         nextSequenceField.setLong(database, nextSequence);
     }
 
-    static long readNextSequence(StoredItemDatabase database) throws ReflectiveOperationException {
+    public static long readNextSequence(StoredItemDatabase database) throws ReflectiveOperationException {
         Field nextSequenceField = StoredItemDatabase.class.getDeclaredField("nextSequence");
         nextSequenceField.setAccessible(true);
         return nextSequenceField.getLong(database);
     }
 
-    static StoredStackKey fakeKey(String registryName) throws ReflectiveOperationException {
+    public static long readRevision(StoredItemDatabase database) throws ReflectiveOperationException {
+        Field revisionField = StoredItemDatabase.class.getDeclaredField("revision");
+        revisionField.setAccessible(true);
+        return revisionField.getLong(database);
+    }
+
+    public static boolean invokeRecategorizeResolvedEntriesIfNeeded(StoredItemDatabase database, int storedClassifierVersion) throws ReflectiveOperationException {
+        var method = StoredItemDatabase.class.getDeclaredMethod("recategorizeResolvedEntriesIfNeeded", int.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(database, storedClassifierVersion);
+    }
+
+    public static StoredStackKey fakeKey(String registryName) throws ReflectiveOperationException {
         StoredStackKey key = (StoredStackKey) unsafe().allocateInstance(StoredStackKey.class);
         String[] nameParts = registryName.split(":", 2);
         setField(key, "displayStack", null);
@@ -39,6 +52,14 @@ final class DatabaseTestReflectionHelper {
         setField(key, "registryName", registryName);
         setField(key, "registryNamespace", nameParts.length > 1 ? nameParts[0] : "test");
         setField(key, "registryPath", nameParts.length > 1 ? nameParts[1] : registryName);
+        return key;
+    }
+
+    public static StoredStackKey fakeKey(String registryName, ItemStack displayStack) throws ReflectiveOperationException {
+        StoredStackKey key = fakeKey(registryName);
+        ItemStack normalizedStack = displayStack.copyWithCount(1);
+        setField(key, "displayStack", normalizedStack);
+        setField(key, "hashCode", ItemStack.hashItemAndComponents(normalizedStack));
         return key;
     }
 

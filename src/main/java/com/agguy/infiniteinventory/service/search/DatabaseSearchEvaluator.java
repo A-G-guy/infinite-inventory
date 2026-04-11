@@ -4,6 +4,7 @@ import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -12,6 +13,10 @@ public final class DatabaseSearchEvaluator {
     private static final int PREFIX_BASE_SCORE = 30_000;
     private static final int CONTAINS_BASE_SCORE = 20_000;
     private static final int FUZZY_BASE_SCORE = 10_000;
+    private static final double PHRASE_EXACT_BONUS = 1_200.0D;
+    private static final double PHRASE_PREFIX_BONUS = 800.0D;
+    private static final double TOKEN_SEQUENCE_BONUS = 400.0D;
+    private static final double MULTI_FIELD_BONUS = 180.0D;
     private static final SequentialFuzzyScore FUZZY_SCORE = new SequentialFuzzyScore(Locale.ROOT);
 
     public DatabaseSearchRanking evaluate(DatabaseQuery query, DatabaseSearchIndex index, long amount) {
@@ -21,6 +26,7 @@ public final class DatabaseSearchEvaluator {
         }
 
         DatabaseSearchConfig config = query.searchConfig();
+        EnumSet<DatabaseSearchField> matchedFields = EnumSet.noneOf(DatabaseSearchField.class);
         int exactMatches = 0;
         int prefixMatches = 0;
         int containsMatches = 0;
@@ -33,6 +39,9 @@ public final class DatabaseSearchEvaluator {
                 return DatabaseSearchRanking.noMatch();
             }
 
+            if (bestMatch.field() != null) {
+                matchedFields.add(bestMatch.field());
+            }
             textScore += bestMatch.score();
             switch (bestMatch.level()) {
                 case EXACT -> exactMatches++;
@@ -44,6 +53,8 @@ public final class DatabaseSearchEvaluator {
             }
         }
 
+        textScore += this.fieldCoverageBonus(matchedFields);
+        textScore += this.phraseBonus(query, index, config, terms);
         double countBoostScore = this.countBoostScore(config.weightFor(DatabaseSearchField.COUNT_BOOST), amount);
         return new DatabaseSearchRanking(true, true, exactMatches, prefixMatches, containsMatches, fuzzyMatches, textScore, countBoostScore);
     }
@@ -67,13 +78,14 @@ public final class DatabaseSearchEvaluator {
     }
 
     private TokenMatch matchField(DatabaseSearchField field, String term, DatabaseSearchIndex index, DatabaseSearchWeight weight) {
-        return switch (field) {
+        TokenMatch matched = switch (field) {
             case DISPLAY_NAME -> this.matchNaturalField(term, weight, index.displayNameTokens(), index.displayNameNormalized(), index.displayNameCompact());
             case ITEM_ID -> this.matchIdentifierField(term, weight, index.registryNameNormalized(), index.registryNameCompact(), index.registryPathTokens(), index.registryPathNormalized(), index.registryPathCompact());
             case PINYIN -> this.matchPinyinField(term, weight, index.pinyinTokens(), index.pinyinFull(), index.pinyinInitials());
             case MOD_NAMESPACE -> this.matchCompactField(term, weight, index.modNamespace());
             case COUNT_BOOST -> TokenMatch.noMatch();
         };
+        return matched.withField(field);
     }
 
     private TokenMatch matchNaturalField(
@@ -182,14 +194,14 @@ public final class DatabaseSearchEvaluator {
         if (!term.equals(candidate)) {
             return TokenMatch.noMatch();
         }
-        return new TokenMatch(MatchLevel.EXACT, score(baseScore, weight, 0, candidate.length()));
+        return new TokenMatch(null, MatchLevel.EXACT, score(baseScore, weight, 0, candidate.length()));
     }
 
     private TokenMatch matchPrefix(String term, DatabaseSearchWeight weight, String candidate, int baseScore) {
         if (!candidate.startsWith(term) || term.equals(candidate)) {
             return TokenMatch.noMatch();
         }
-        return new TokenMatch(MatchLevel.PREFIX, score(baseScore, weight, 0, candidate.length() - term.length()));
+        return new TokenMatch(null, MatchLevel.PREFIX, score(baseScore, weight, 0, candidate.length() - term.length()));
     }
 
     private TokenMatch matchContains(String term, DatabaseSearchWeight weight, String candidate, int baseScore) {
@@ -197,18 +209,143 @@ public final class DatabaseSearchEvaluator {
         if (position < 0 || position == 0 && term.length() == candidate.length()) {
             return TokenMatch.noMatch();
         }
-        return new TokenMatch(MatchLevel.CONTAINS, score(baseScore, weight, position, candidate.length() - term.length()));
+        return new TokenMatch(null, MatchLevel.CONTAINS, score(baseScore, weight, position, candidate.length() - term.length()));
     }
 
     private TokenMatch matchFuzzy(String term, DatabaseSearchWeight weight, String candidate) {
-        if (term.length() < 2 || candidate.isEmpty() || !SearchTextNormalizer.isSubsequence(candidate, term)) {
+        if (term.length() < 3 || candidate.isEmpty() || !SearchTextNormalizer.isSubsequence(candidate, term)) {
             return TokenMatch.noMatch();
         }
         int fuzzyScore = FUZZY_SCORE.score(candidate, term);
         if (fuzzyScore <= 0) {
             return TokenMatch.noMatch();
         }
-        return new TokenMatch(MatchLevel.FUZZY, score(FUZZY_BASE_SCORE + fuzzyScore, weight, 0, candidate.length() - term.length()));
+        int subsequenceSpan = this.subsequenceSpan(candidate, term);
+        int spanPenalty = Math.max(0, subsequenceSpan - term.length()) * 3;
+        int candidatePenalty = Math.max(0, candidate.length() - term.length());
+        return new TokenMatch(null, MatchLevel.FUZZY, score(FUZZY_BASE_SCORE + fuzzyScore, weight, 0, candidatePenalty + spanPenalty));
+    }
+
+    private double phraseBonus(DatabaseQuery query, DatabaseSearchIndex index, DatabaseSearchConfig config, List<String> terms) {
+        if (terms.size() < 2) {
+            return 0.0D;
+        }
+        double bestBonus = 0.0D;
+        String normalizedPhrase = SearchTextNormalizer.normalizeQueryText(query.searchText());
+        String compactPhrase = SearchTextNormalizer.compactIdentifierText(query.searchText());
+        for (DatabaseSearchField field : DatabaseSearchField.values()) {
+            if (!field.isTextField()) {
+                continue;
+            }
+            DatabaseSearchWeight weight = config.weightFor(field);
+            if (weight == DatabaseSearchWeight.OFF) {
+                continue;
+            }
+            bestBonus = Math.max(bestBonus, this.phraseBonusForField(field, weight, index, normalizedPhrase, compactPhrase, terms));
+        }
+        return bestBonus;
+    }
+
+    private double phraseBonusForField(
+            DatabaseSearchField field,
+            DatabaseSearchWeight weight,
+            DatabaseSearchIndex index,
+            String normalizedPhrase,
+            String compactPhrase,
+            List<String> terms
+    ) {
+        return switch (field) {
+            case DISPLAY_NAME -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.displayNameNormalized(), index.displayNameCompact(), index.displayNameTokens());
+            case ITEM_ID -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.registryPathNormalized(), index.registryPathCompact(), index.registryPathTokens());
+            case PINYIN -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.pinyinFull(), index.pinyinFull(), index.pinyinTokens());
+            case MOD_NAMESPACE -> this.phraseBonusForCompact(weight, compactPhrase, index.modNamespace());
+            case COUNT_BOOST -> 0.0D;
+        };
+    }
+
+    private double phraseBonusForText(
+            DatabaseSearchWeight weight,
+            String normalizedPhrase,
+            String compactPhrase,
+            String normalizedText,
+            String compactText,
+            List<String> tokens
+    ) {
+        if (!normalizedPhrase.isEmpty() && normalizedPhrase.equals(normalizedText)) {
+            return PHRASE_EXACT_BONUS * weight.multiplier();
+        }
+        if (!compactPhrase.isEmpty() && compactPhrase.equals(compactText)) {
+            return PHRASE_EXACT_BONUS * weight.multiplier();
+        }
+        if (!normalizedPhrase.isEmpty() && normalizedText.startsWith(normalizedPhrase)) {
+            return PHRASE_PREFIX_BONUS * weight.multiplier();
+        }
+        if (!compactPhrase.isEmpty() && compactText.startsWith(compactPhrase)) {
+            return PHRASE_PREFIX_BONUS * weight.multiplier();
+        }
+        if (this.containsAdjacentTokens(tokens, SearchTextNormalizer.splitTerms(normalizedPhrase))) {
+            return TOKEN_SEQUENCE_BONUS * weight.multiplier();
+        }
+        return 0.0D;
+    }
+
+    private double phraseBonusForCompact(DatabaseSearchWeight weight, String compactPhrase, String compactText) {
+        if (compactPhrase.isEmpty() || compactText.isEmpty()) {
+            return 0.0D;
+        }
+        if (compactPhrase.equals(compactText)) {
+            return PHRASE_EXACT_BONUS * weight.multiplier();
+        }
+        if (compactText.startsWith(compactPhrase)) {
+            return PHRASE_PREFIX_BONUS * weight.multiplier();
+        }
+        return 0.0D;
+    }
+
+    private double fieldCoverageBonus(EnumSet<DatabaseSearchField> matchedFields) {
+        if (matchedFields.size() < 2) {
+            return 0.0D;
+        }
+        return (matchedFields.size() - 1L) * MULTI_FIELD_BONUS;
+    }
+
+    private boolean containsAdjacentTokens(List<String> tokens, List<String> queryTokens) {
+        if (tokens.isEmpty() || queryTokens.size() < 2 || tokens.size() < queryTokens.size()) {
+            return false;
+        }
+        for (int startIndex = 0; startIndex <= tokens.size() - queryTokens.size(); startIndex++) {
+            boolean matched = true;
+            for (int offset = 0; offset < queryTokens.size(); offset++) {
+                if (!tokens.get(startIndex + offset).startsWith(queryTokens.get(offset))) {
+                    matched = false;
+                    break;
+                }
+            }
+            if (matched) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int subsequenceSpan(String candidate, String term) {
+        int firstMatch = -1;
+        int lastMatch = -1;
+        int termIndex = 0;
+        for (int index = 0; index < candidate.length() && termIndex < term.length(); index++) {
+            if (candidate.charAt(index) != term.charAt(termIndex)) {
+                continue;
+            }
+            if (firstMatch < 0) {
+                firstMatch = index;
+            }
+            lastMatch = index;
+            termIndex++;
+        }
+        if (firstMatch < 0 || lastMatch < firstMatch) {
+            return Integer.MAX_VALUE;
+        }
+        return lastMatch - firstMatch + 1;
     }
 
     private double countBoostScore(DatabaseSearchWeight weight, long amount) {
@@ -239,11 +376,18 @@ public final class DatabaseSearchEvaluator {
         }
     }
 
-    private record TokenMatch(MatchLevel level, double score) {
-        private static final TokenMatch NO_MATCH = new TokenMatch(MatchLevel.NONE, Double.NEGATIVE_INFINITY);
+    private record TokenMatch(DatabaseSearchField field, MatchLevel level, double score) {
+        private static final TokenMatch NO_MATCH = new TokenMatch(null, MatchLevel.NONE, Double.NEGATIVE_INFINITY);
 
         static TokenMatch noMatch() {
             return NO_MATCH;
+        }
+
+        private TokenMatch withField(DatabaseSearchField field) {
+            if (!this.matched()) {
+                return this;
+            }
+            return new TokenMatch(field, this.level, this.score);
         }
 
         boolean matched() {
