@@ -74,8 +74,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (other == null) {
             return;
         }
+        long highestMergedSequence = 0L;
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : other.entries().entrySet()) {
             this.mergeResolvedEntry(mapEntry.getKey(), mapEntry.getValue());
+            highestMergedSequence = Math.max(highestMergedSequence, mapEntry.getValue().lastModified());
         }
         for (UnresolvedStoredEntry unresolvedEntry : other.unresolvedEntries()) {
             if (!unresolvedEntry.isEmpty()) {
@@ -85,9 +87,11 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                         unresolvedEntry.category(),
                         unresolvedEntry.lastModified()
                 ));
+                highestMergedSequence = Math.max(highestMergedSequence, unresolvedEntry.lastModified());
             }
         }
-        this.nextSequence = Math.max(this.nextSequence, other.nextSequence);
+        long nextAfterMergedEntries = highestMergedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMergedSequence + 1L;
+        this.nextSequence = Math.max(this.nextSequence, Math.max(other.nextSequence, nextAfterMergedEntries));
         if (this.nextSequence <= 0L) {
             this.nextSequence = 1L;
         }
@@ -99,9 +103,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         }
         long sequence = this.nextSequence();
         StoredStackKey key = StoredStackKey.of(stack);
+        DatabaseCategory normalizedCategory = DatabaseCategory.classify(stack);
         StoredStackEntry entry = this.entries.get(key);
         if (entry == null) {
-            entry = new StoredStackEntry(DatabaseCategory.classify(stack), 0L, sequence);
+            entry = new StoredStackEntry(normalizedCategory, 0L, sequence);
+            this.entries.put(key, entry);
+        } else if (entry.category() != normalizedCategory) {
+            entry = new StoredStackEntry(normalizedCategory, entry.amount(), entry.lastModified());
             this.entries.put(key, entry);
         }
         entry.add(stack.getCount(), sequence);
@@ -263,12 +271,17 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
             return;
         }
+        DatabaseCategory normalizedIncomingCategory = normalizeStoredCategory(incomingEntry.category());
         StoredStackEntry existingEntry = this.entries.get(key);
         if (existingEntry == null) {
-            this.entries.put(key, new StoredStackEntry(incomingEntry.category(), incomingEntry.amount(), incomingEntry.lastModified()));
+            this.entries.put(key, new StoredStackEntry(normalizedIncomingCategory, incomingEntry.amount(), incomingEntry.lastModified()));
             return;
         }
-        existingEntry.add(incomingEntry.amount(), incomingEntry.lastModified());
+        this.entries.put(key, new StoredStackEntry(
+                mergeStoredCategory(existingEntry.category(), normalizedIncomingCategory),
+                safeAdd(existingEntry.amount(), incomingEntry.amount()),
+                Math.max(existingEntry.lastModified(), incomingEntry.lastModified())
+        ));
     }
 
     private void finishNextSequence(long serializedNextSequence, long highestSequence) {
@@ -284,6 +297,38 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         } catch (IllegalArgumentException exception) {
             return stack == null || stack.isEmpty() ? DatabaseCategory.OTHER : DatabaseCategory.classify(stack);
         }
+    }
+
+    private static DatabaseCategory mergeStoredCategory(DatabaseCategory existingCategory, DatabaseCategory incomingCategory) {
+        DatabaseCategory normalizedExistingCategory = normalizeStoredCategory(existingCategory);
+        DatabaseCategory normalizedIncomingCategory = normalizeStoredCategory(incomingCategory);
+        if (normalizedExistingCategory == normalizedIncomingCategory) {
+            return normalizedIncomingCategory;
+        }
+        if (normalizedExistingCategory == DatabaseCategory.OTHER) {
+            return normalizedIncomingCategory;
+        }
+        if (normalizedIncomingCategory == DatabaseCategory.OTHER) {
+            return normalizedExistingCategory;
+        }
+        return normalizedIncomingCategory;
+    }
+
+    private static DatabaseCategory normalizeStoredCategory(DatabaseCategory category) {
+        if (category == null || category == DatabaseCategory.ALL) {
+            return DatabaseCategory.OTHER;
+        }
+        return category;
+    }
+
+    private static long safeAdd(long left, long right) {
+        if (right <= 0L) {
+            return left;
+        }
+        if (Long.MAX_VALUE - left < right) {
+            return Long.MAX_VALUE;
+        }
+        return left + right;
     }
 
     private long nextSequence() {
