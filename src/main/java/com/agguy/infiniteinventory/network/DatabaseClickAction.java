@@ -5,6 +5,7 @@ public enum DatabaseClickAction {
     STORE_SINGLE,
     TAKE_SINGLE,
     TAKE_STACK,
+    TAKE_STACK_TO_INVENTORY,
     TAKE_ALL;
 
     public boolean isStoreAction() {
@@ -16,13 +17,17 @@ public enum DatabaseClickAction {
     }
 
     public boolean extractsToInventory() {
+        return this == TAKE_STACK_TO_INVENTORY || this == TAKE_ALL;
+    }
+
+    public boolean extractsEntireEntry() {
         return this == TAKE_ALL;
     }
 
     public int resolveRequestedAmount(int maxStackSize) {
         return switch (this) {
             case TAKE_SINGLE -> 1;
-            case TAKE_STACK -> Math.max(1, maxStackSize);
+            case TAKE_STACK, TAKE_STACK_TO_INVENTORY -> Math.max(1, maxStackSize);
             default -> 0;
         };
     }

@@ -441,7 +441,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (button == 0) {
             this.closeContextMenu();
             this.sortDropdownExpanded = false;
-            this.sendDatabaseClick(slotIndex, DatabaseClickAction.TAKE_SINGLE);
+            DatabaseClickAction action = hasShiftDown()
+                    ? DatabaseClickAction.TAKE_STACK_TO_INVENTORY
+                    : DatabaseClickAction.TAKE_SINGLE;
+            this.sendDatabaseClick(slotIndex, action);
             return true;
         }
         if (button == 1) {
