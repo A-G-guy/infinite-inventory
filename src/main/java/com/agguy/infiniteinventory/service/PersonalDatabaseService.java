@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.service;
 
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
+import com.agguy.infiniteinventory.database.DatabasePagination;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
@@ -109,7 +110,7 @@ public final class PersonalDatabaseService {
 
         int safePageSize = Math.max(1, pageSize);
         int totalEntries = filteredEntries.size();
-        int totalPages = Math.max(1, (totalEntries + safePageSize - 1) / safePageSize);
+        int totalPages = DatabasePagination.resolveTotalPages(totalEntries, safePageSize);
         int pageIndex = Math.min(normalizedQuery.pageIndex(), totalPages - 1);
         DatabaseQuery resolvedQuery = normalizedQuery.withPageIndex(pageIndex);
         long totalItems = this.totalItems(filteredEntries);
