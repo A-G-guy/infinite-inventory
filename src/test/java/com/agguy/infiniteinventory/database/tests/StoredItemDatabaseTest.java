@@ -2,9 +2,9 @@ package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +48,37 @@ class StoredItemDatabaseTest {
         assertEquals(0, restored.entryCount());
         assertEquals(1, restored.unresolvedEntryCount());
         assertEquals(10L, restored.serializeNBT(null).getLong("next_sequence"));
+    }
+
+    @Test
+    void mergeFromShouldNormalizeCategoryAndPreserveStackedAmount() throws ReflectiveOperationException {
+        StoredItemDatabase targetDatabase = new StoredItemDatabase();
+        StoredItemDatabase sourceDatabase = new StoredItemDatabase();
+        var key = DatabaseTestReflectionHelper.fakeKey("test:material");
+
+        DatabaseTestReflectionHelper.forceEntry(targetDatabase, key, new StoredStackEntry(DatabaseCategory.OTHER, 16L, 4L));
+        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 8L, 7L));
+
+        targetDatabase.mergeFrom(sourceDatabase);
+
+        StoredStackEntry mergedEntry = targetDatabase.entries().get(key);
+        assertEquals(DatabaseCategory.MATERIALS, mergedEntry.category());
+        assertEquals(24L, mergedEntry.amount());
+        assertEquals(7L, mergedEntry.lastModified());
+    }
+
+    @Test
+    void mergeFromShouldAdvanceNextSequenceWhenSourceSequenceIsStale() throws ReflectiveOperationException {
+        StoredItemDatabase targetDatabase = new StoredItemDatabase();
+        StoredItemDatabase sourceDatabase = new StoredItemDatabase();
+        var key = DatabaseTestReflectionHelper.fakeKey("test:sequence_item");
+
+        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 6L, 25L));
+        DatabaseTestReflectionHelper.forceNextSequence(sourceDatabase, 1L);
+
+        targetDatabase.mergeFrom(sourceDatabase);
+
+        assertEquals(26L, DatabaseTestReflectionHelper.readNextSequence(targetDatabase));
     }
 
     private CompoundTag entryTag(CompoundTag stackTag, long count, DatabaseCategory category, long lastModified) {

@@ -1,9 +1,12 @@
 package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.StoredStackKey;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,32 @@ class DatabaseStorageSavedDataTest {
         assertTrue(restored.hasPersonalDatabase(playerId));
         assertEquals(1, restored.personalDatabaseView(playerId).unresolvedEntryCount());
         assertEquals(LegacyMigrationState.Status.MIGRATED, restored.migrationState(playerId).status());
+    }
+
+    @Test
+    void personalAndPublicDatabasesShouldStoreAndStackIndependently() throws ReflectiveOperationException {
+        UUID playerId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
+        var key = DatabaseTestReflectionHelper.fakeKey("test:material");
+
+        DatabaseTestReflectionHelper.forceEntry(storage.publicDatabase(), key, new StoredStackEntry(DatabaseCategory.MATERIALS, 12L, 4L));
+        storage.publicDatabase().mergeFrom(this.databaseWithEntry(key, new StoredStackEntry(DatabaseCategory.MATERIALS, 5L, 6L)));
+        DatabaseTestReflectionHelper.forceEntry(storage.personalDatabase(playerId), key, new StoredStackEntry(DatabaseCategory.MATERIALS, 3L, 8L));
+
+        assertEquals(17L, storage.publicDatabase().getAmount(key));
+        assertEquals(3L, storage.personalDatabaseView(playerId).getAmount(key));
+        assertEquals(0, storage.unresolvedEntryCount(DatabaseScope.PUBLIC, playerId));
+        assertEquals(0, storage.unresolvedEntryCount(DatabaseScope.PERSONAL, playerId));
+    }
+
+    private StoredItemDatabase databaseWithEntry(StoredStackKey key, StoredStackEntry entry) {
+        StoredItemDatabase database = new StoredItemDatabase();
+        try {
+            DatabaseTestReflectionHelper.forceEntry(database, key, entry);
+            return database;
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("无法构造数据库测试数据", exception);
+        }
     }
 
     private StoredItemDatabase unresolvedDatabase() {
