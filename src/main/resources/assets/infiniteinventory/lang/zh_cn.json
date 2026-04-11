@@ -19,5 +19,8 @@
   "screen.infiniteinventory.sort.name_asc": "名称升序",
   "screen.infiniteinventory.sort.name_desc": "名称降序",
   "screen.infiniteinventory.sort.count_desc": "数量从多到少",
-  "screen.infiniteinventory.sort.count_asc": "数量从少到多"
+  "screen.infiniteinventory.sort.count_asc": "数量从少到多",
+  "screen.infiniteinventory.context.take_single": "拿出 1 个",
+  "screen.infiniteinventory.context.take_stack": "拿出一组",
+  "screen.infiniteinventory.context.take_all": "全部取出"
 }
