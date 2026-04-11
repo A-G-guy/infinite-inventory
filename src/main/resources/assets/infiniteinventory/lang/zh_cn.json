@@ -1,0 +1,23 @@
+{
+  "item.infiniteinventory.database_access_item": "个人数据库终端",
+  "screen.infiniteinventory.database.title": "个人数据库",
+  "screen.infiniteinventory.database.section": "数据库存储区",
+  "screen.infiniteinventory.search": "搜索",
+  "screen.infiniteinventory.deposit_all": "一键入库",
+  "screen.infiniteinventory.total_entries": "条目：%s",
+  "screen.infiniteinventory.total_items": "总量：%s",
+  "screen.infiniteinventory.page": "第 %s/%s 页",
+  "screen.infiniteinventory.tooltip.amount": "数量：%s",
+  "screen.infiniteinventory.category.all": "全部",
+  "screen.infiniteinventory.category.blocks": "方块",
+  "screen.infiniteinventory.category.tools_weapons": "工具武器",
+  "screen.infiniteinventory.category.equipment": "装备",
+  "screen.infiniteinventory.category.consumables": "消耗品",
+  "screen.infiniteinventory.category.materials": "材料",
+  "screen.infiniteinventory.category.other": "其他",
+  "screen.infiniteinventory.sort.recent": "最近变更",
+  "screen.infiniteinventory.sort.name_asc": "名称升序",
+  "screen.infiniteinventory.sort.name_desc": "名称降序",
+  "screen.infiniteinventory.sort.count_desc": "数量从多到少",
+  "screen.infiniteinventory.sort.count_asc": "数量从少到多"
+}
