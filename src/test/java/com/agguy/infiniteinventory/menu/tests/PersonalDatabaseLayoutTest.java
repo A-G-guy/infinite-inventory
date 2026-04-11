@@ -110,6 +110,20 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
+    void expandedAccessoriesPanelShouldOnlyCountVisibleDatabaseSlotsForPaging() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 24)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
+
+        assertTrue(layout.visibleDatabaseSlotCount() > 0);
+        assertTrue(layout.visibleDatabaseSlotCount() < layout.databaseSlotCount());
+        for (int slotIndex = 0; slotIndex < layout.visibleDatabaseSlotCount(); slotIndex++) {
+            assertTrue(!layout.accessoriesPanelRect().intersects(layout.visibleDatabaseSlotBounds(slotIndex)));
+        }
+    }
+
+    @Test
     void visibleAccessorySlotsShouldStayInsideExpandedAccessoriesPanel() {
         List<AccessorySlotGroup> accessoryGroups = List.of(
                 new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 24)

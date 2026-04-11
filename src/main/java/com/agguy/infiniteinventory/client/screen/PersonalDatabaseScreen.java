@@ -497,12 +497,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 return;
             }
         }
-        int targetPageSize = this.layout.databaseSlotCount();
+        int targetPageSize = Math.max(1, this.layout.visibleDatabaseSlotCount());
         if (currentQuery.pageSize() == targetPageSize) {
             return;
         }
-        int firstVisibleEntryIndex = currentQuery.pageIndex() * Math.max(1, currentQuery.pageSize());
-        DatabaseQuery adjustedQuery = currentQuery.withPageSize(targetPageSize).withPageIndex(firstVisibleEntryIndex / targetPageSize);
+        long firstVisibleEntryIndex = (long) currentQuery.pageIndex() * Math.max(1, currentQuery.pageSize());
+        int adjustedPageIndex = (int) Math.min(Integer.MAX_VALUE, firstVisibleEntryIndex / targetPageSize);
+        DatabaseQuery adjustedQuery = currentQuery.withPageSize(targetPageSize).withPageIndex(adjustedPageIndex);
         this.pendingLayoutQuery = adjustedQuery;
         this.prepareForServerQuery();
         this.dispatchQuery(adjustedQuery);
@@ -617,11 +618,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.layout == null) {
             return;
         }
-        for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
-            PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
-            if (this.isCoveredByAccessoriesPanel(slotRect)) {
-                continue;
-            }
+        int visibleSlotCount = this.layout.visibleDatabaseSlotCount();
+        for (int slotIndex = 0; slotIndex < visibleSlotCount; slotIndex++) {
+            PersonalDatabaseLayout.Rect slotRect = this.layout.visibleDatabaseSlotBounds(slotIndex);
             VanillaWidgetRenderer.renderSlot(guiGraphics, slotRect.x(), slotRect.y());
         }
     }
@@ -679,11 +678,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return;
         }
         List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
-        for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
-            PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
-            if (this.isCoveredByAccessoriesPanel(slotRect)) {
-                continue;
-            }
+        int visibleSlotCount = this.layout.visibleDatabaseSlotCount();
+        for (int slotIndex = 0; slotIndex < visibleSlotCount; slotIndex++) {
+            PersonalDatabaseLayout.Rect slotRect = this.layout.visibleDatabaseSlotBounds(slotIndex);
             if (slotRect.contains(mouseX, mouseY)) {
                 VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
             }
@@ -1208,7 +1205,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             return;
         }
         VisibleDatabaseEntry entry = entries.get(slotIndex);
-        PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
+        PersonalDatabaseLayout.Rect slotRect = this.layout.visibleDatabaseSlotBounds(slotIndex);
         int menuHeight = CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT;
         PersonalDatabaseLayout.Rect frameRect = this.layout.frameRect();
         int minX = frameRect.x() + CONTEXT_MENU_MARGIN;
@@ -1263,13 +1260,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 && this.layout.accessoriesPanelRect().contains(mouseX, mouseY);
     }
 
-    private boolean isCoveredByAccessoriesPanel(PersonalDatabaseLayout.Rect rect) {
-        return this.accessoriesExpanded
-                && this.layout != null
-                && this.layout.accessoriesPanelRect().height() > 0
-                && this.layout.accessoriesPanelRect().intersects(rect);
-    }
-
     @Nullable
     private PersonalDatabaseLayout.AccessorySlotLayout findHoveredAccessorySlot(double mouseX, double mouseY) {
         if (this.layout == null || !this.accessoriesExpanded) {
@@ -1287,11 +1277,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.layout == null) {
             return -1;
         }
-        for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
-            PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
-            if (this.isCoveredByAccessoriesPanel(slotRect)) {
-                continue;
-            }
+        int visibleSlotCount = this.layout.visibleDatabaseSlotCount();
+        for (int slotIndex = 0; slotIndex < visibleSlotCount; slotIndex++) {
+            PersonalDatabaseLayout.Rect slotRect = this.layout.visibleDatabaseSlotBounds(slotIndex);
             if (slotRect.contains(mouseX, mouseY)) {
                 return slotIndex;
             }
