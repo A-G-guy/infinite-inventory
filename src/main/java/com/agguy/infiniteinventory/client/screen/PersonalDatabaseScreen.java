@@ -4,6 +4,9 @@ import com.agguy.infiniteinventory.compat.PlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.compat.VanillaPlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
+import com.agguy.infiniteinventory.database.DatabaseSearchField;
+import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
@@ -16,7 +19,9 @@ import com.agguy.infiniteinventory.network.DatabaseQueryPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
 import com.agguy.infiniteinventory.util.CompactNumberFormatter;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -39,6 +44,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private static final int CONTEXT_MENU_MARGIN = 4;
     private static final int SEARCH_ICON_SIZE = 9;
     private static final int SEARCH_TEXT_LEFT_PADDING = 18;
+    private static final int ADVANCED_SEARCH_PANEL_WIDTH = 236;
+    private static final int ADVANCED_SEARCH_PANEL_PADDING = 6;
+    private static final int ADVANCED_SEARCH_TITLE_HEIGHT = 12;
+    private static final int ADVANCED_SEARCH_ROW_HEIGHT = 20;
+    private static final int ADVANCED_SEARCH_ROW_GAP = 2;
+    private static final int ADVANCED_SEARCH_TOGGLE_WIDTH = 24;
+    private static final int ADVANCED_SEARCH_WEIGHT_WIDTH = 40;
     private static final int TAB_ICON_SIZE = 16;
     private static final int TAB_ICON_LEFT_PADDING = 4;
     private static final int TAB_TEXT_GAP = 3;
@@ -58,10 +70,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private Button previousPageButton;
     private Button nextPageButton;
     private Button sortButton;
+    private Button advancedSearchButton;
     private Button personalScopeButton;
     private Button publicScopeButton;
+    private final Map<DatabaseSearchField, Button> advancedSearchToggleButtons = new EnumMap<>(DatabaseSearchField.class);
+    private final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
     private boolean syncingSearchBox;
     private boolean sortDropdownExpanded;
+    private boolean advancedSearchExpanded;
     private boolean contextMenuExpanded;
     private int contextMenuSlotIndex = -1;
     private int contextMenuX;
@@ -91,6 +107,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.menu.applySlotLayout(this.layout);
         this.pendingLayoutQuery = null;
         this.sortDropdownExpanded = false;
+        this.advancedSearchExpanded = false;
         this.closeContextMenu();
         this.buildWidgets();
         this.syncWidgetsFromState();
@@ -109,6 +126,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderToolbarOverlays(guiGraphics);
+        if (this.advancedSearchExpanded) {
+            this.renderAdvancedSearchPanel(guiGraphics);
+        }
         this.renderSearchHint(guiGraphics);
         if (this.sortDropdownExpanded) {
             this.renderSortDropdown(guiGraphics, mouseX, mouseY);
@@ -127,6 +147,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.frameRect());
         this.renderTabs(guiGraphics, mouseX, mouseY);
         VanillaWidgetRenderer.renderTextField(guiGraphics, this.layout.searchFieldRect(), this.searchBox != null && this.searchBox.isFocused());
+        if (this.advancedSearchExpanded) {
+            VanillaWidgetRenderer.renderPanel(guiGraphics, this.advancedSearchPanelRect());
+        }
         this.renderDatabaseScaffold(guiGraphics);
 
         if (this.minecraft != null && this.minecraft.player != null) {
@@ -157,6 +180,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (this.advancedSearchExpanded && !this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
+            this.advancedSearchExpanded = false;
+        }
         if (this.contextMenuExpanded && this.handleContextMenuClick(mouseX, mouseY)) {
             return true;
         }
@@ -222,9 +248,21 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
 
+        PersonalDatabaseLayout.Rect advancedSearchRect = this.layout.advancedSearchButtonRect();
+        this.advancedSearchButton = this.addRenderableWidget(Button.builder(Component.translatable("screen.infiniteinventory.search_advanced_button"), button -> {
+                    this.closeContextMenu();
+                    this.sortDropdownExpanded = false;
+                    this.advancedSearchExpanded = !this.advancedSearchExpanded;
+                })
+                .bounds(advancedSearchRect.x(), advancedSearchRect.y(), advancedSearchRect.width(), advancedSearchRect.height())
+                .build());
+
+        this.buildAdvancedSearchButtons();
+
         PersonalDatabaseLayout.Rect sortRect = this.layout.sortButtonRect();
         this.sortButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
                     this.closeContextMenu();
+                    this.advancedSearchExpanded = false;
                     this.sortDropdownExpanded = !this.sortDropdownExpanded;
                 })
                 .bounds(sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height())
@@ -267,6 +305,92 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     }
 
+    private void buildAdvancedSearchButtons() {
+        this.advancedSearchToggleButtons.clear();
+        this.advancedSearchWeightButtons.clear();
+        if (this.layout == null) {
+            return;
+        }
+        for (DatabaseSearchField field : DatabaseSearchField.values()) {
+            PersonalDatabaseLayout.Rect rowRect = this.advancedSearchRowRect(field);
+            Button toggleButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> this.toggleAdvancedSearchField(field))
+                    .bounds(rowRect.x(), rowRect.y(), ADVANCED_SEARCH_TOGGLE_WIDTH, ADVANCED_SEARCH_ROW_HEIGHT)
+                    .build());
+            Button weightButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> this.cycleAdvancedSearchWeight(field))
+                    .bounds(rowRect.right() - ADVANCED_SEARCH_WEIGHT_WIDTH, rowRect.y(), ADVANCED_SEARCH_WEIGHT_WIDTH, ADVANCED_SEARCH_ROW_HEIGHT)
+                    .build());
+            this.advancedSearchToggleButtons.put(field, toggleButton);
+            this.advancedSearchWeightButtons.put(field, weightButton);
+        }
+    }
+
+    private void syncAdvancedSearchButtons(DatabaseQuery query) {
+        DatabaseSearchConfig searchConfig = query.searchConfig();
+        int enabledTextFieldCount = this.enabledTextFieldCount(searchConfig);
+        for (DatabaseSearchField field : DatabaseSearchField.values()) {
+            DatabaseSearchWeight weight = searchConfig.weightFor(field);
+            Button toggleButton = this.advancedSearchToggleButtons.get(field);
+            if (toggleButton != null) {
+                toggleButton.visible = this.advancedSearchExpanded;
+                toggleButton.active = !field.isTextField() || weight == DatabaseSearchWeight.OFF || enabledTextFieldCount > 1;
+                toggleButton.setMessage(Component.literal(weight == DatabaseSearchWeight.OFF ? "[ ]" : "[x]"));
+            }
+            Button weightButton = this.advancedSearchWeightButtons.get(field);
+            if (weightButton != null) {
+                weightButton.visible = this.advancedSearchExpanded;
+                weightButton.active = weight != DatabaseSearchWeight.OFF;
+                weightButton.setMessage(Component.translatable(weight.translationKey()));
+            }
+        }
+    }
+
+    private void toggleAdvancedSearchField(DatabaseSearchField field) {
+        DatabaseQuery currentQuery = this.menu.viewState().query();
+        DatabaseSearchConfig searchConfig = currentQuery.searchConfig();
+        DatabaseSearchWeight currentWeight = searchConfig.weightFor(field);
+        DatabaseSearchWeight nextWeight = currentWeight == DatabaseSearchWeight.OFF ? field.defaultWeight() : DatabaseSearchWeight.OFF;
+        if (field.isTextField() && currentWeight != DatabaseSearchWeight.OFF && this.enabledTextFieldCount(searchConfig) <= 1) {
+            return;
+        }
+        this.sendSearchConfig(currentQuery, searchConfig.withWeight(field, nextWeight));
+    }
+
+    private void cycleAdvancedSearchWeight(DatabaseSearchField field) {
+        DatabaseQuery currentQuery = this.menu.viewState().query();
+        DatabaseSearchConfig searchConfig = currentQuery.searchConfig();
+        DatabaseSearchWeight currentWeight = searchConfig.weightFor(field);
+        if (currentWeight == DatabaseSearchWeight.OFF) {
+            return;
+        }
+        this.sendSearchConfig(currentQuery, searchConfig.withWeight(field, this.nextWeight(currentWeight)));
+    }
+
+    private void sendSearchConfig(DatabaseQuery currentQuery, DatabaseSearchConfig newSearchConfig) {
+        if (currentQuery.searchConfig().equals(newSearchConfig)) {
+            return;
+        }
+        this.sendQuery(currentQuery.withSearchConfig(newSearchConfig));
+    }
+
+    private DatabaseSearchWeight nextWeight(DatabaseSearchWeight currentWeight) {
+        return switch (currentWeight) {
+            case OFF -> DatabaseSearchWeight.LOW;
+            case LOW -> DatabaseSearchWeight.MEDIUM;
+            case MEDIUM -> DatabaseSearchWeight.HIGH;
+            case HIGH -> DatabaseSearchWeight.LOW;
+        };
+    }
+
+    private int enabledTextFieldCount(DatabaseSearchConfig searchConfig) {
+        int count = 0;
+        for (DatabaseSearchField field : DatabaseSearchField.values()) {
+            if (field.isTextField() && searchConfig.weightFor(field) != DatabaseSearchWeight.OFF) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private void syncWidgetsFromState() {
         DatabaseViewState viewState = this.menu.viewState();
         DatabaseQuery query = viewState.query();
@@ -275,6 +399,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             this.syncingSearchBox = true;
             this.searchBox.setValue(query.searchText());
             this.syncingSearchBox = false;
+        }
+        if (this.advancedSearchButton != null) {
+            this.advancedSearchButton.setMessage(Component.translatable("screen.infiniteinventory.search_advanced_button"));
         }
         if (this.sortButton != null) {
             this.sortButton.setMessage(Component.translatable(query.sortOption().translationKey()));
@@ -294,6 +421,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.publicScopeButton != null) {
             this.publicScopeButton.active = activeScope != DatabaseScope.PUBLIC;
         }
+        this.syncAdvancedSearchButtons(query);
         if (!this.menu.getCarried().isEmpty()) {
             this.closeContextMenu();
             return;
@@ -494,6 +622,34 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         );
     }
 
+    private void renderAdvancedSearchPanel(GuiGraphics guiGraphics) {
+        PersonalDatabaseLayout.Rect panelRect = this.advancedSearchPanelRect();
+        if (panelRect.width() <= 0 || panelRect.height() <= 0) {
+            return;
+        }
+        guiGraphics.drawString(
+                this.font,
+                Component.translatable("screen.infiniteinventory.search_advanced_title"),
+                panelRect.x() + ADVANCED_SEARCH_PANEL_PADDING,
+                panelRect.y() + ADVANCED_SEARCH_PANEL_PADDING,
+                0x404040,
+                true
+        );
+        for (DatabaseSearchField field : DatabaseSearchField.values()) {
+            PersonalDatabaseLayout.Rect rowRect = this.advancedSearchRowRect(field);
+            int labelX = rowRect.x() + ADVANCED_SEARCH_TOGGLE_WIDTH + 6;
+            int labelWidth = Math.max(0, rowRect.width() - ADVANCED_SEARCH_TOGGLE_WIDTH - ADVANCED_SEARCH_WEIGHT_WIDTH - 12);
+            guiGraphics.drawString(
+                    this.font,
+                    this.truncateToWidth(Component.translatable(field.translationKey()).getString(), labelWidth),
+                    labelX,
+                    rowRect.y() + 6,
+                    0x404040,
+                    true
+            );
+        }
+    }
+
     private void renderSortDropdown(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseLayout.Rect dropdownRect = this.sortDropdownRect();
         if (dropdownRect == null) {
@@ -634,7 +790,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     private void renderCustomTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        if (this.contextMenuExpanded || this.sortDropdownExpanded) {
+        if (this.contextMenuExpanded || this.sortDropdownExpanded || this.advancedSearchExpanded) {
             return;
         }
         int slotIndex = this.findDatabaseSlot(mouseX, mouseY);
@@ -676,6 +832,16 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 sortRect.y() + sortRect.height() / 2,
                 0xFF3F3F3F
         );
+
+        if (this.advancedSearchButton != null && this.layout.advancedSearchButtonRect().width() > 0) {
+            PersonalDatabaseLayout.Rect advancedRect = this.layout.advancedSearchButtonRect();
+            VanillaWidgetRenderer.renderDropdownIndicator(
+                    guiGraphics,
+                    advancedRect.right() - 10,
+                    advancedRect.y() + advancedRect.height() / 2,
+                    0xFF3F3F3F
+            );
+        }
     }
 
     private void renderDatabaseScaffold(GuiGraphics guiGraphics) {
@@ -753,6 +919,47 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             builder.append(character);
         }
         return builder.isEmpty() ? "" : builder.append(suffix).toString();
+    }
+
+    private PersonalDatabaseLayout.Rect advancedSearchPanelRect() {
+        if (this.layout == null) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        PersonalDatabaseLayout.Rect anchorRect = this.layout.advancedSearchButtonRect();
+        int width = ADVANCED_SEARCH_PANEL_WIDTH;
+        int height = ADVANCED_SEARCH_PANEL_PADDING * 2
+                + ADVANCED_SEARCH_TITLE_HEIGHT
+                + DatabaseSearchField.values().length * ADVANCED_SEARCH_ROW_HEIGHT
+                + Math.max(0, DatabaseSearchField.values().length - 1) * ADVANCED_SEARCH_ROW_GAP;
+        int minX = this.layout.frameRect().x() + CONTEXT_MENU_MARGIN;
+        int maxX = Math.max(minX, this.layout.frameRect().right() - width - CONTEXT_MENU_MARGIN);
+        int x = Mth.clamp(anchorRect.right() - width, minX, maxX);
+        int minY = anchorRect.bottom() + 4;
+        int maxY = Math.max(minY, this.layout.frameRect().bottom() - height - CONTEXT_MENU_MARGIN);
+        int y = Mth.clamp(minY, minY, maxY);
+        return new PersonalDatabaseLayout.Rect(x, y, width, height);
+    }
+
+    private PersonalDatabaseLayout.Rect advancedSearchRowRect(DatabaseSearchField field) {
+        PersonalDatabaseLayout.Rect panelRect = this.advancedSearchPanelRect();
+        int rowY = panelRect.y()
+                + ADVANCED_SEARCH_PANEL_PADDING
+                + ADVANCED_SEARCH_TITLE_HEIGHT
+                + field.ordinal() * (ADVANCED_SEARCH_ROW_HEIGHT + ADVANCED_SEARCH_ROW_GAP);
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + ADVANCED_SEARCH_PANEL_PADDING,
+                rowY,
+                panelRect.width() - ADVANCED_SEARCH_PANEL_PADDING * 2,
+                ADVANCED_SEARCH_ROW_HEIGHT
+        );
+    }
+
+    private boolean isWithinAdvancedSearchPanel(double mouseX, double mouseY) {
+        if (!this.advancedSearchExpanded || this.layout == null) {
+            return false;
+        }
+        return this.layout.advancedSearchButtonRect().contains(mouseX, mouseY)
+                || this.advancedSearchPanelRect().contains(mouseX, mouseY);
     }
 
     private void validateContextMenu(DatabaseViewState viewState) {

@@ -16,10 +16,14 @@ import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
+import com.agguy.infiniteinventory.service.search.DatabaseItemSearchResolver;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchEvaluator;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
+import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -32,6 +36,8 @@ import net.minecraft.world.item.ItemStack;
 
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
+
+    private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
 
     private PersonalDatabaseService() {
     }
@@ -153,7 +159,7 @@ public final class PersonalDatabaseService {
     public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
         List<QueryCandidate> filteredEntries = this.collectCandidates(this.resolveDatabase(player, normalizedQuery.scope()), normalizedQuery);
-        filteredEntries.sort(this.comparatorFor(normalizedQuery.sortOption()));
+        filteredEntries.sort(this.comparatorFor(normalizedQuery));
 
         int safePageSize = Math.max(1, normalizedQuery.pageSize());
         int totalEntries = filteredEntries.size();
@@ -185,7 +191,6 @@ public final class PersonalDatabaseService {
 
     private List<QueryCandidate> collectCandidates(StoredItemDatabase database, DatabaseQuery query) {
         List<QueryCandidate> candidates = new ArrayList<>();
-        String searchNeedle = query.searchText().toLowerCase(Locale.ROOT);
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
             StoredStackKey key = mapEntry.getKey();
             StoredStackEntry entry = mapEntry.getValue();
@@ -193,22 +198,33 @@ public final class PersonalDatabaseService {
                 continue;
             }
             ItemStack displayStack = key.displayStack();
-            String displayName = displayStack.getHoverName().getString();
-            String displayNameLower = displayName.toLowerCase(Locale.ROOT);
-            String registryNameLower = key.registryName().toLowerCase(Locale.ROOT);
-            if (!searchNeedle.isEmpty()
-                    && !displayNameLower.contains(searchNeedle)
-                    && !registryNameLower.contains(searchNeedle)
-                    && !key.registryPath().toLowerCase(Locale.ROOT).contains(searchNeedle)) {
+            DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key);
+            DatabaseSearchRanking searchRanking = this.searchEvaluator.evaluate(query, searchIndex, entry.amount());
+            if (!searchRanking.matched()) {
                 continue;
             }
-            candidates.add(new QueryCandidate(key, entry, displayStack, displayName, displayNameLower, registryNameLower));
+            candidates.add(new QueryCandidate(key, entry, displayStack, searchIndex, searchRanking));
         }
         return candidates;
     }
 
-    private Comparator<QueryCandidate> comparatorFor(DatabaseSortOption sortOption) {
-        Comparator<QueryCandidate> byName = Comparator.comparing(QueryCandidate::displayNameLower).thenComparing(QueryCandidate::registryNameLower);
+    private Comparator<QueryCandidate> comparatorFor(DatabaseQuery query) {
+        Comparator<QueryCandidate> fallbackComparator = this.fallbackComparatorFor(query.sortOption());
+        if (SearchTextNormalizer.splitTerms(query.searchText()).isEmpty()) {
+            return fallbackComparator;
+        }
+        return Comparator.comparingInt((QueryCandidate candidate) -> candidate.searchRanking().exactMatches()).reversed()
+                .thenComparing(Comparator.comparingInt((QueryCandidate candidate) -> candidate.searchRanking().prefixMatches()).reversed())
+                .thenComparing(Comparator.comparingInt((QueryCandidate candidate) -> candidate.searchRanking().containsMatches()).reversed())
+                .thenComparing(Comparator.comparingInt((QueryCandidate candidate) -> candidate.searchRanking().fuzzyMatches()).reversed())
+                .thenComparing(Comparator.comparingDouble((QueryCandidate candidate) -> candidate.searchRanking().textScore()).reversed())
+                .thenComparing(Comparator.comparingDouble((QueryCandidate candidate) -> candidate.searchRanking().countBoostScore()).reversed())
+                .thenComparing(fallbackComparator);
+    }
+
+    private Comparator<QueryCandidate> fallbackComparatorFor(DatabaseSortOption sortOption) {
+        Comparator<QueryCandidate> byName = Comparator.comparing((QueryCandidate candidate) -> candidate.searchIndex().displayNameNormalized())
+                .thenComparing(candidate -> candidate.key().registryName());
         return switch (sortOption) {
             case NAME_ASC -> byName;
             case NAME_DESC -> byName.reversed();
@@ -251,9 +267,8 @@ public final class PersonalDatabaseService {
             StoredStackKey key,
             StoredStackEntry entry,
             ItemStack stack,
-            String displayName,
-            String displayNameLower,
-            String registryNameLower
+            DatabaseSearchIndex searchIndex,
+            DatabaseSearchRanking searchRanking
     ) {
     }
 }
