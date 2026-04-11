@@ -10,10 +10,6 @@ public final class DatabasePagination {
         if (safeEntries == 0) {
             return 1;
         }
-        int occupiedPages = (safeEntries + safePageSize - 1) / safePageSize;
-        if (safeEntries % safePageSize == 0) {
-            return occupiedPages + 1;
-        }
-        return occupiedPages;
+        return (safeEntries + safePageSize - 1) / safePageSize;
     }
 }

@@ -9,7 +9,6 @@ import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
-import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
@@ -117,21 +116,21 @@ public final class PersonalDatabaseService {
         return movedItems;
     }
 
-    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, int pageSize) {
+    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
         List<QueryCandidate> filteredEntries = this.collectCandidates(player, normalizedQuery);
         filteredEntries.sort(this.comparatorFor(normalizedQuery.sortOption()));
 
-        int safePageSize = Math.max(1, pageSize);
+        int safePageSize = Math.max(1, normalizedQuery.pageSize());
         int totalEntries = filteredEntries.size();
         int totalPages = DatabasePagination.resolveTotalPages(totalEntries, safePageSize);
         int pageIndex = Math.min(normalizedQuery.pageIndex(), totalPages - 1);
-        DatabaseQuery resolvedQuery = normalizedQuery.withPageIndex(pageIndex);
+        DatabaseQuery resolvedQuery = normalizedQuery.withPageSize(safePageSize).withPageIndex(pageIndex);
         long totalItems = this.totalItems(filteredEntries);
         int fromIndex = Math.min(pageIndex * safePageSize, totalEntries);
         int toIndex = Math.min(fromIndex + safePageSize, totalEntries);
 
-        List<DatabasePageEntry> pageEntries = new ArrayList<>(PersonalDatabaseLayout.DATABASE_SLOT_COUNT);
+        List<DatabasePageEntry> pageEntries = new ArrayList<>(safePageSize);
         for (int index = fromIndex; index < toIndex; index++) {
             QueryCandidate candidate = filteredEntries.get(index);
             pageEntries.add(new DatabasePageEntry(
