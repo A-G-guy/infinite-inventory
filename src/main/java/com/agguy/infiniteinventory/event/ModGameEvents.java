@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.event;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
+import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.registry.ModItems;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -10,6 +11,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = InfiniteInventory.MODID)
 public final class ModGameEvents {
@@ -39,5 +41,10 @@ public final class ModGameEvents {
             return;
         }
         event.getDrops().removeIf(itemEntity -> itemEntity.getItem().is(ModItems.DATABASE_ACCESS_ITEM.get()));
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        DatabaseBackupManager.maybeCreateRollingBackup(event.getServer());
     }
 }

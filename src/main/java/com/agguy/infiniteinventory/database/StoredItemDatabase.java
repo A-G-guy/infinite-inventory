@@ -2,7 +2,9 @@ package com.agguy.infiniteinventory.database;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -11,7 +13,11 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
+    public static final int CURRENT_SCHEMA_VERSION = 1;
+
+    private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final String ENTRIES_KEY = "entries";
+    private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
     private static final String STACK_KEY = "stack";
     private static final String COUNT_KEY = "count";
     private static final String CATEGORY_KEY = "category";
@@ -19,10 +25,23 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private static final String NEXT_SEQUENCE_KEY = "next_sequence";
 
     private final Map<StoredStackKey, StoredStackEntry> entries = new LinkedHashMap<>();
+    private final java.util.List<UnresolvedStoredEntry> unresolvedEntries = new java.util.ArrayList<>();
     private long nextSequence = 1L;
 
     public Map<StoredStackKey, StoredStackEntry> entries() {
         return Collections.unmodifiableMap(this.entries);
+    }
+
+    public List<UnresolvedStoredEntry> unresolvedEntries() {
+        return List.copyOf(this.unresolvedEntries);
+    }
+
+    public int unresolvedEntryCount() {
+        return this.unresolvedEntries.size();
+    }
+
+    public boolean hasUnresolvedEntries() {
+        return !this.unresolvedEntries.isEmpty();
     }
 
     public long getAmount(StoredStackKey key) {
@@ -43,6 +62,35 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             total += entry.amount();
         }
         return total;
+    }
+
+    public void clear() {
+        this.entries.clear();
+        this.unresolvedEntries.clear();
+        this.nextSequence = 1L;
+    }
+
+    public void mergeFrom(StoredItemDatabase other) {
+        if (other == null) {
+            return;
+        }
+        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : other.entries().entrySet()) {
+            this.mergeResolvedEntry(mapEntry.getKey(), mapEntry.getValue());
+        }
+        for (UnresolvedStoredEntry unresolvedEntry : other.unresolvedEntries()) {
+            if (!unresolvedEntry.isEmpty()) {
+                this.unresolvedEntries.add(new UnresolvedStoredEntry(
+                        unresolvedEntry.stackTag(),
+                        unresolvedEntry.amount(),
+                        unresolvedEntry.category(),
+                        unresolvedEntry.lastModified()
+                ));
+            }
+        }
+        this.nextSequence = Math.max(this.nextSequence, other.nextSequence);
+        if (this.nextSequence <= 0L) {
+            this.nextSequence = 1L;
+        }
     }
 
     public void store(ItemStack stack) {
@@ -83,6 +131,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag root = new CompoundTag();
+        root.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
         ListTag serializedEntries = new ListTag();
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.entries.entrySet()) {
             ItemStack stack = mapEntry.getKey().displayStack();
@@ -99,32 +148,131 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             serializedEntries.add(entryTag);
         }
         root.put(ENTRIES_KEY, serializedEntries);
+        ListTag serializedUnresolvedEntries = new ListTag();
+        for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
+            if (!unresolvedEntry.isEmpty()) {
+                serializedUnresolvedEntries.add(unresolvedEntry.toTag());
+            }
+        }
+        root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
         root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);
         return root;
     }
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        this.entries.clear();
+        this.clear();
+        if (tag == null || tag.isEmpty()) {
+            return;
+        }
+        if (tag.contains(SCHEMA_VERSION_KEY)) {
+            this.readCurrentFormat(provider, tag);
+            return;
+        }
+        this.readLegacyFormat(provider, tag);
+    }
+
+    private void readCurrentFormat(HolderLookup.Provider provider, CompoundTag tag) {
         long highestSequence = 0L;
-        for (Tag element : tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND)) {
+        highestSequence = Math.max(highestSequence, this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true));
+        for (Tag element : tag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
+            if (!(element instanceof CompoundTag unresolvedEntryTag)) {
+                continue;
+            }
+            UnresolvedStoredEntry unresolvedEntry = UnresolvedStoredEntry.fromTag(unresolvedEntryTag);
+            if (unresolvedEntry.isEmpty()) {
+                continue;
+            }
+            this.unresolvedEntries.add(unresolvedEntry);
+            highestSequence = Math.max(highestSequence, unresolvedEntry.lastModified());
+        }
+        this.resolveUnresolvedEntries(provider);
+        this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
+    }
+
+    private void readLegacyFormat(HolderLookup.Provider provider, CompoundTag tag) {
+        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true);
+        this.resolveUnresolvedEntries(provider);
+        this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
+    }
+
+    private long readResolvedEntries(HolderLookup.Provider provider, ListTag entryList, boolean preserveInvalidEntries) {
+        long highestSequence = 0L;
+        for (Tag element : entryList) {
             if (!(element instanceof CompoundTag entryTag)) {
                 continue;
             }
-            ItemStack stack = ItemStack.parseOptional(provider, entryTag.getCompound(STACK_KEY));
-            if (stack.isEmpty()) {
-                continue;
-            }
+            CompoundTag stackTag = entryTag.getCompound(STACK_KEY);
             long amount = Math.max(0L, entryTag.getLong(COUNT_KEY));
             if (amount <= 0L) {
                 continue;
             }
-            DatabaseCategory category = readCategory(entryTag, stack);
             long lastModified = Math.max(0L, entryTag.getLong(LAST_MODIFIED_KEY));
-            this.entries.put(StoredStackKey.of(stack), new StoredStackEntry(category, amount, lastModified));
+            if (provider == null) {
+                if (preserveInvalidEntries && !stackTag.isEmpty()) {
+                    this.unresolvedEntries.add(new UnresolvedStoredEntry(
+                            stackTag,
+                            amount,
+                            readCategory(entryTag, null),
+                            lastModified
+                    ));
+                    highestSequence = Math.max(highestSequence, lastModified);
+                }
+                continue;
+            }
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            if (stack.isEmpty()) {
+                if (preserveInvalidEntries && !stackTag.isEmpty()) {
+                    this.unresolvedEntries.add(new UnresolvedStoredEntry(
+                            stackTag,
+                            amount,
+                            readCategory(entryTag, null),
+                            lastModified
+                    ));
+                    highestSequence = Math.max(highestSequence, lastModified);
+                }
+                continue;
+            }
+            this.mergeResolvedEntry(
+                    StoredStackKey.of(stack),
+                    new StoredStackEntry(readCategory(entryTag, stack), amount, lastModified)
+            );
             highestSequence = Math.max(highestSequence, lastModified);
         }
-        this.nextSequence = Math.max(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence + 1L);
+        return highestSequence;
+    }
+
+    private void resolveUnresolvedEntries(HolderLookup.Provider provider) {
+        if (provider == null || this.unresolvedEntries.isEmpty()) {
+            return;
+        }
+        java.util.List<UnresolvedStoredEntry> stillUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
+        for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
+            Optional<UnresolvedStoredEntry.ResolvedStoredEntry> resolvedEntry = unresolvedEntry.tryResolve(provider);
+            if (resolvedEntry.isPresent()) {
+                this.mergeResolvedEntry(resolvedEntry.get().key(), resolvedEntry.get().entry());
+            } else {
+                stillUnresolvedEntries.add(unresolvedEntry);
+            }
+        }
+        this.unresolvedEntries.clear();
+        this.unresolvedEntries.addAll(stillUnresolvedEntries);
+    }
+
+    private void mergeResolvedEntry(StoredStackKey key, StoredStackEntry incomingEntry) {
+        if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
+            return;
+        }
+        StoredStackEntry existingEntry = this.entries.get(key);
+        if (existingEntry == null) {
+            this.entries.put(key, new StoredStackEntry(incomingEntry.category(), incomingEntry.amount(), incomingEntry.lastModified()));
+            return;
+        }
+        existingEntry.add(incomingEntry.amount(), incomingEntry.lastModified());
+    }
+
+    private void finishNextSequence(long serializedNextSequence, long highestSequence) {
+        this.nextSequence = Math.max(serializedNextSequence, highestSequence + 1L);
         if (this.nextSequence <= 0L) {
             this.nextSequence = 1L;
         }
@@ -134,7 +282,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         try {
             return DatabaseCategory.valueOf(tag.getString(CATEGORY_KEY));
         } catch (IllegalArgumentException exception) {
-            return DatabaseCategory.classify(stack);
+            return stack == null || stack.isEmpty() ? DatabaseCategory.OTHER : DatabaseCategory.classify(stack);
         }
     }
 

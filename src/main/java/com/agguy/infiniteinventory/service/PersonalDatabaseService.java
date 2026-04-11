@@ -5,9 +5,11 @@ import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabasePagination;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseBackupManager;
+import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
+import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
-import com.agguy.infiniteinventory.database.PublicDatabaseSavedData;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackKey;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,9 +34,13 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     private final DatabaseEntrySorter entrySorter = DatabaseEntrySorter.INSTANCE;
     private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
@@ -42,6 +49,7 @@ public final class PersonalDatabaseService {
     }
 
     public void open(ServerPlayer player) {
+        this.ensureLegacyPersonalMigration(player);
         player.openMenu(new SimpleMenuProvider(
                 (containerId, playerInventory, ignored) -> {
                     PersonalDatabaseMenu menu = new PersonalDatabaseMenu(containerId, playerInventory, player);
@@ -52,10 +60,11 @@ public final class PersonalDatabaseService {
         ));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
             menu.syncViewToClient();
+            this.notifyAboutUnresolvedEntries(player, menu.activeScope());
         }
     }
 
-    public PlayerDatabaseAttachment getPersonalDatabase(Player player) {
+    public PlayerDatabaseAttachment getLegacyPersonalDatabase(Player player) {
         return player.getData(ModAttachments.PERSONAL_DATABASE.get());
     }
 
@@ -72,7 +81,7 @@ public final class PersonalDatabaseService {
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabase(player, scope).store(stack.copy());
+        this.resolveDatabaseForMutation(player, scope).store(stack.copy());
         this.markScopeDirty(player, scope);
         slot.setByPlayer(ItemStack.EMPTY, stack.copy());
         slot.setChanged();
@@ -81,7 +90,7 @@ public final class PersonalDatabaseService {
 
     public int depositMainInventory(ServerPlayer player, DatabaseScope scope) {
         Inventory inventory = player.getInventory();
-        StoredItemDatabase database = this.resolveDatabase(player, scope);
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
         int movedItems = 0;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
             ItemStack stack = inventory.items.get(slotIndex);
@@ -103,13 +112,13 @@ public final class PersonalDatabaseService {
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabase(player, scope).store(stack);
+        this.resolveDatabaseForMutation(player, scope).store(stack);
         this.markScopeDirty(player, scope);
         return true;
     }
 
     public ItemStack extractToCarried(ServerPlayer player, DatabaseScope scope, StoredStackKey key, int requestedAmount) {
-        ItemStack extracted = this.resolveDatabase(player, scope).extract(key, requestedAmount);
+        ItemStack extracted = this.resolveDatabaseForMutation(player, scope).extract(key, requestedAmount);
         if (!extracted.isEmpty()) {
             this.markScopeDirty(player, scope);
         }
@@ -125,7 +134,7 @@ public final class PersonalDatabaseService {
             return 0L;
         }
         Inventory inventory = player.getInventory();
-        StoredItemDatabase database = this.resolveDatabase(player, scope);
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
         long movedItems = 0L;
         long remainingAmount = requestedAmount;
         while (remainingAmount > 0L && this.hasSpaceFor(inventory, key)) {
@@ -157,7 +166,7 @@ public final class PersonalDatabaseService {
 
     public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        List<QueryCandidate> filteredEntries = this.collectCandidates(this.resolveDatabase(player, normalizedQuery.scope()), normalizedQuery);
+        List<QueryCandidate> filteredEntries = this.collectCandidates(this.resolveDatabaseForView(player, normalizedQuery.scope()), normalizedQuery);
         filteredEntries.sort(Comparator.comparing(QueryCandidate::sortSnapshot, this.entrySorter.comparatorFor(normalizedQuery)));
 
         int safePageSize = Math.max(1, normalizedQuery.pageSize());
@@ -183,6 +192,14 @@ public final class PersonalDatabaseService {
     public void syncPublicViewers(MinecraftServer server) {
         for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
             if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PUBLIC) {
+                menu.syncViewToClient();
+            }
+        }
+    }
+
+    public void syncAllViewers(MinecraftServer server) {
+        for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
+            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu) {
                 menu.syncViewToClient();
             }
         }
@@ -237,17 +254,114 @@ public final class PersonalDatabaseService {
         return total;
     }
 
-    private StoredItemDatabase resolveDatabase(ServerPlayer player, DatabaseScope scope) {
+    private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
-            return PublicDatabaseSavedData.get(player.server).database();
+            return storage.publicDatabase();
         }
-        return this.getPersonalDatabase(player);
+        this.ensureLegacyPersonalMigration(player, storage);
+        return storage.personalDatabaseView(player.getUUID());
+    }
+
+    private StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            return storage.publicDatabase();
+        }
+        this.ensureLegacyPersonalMigration(player, storage);
+        return storage.personalDatabase(player.getUUID());
     }
 
     private void markScopeDirty(ServerPlayer player, DatabaseScope scope) {
-        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
-            PublicDatabaseSavedData.get(player.server).setDirty();
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PERSONAL) {
+            storage.prunePersonalDatabase(player.getUUID());
         }
+        storage.setDirty();
+    }
+
+    private void ensureLegacyPersonalMigration(ServerPlayer player) {
+        this.ensureLegacyPersonalMigration(player, DatabaseStorageSavedData.get(player.server));
+    }
+
+    private void ensureLegacyPersonalMigration(ServerPlayer player, DatabaseStorageSavedData storage) {
+        PlayerDatabaseAttachment legacyDatabase = this.getLegacyPersonalDatabase(player);
+        if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
+            return;
+        }
+        UUID playerId = player.getUUID();
+        int legacyEntryCount = legacyDatabase.entryCount() + legacyDatabase.unresolvedEntryCount();
+        if (!storage.hasPersonalDatabase(playerId)) {
+            storage.personalDatabase(playerId).mergeFrom(legacyDatabase);
+            storage.recordMigrationState(playerId, new LegacyMigrationState(
+                    LegacyMigrationState.Status.PENDING_CLEANUP,
+                    System.currentTimeMillis(),
+                    legacyEntryCount
+            ));
+            storage.setDirty();
+            LOGGER.info("已将玩家 {} 的旧个人数据库导入统一存储，等待迁移备份完成后清理旧附件", player.getGameProfile().getName());
+        }
+        this.tryFinalizeLegacyCleanup(player, storage, legacyDatabase, legacyEntryCount);
+    }
+
+    private void tryFinalizeLegacyCleanup(
+            ServerPlayer player,
+            DatabaseStorageSavedData storage,
+            PlayerDatabaseAttachment legacyDatabase,
+            int legacyEntryCount
+    ) {
+        if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
+            return;
+        }
+        UUID playerId = player.getUUID();
+        LegacyMigrationState migrationState = storage.migrationState(playerId);
+        if (!storage.hasPersonalDatabase(playerId)) {
+            return;
+        }
+        if (migrationState == null) {
+            storage.recordMigrationState(playerId, new LegacyMigrationState(
+                    LegacyMigrationState.Status.SKIPPED_EXISTING_STORAGE,
+                    System.currentTimeMillis(),
+                    legacyEntryCount
+            ));
+            storage.setDirty();
+            LOGGER.warn("玩家 {} 同时存在旧附件个人库与统一存储个人库，已跳过重复导入旧附件", player.getGameProfile().getName());
+            return;
+        }
+        if (migrationState.status() == LegacyMigrationState.Status.SKIPPED_EXISTING_STORAGE) {
+            return;
+        }
+        try {
+            DatabaseBackupManager.createMigrationBackup(
+                    player.server,
+                    "legacy-personal-" + playerId,
+                    storage.exportStorageTag(player.registryAccess())
+            );
+            legacyDatabase.clear();
+            storage.recordMigrationState(playerId, new LegacyMigrationState(
+                    LegacyMigrationState.Status.MIGRATED,
+                    System.currentTimeMillis(),
+                    migrationState.legacyEntryCount()
+            ));
+            storage.setDirty();
+            LOGGER.info("已完成玩家 {} 的旧个人数据库迁移并清理旧附件", player.getGameProfile().getName());
+        } catch (java.io.IOException exception) {
+            LOGGER.error("为玩家 {} 生成旧个人数据库迁移备份失败，旧附件已保留", player.getGameProfile().getName(), exception);
+        }
+    }
+
+    private void notifyAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
+        int unresolvedEntryCount = storage.unresolvedEntryCount(scope, player.getUUID());
+        if (unresolvedEntryCount <= 0) {
+            return;
+        }
+        player.sendSystemMessage(Component.translatable(
+                DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC
+                        ? "message.infiniteinventory.database.unresolved.public"
+                        : "message.infiniteinventory.database.unresolved.personal",
+                unresolvedEntryCount
+        ));
     }
 
     private record QueryCandidate(

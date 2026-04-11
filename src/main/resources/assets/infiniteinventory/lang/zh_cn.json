@@ -53,5 +53,13 @@
   "screen.infiniteinventory.sort.item_id_desc": "物品 ID 降序",
   "screen.infiniteinventory.context.take_single": "拿出 1 个",
   "screen.infiniteinventory.context.take_stack": "拿出一组",
-  "screen.infiniteinventory.context.take_all": "全部取出"
+  "screen.infiniteinventory.context.take_all": "全部取出",
+  "message.infiniteinventory.database.unresolved.personal": "个人库中有 %s 个条目暂时无法解析，当前已保留占位，相关模组或物品恢复后会自动尝试恢复。",
+  "message.infiniteinventory.database.unresolved.public": "公共库中有 %s 个条目暂时无法解析，当前已保留占位，相关模组或物品恢复后会自动尝试恢复。",
+  "command.infiniteinventory.database.backup.created": "数据库备份已创建：%s",
+  "command.infiniteinventory.database.backup.empty": "当前没有可用的数据库备份。",
+  "command.infiniteinventory.database.backup.list_header": "数据库备份列表（共 %s 个）：",
+  "command.infiniteinventory.database.backup.list_entry": "%s | 类型=%s | 原因=%s | 时间=%s",
+  "command.infiniteinventory.database.restore.completed": "已从备份 %s 恢复数据库，并额外创建恢复前保护备份 %s。",
+  "command.infiniteinventory.database.error": "数据库操作失败：%s"
 }
