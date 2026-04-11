@@ -38,6 +38,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 public final class PersonalDatabaseScreen extends AbstractContainerScreen<PersonalDatabaseMenu> {
+    private static final int OVERLAY_TEXT_COLOR = 0x3D342B;
+    private static final int OVERLAY_MUTED_TEXT_COLOR = 0x6B6257;
+    private static final int OVERLAY_ACCENT_TEXT_COLOR = 0x5A4523;
     private static final int DROPDOWN_ROW_HEIGHT = 20;
     private static final int SORT_DROPDOWN_WIDTH = 168;
     private static final int CONTEXT_MENU_WIDTH = 112;
@@ -129,7 +132,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderToolbarOverlays(guiGraphics);
         if (this.advancedSearchExpanded) {
-            this.renderAdvancedSearchPanel(guiGraphics);
+            this.renderAdvancedSearchPanel(guiGraphics, mouseX, mouseY);
         }
         this.renderSearchHint(guiGraphics);
         if (this.sortDropdownExpanded) {
@@ -149,9 +152,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         VanillaWidgetRenderer.renderPanel(guiGraphics, this.layout.frameRect());
         this.renderTabs(guiGraphics, mouseX, mouseY);
         VanillaWidgetRenderer.renderTextField(guiGraphics, this.layout.searchFieldRect(), this.searchBox != null && this.searchBox.isFocused());
-        if (this.advancedSearchExpanded) {
-            VanillaWidgetRenderer.renderPanel(guiGraphics, this.advancedSearchPanelRect());
-        }
         this.renderDatabaseScaffold(guiGraphics);
 
         if (this.minecraft != null && this.minecraft.player != null) {
@@ -185,6 +185,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.advancedSearchExpanded && !this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
             this.advancedSearchExpanded = false;
+        }
+        if (this.advancedSearchExpanded && this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
+            super.mouseClicked(mouseX, mouseY, button);
+            return true;
         }
         if (this.contextMenuExpanded && this.handleContextMenuClick(mouseX, mouseY)) {
             return true;
@@ -336,13 +340,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             if (toggleButton != null) {
                 toggleButton.visible = this.advancedSearchExpanded;
                 toggleButton.active = !field.isTextField() || weight == DatabaseSearchWeight.OFF || enabledTextFieldCount > 1;
-                toggleButton.setMessage(Component.literal(weight == DatabaseSearchWeight.OFF ? "[ ]" : "[x]"));
+                toggleButton.setMessage(Component.empty());
             }
             Button weightButton = this.advancedSearchWeightButtons.get(field);
             if (weightButton != null) {
                 weightButton.visible = this.advancedSearchExpanded;
                 weightButton.active = weight != DatabaseSearchWeight.OFF;
-                weightButton.setMessage(Component.translatable(weight.translationKey()));
+                weightButton.setMessage(Component.empty());
             }
         }
     }
@@ -571,6 +575,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         List<VisibleDatabaseEntry> entries = this.menu.viewState().entries();
         for (int slotIndex = 0; slotIndex < this.layout.databaseSlotCount(); slotIndex++) {
             PersonalDatabaseLayout.Rect slotRect = this.layout.databaseSlotBounds(slotIndex);
+            if (slotRect.contains(mouseX, mouseY)) {
+                VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
+            }
             if (slotIndex < entries.size()) {
                 VisibleDatabaseEntry entry = entries.get(slotIndex);
                 ItemStack stack = entry.stack();
@@ -578,9 +585,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 int itemY = slotRect.y() + (PersonalDatabaseLayout.DATABASE_SLOT_SIZE - 16) / 2;
                 guiGraphics.renderItem(stack, itemX, itemY);
                 guiGraphics.renderItemDecorations(this.font, stack, itemX, itemY, CompactNumberFormatter.format(entry.amount()));
-            }
-            if (slotRect.contains(mouseX, mouseY)) {
-                VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
             }
         }
     }
@@ -645,21 +649,64 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         );
     }
 
-    private void renderAdvancedSearchPanel(GuiGraphics guiGraphics) {
+    private void renderAdvancedSearchPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseLayout.Rect panelRect = this.advancedSearchPanelRect();
         if (panelRect.width() <= 0 || panelRect.height() <= 0) {
             return;
         }
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 240.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
         guiGraphics.drawString(
                 this.font,
                 Component.translatable("screen.infiniteinventory.search_advanced_title"),
                 panelRect.x() + ADVANCED_SEARCH_PANEL_PADDING,
                 panelRect.y() + ADVANCED_SEARCH_PANEL_PADDING,
-                0x404040,
+                OVERLAY_TEXT_COLOR,
                 true
         );
+        guiGraphics.fill(
+                panelRect.x() + ADVANCED_SEARCH_PANEL_PADDING,
+                panelRect.y() + ADVANCED_SEARCH_PANEL_PADDING + ADVANCED_SEARCH_TITLE_HEIGHT - 2,
+                panelRect.right() - ADVANCED_SEARCH_PANEL_PADDING,
+                panelRect.y() + ADVANCED_SEARCH_PANEL_PADDING + ADVANCED_SEARCH_TITLE_HEIGHT - 1,
+                0x70A89E8C
+        );
+        DatabaseSearchConfig searchConfig = this.menu.viewState().query().searchConfig();
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             PersonalDatabaseLayout.Rect rowRect = this.advancedSearchRowRect(field);
+            PersonalDatabaseLayout.Rect toggleRect = new PersonalDatabaseLayout.Rect(rowRect.x(), rowRect.y(), ADVANCED_SEARCH_TOGGLE_WIDTH, ADVANCED_SEARCH_ROW_HEIGHT);
+            PersonalDatabaseLayout.Rect weightRect = new PersonalDatabaseLayout.Rect(
+                    rowRect.right() - ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    rowRect.y(),
+                    ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    ADVANCED_SEARCH_ROW_HEIGHT
+            );
+            DatabaseSearchWeight weight = searchConfig.weightFor(field);
+            boolean enabled = weight != DatabaseSearchWeight.OFF;
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, rowRect.contains(mouseX, mouseY), false);
+            VanillaWidgetRenderer.renderOverlayChip(
+                    guiGraphics,
+                    toggleRect,
+                    toggleRect.contains(mouseX, mouseY),
+                    enabled,
+                    this.isAdvancedToggleClickable(field, searchConfig)
+            );
+            VanillaWidgetRenderer.renderOverlayChip(
+                    guiGraphics,
+                    weightRect,
+                    weightRect.contains(mouseX, mouseY),
+                    enabled,
+                    enabled
+            );
+            this.drawCenteredShadow(
+                    guiGraphics,
+                    Component.literal(enabled ? "ON" : "OFF"),
+                    toggleRect.x(),
+                    toggleRect.right(),
+                    toggleRect.y() + 6,
+                    enabled ? OVERLAY_ACCENT_TEXT_COLOR : OVERLAY_MUTED_TEXT_COLOR
+            );
             int labelX = rowRect.x() + ADVANCED_SEARCH_TOGGLE_WIDTH + 6;
             int labelWidth = Math.max(0, rowRect.width() - ADVANCED_SEARCH_TOGGLE_WIDTH - ADVANCED_SEARCH_WEIGHT_WIDTH - 12);
             guiGraphics.drawString(
@@ -667,10 +714,19 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     this.truncateToWidth(Component.translatable(field.translationKey()).getString(), labelWidth),
                     labelX,
                     rowRect.y() + 6,
-                    0x404040,
+                    enabled ? OVERLAY_TEXT_COLOR : OVERLAY_MUTED_TEXT_COLOR,
                     true
             );
+            this.drawCenteredShadow(
+                    guiGraphics,
+                    enabled ? Component.translatable(weight.translationKey()) : Component.literal("OFF"),
+                    weightRect.x(),
+                    weightRect.right(),
+                    weightRect.y() + 6,
+                    enabled ? OVERLAY_ACCENT_TEXT_COLOR : OVERLAY_MUTED_TEXT_COLOR
+            );
         }
+        guiGraphics.pose().popPose();
     }
 
     private void renderSortDropdown(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -678,21 +734,28 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (dropdownRect == null) {
             return;
         }
-        VanillaWidgetRenderer.renderPanel(guiGraphics, dropdownRect);
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 250.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, dropdownRect);
         DatabaseSortOption currentSort = this.menu.viewState().query().sortOption();
         List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
         for (int index = 0; index < sortOptions.size(); index++) {
             DatabaseSortOption option = sortOptions.get(index);
-            int rowY = dropdownRect.y() + index * DROPDOWN_ROW_HEIGHT;
-            boolean hovered = mouseX >= dropdownRect.x() && mouseX < dropdownRect.right() && mouseY >= rowY && mouseY < rowY + DROPDOWN_ROW_HEIGHT;
-            if (hovered) {
-                guiGraphics.fill(dropdownRect.x() + 1, rowY + 1, dropdownRect.right() - 1, rowY + DROPDOWN_ROW_HEIGHT - 1, 0x66FFFFFF);
-            }
-            Component label = currentSort == option
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    dropdownRect.x() + 2,
+                    dropdownRect.y() + index * DROPDOWN_ROW_HEIGHT + 2,
+                    dropdownRect.width() - 4,
+                    DROPDOWN_ROW_HEIGHT - 1
+            );
+            boolean hovered = rowRect.contains(mouseX, mouseY);
+            boolean selected = currentSort == option;
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
+            Component label = selected
                     ? Component.translatable(option.translationKey()).withStyle(ChatFormatting.GOLD)
                     : Component.translatable(option.translationKey());
-            guiGraphics.drawString(this.font, label, dropdownRect.x() + 6, rowY + 6, 0x404040, true);
+            guiGraphics.drawString(this.font, label, rowRect.x() + 6, rowRect.y() + 5, selected ? OVERLAY_ACCENT_TEXT_COLOR : OVERLAY_TEXT_COLOR, true);
         }
+        guiGraphics.pose().popPose();
     }
 
     private void renderContextMenu(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -705,15 +768,21 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 CONTEXT_MENU_WIDTH,
                 CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT
         );
-        VanillaWidgetRenderer.renderPanel(guiGraphics, menuRect);
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, menuRect);
         for (int index = 0; index < CONTEXT_MENU_ACTIONS.length; index++) {
-            int rowY = menuRect.y() + index * CONTEXT_MENU_ROW_HEIGHT;
-            boolean hovered = mouseX >= menuRect.x() && mouseX < menuRect.right() && mouseY >= rowY && mouseY < rowY + CONTEXT_MENU_ROW_HEIGHT;
-            if (hovered) {
-                guiGraphics.fill(menuRect.x() + 1, rowY + 1, menuRect.right() - 1, rowY + CONTEXT_MENU_ROW_HEIGHT - 1, 0x66FFFFFF);
-            }
-            guiGraphics.drawString(this.font, this.contextMenuLabel(CONTEXT_MENU_ACTIONS[index]), menuRect.x() + 6, rowY + 6, 0x404040, true);
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    menuRect.x() + 2,
+                    menuRect.y() + index * CONTEXT_MENU_ROW_HEIGHT + 2,
+                    menuRect.width() - 4,
+                    CONTEXT_MENU_ROW_HEIGHT - 1
+            );
+            boolean hovered = rowRect.contains(mouseX, mouseY);
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
+            guiGraphics.drawString(this.font, this.contextMenuLabel(CONTEXT_MENU_ACTIONS[index]), rowRect.x() + 6, rowRect.y() + 5, OVERLAY_TEXT_COLOR, true);
         }
+        guiGraphics.pose().popPose();
     }
 
     private boolean handleCategoryClick(double mouseX, double mouseY) {
@@ -1053,6 +1122,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 && mouseX < this.contextMenuX + CONTEXT_MENU_WIDTH
                 && mouseY >= this.contextMenuY
                 && mouseY < this.contextMenuY + CONTEXT_MENU_ACTIONS.length * CONTEXT_MENU_ROW_HEIGHT;
+    }
+
+    private boolean isAdvancedToggleClickable(DatabaseSearchField field, DatabaseSearchConfig searchConfig) {
+        DatabaseSearchWeight weight = searchConfig.weightFor(field);
+        return !field.isTextField() || weight == DatabaseSearchWeight.OFF || this.enabledTextFieldCount(searchConfig) > 1;
     }
 
     private int findDatabaseSlot(double mouseX, double mouseY) {
