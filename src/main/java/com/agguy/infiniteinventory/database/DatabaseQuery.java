@@ -22,6 +22,7 @@ public record DatabaseQuery(
 
     public static final int MAX_SEARCH_LENGTH = 64;
     public static final int DEFAULT_PAGE_SIZE = 54;
+    public static final int MAX_PAGE_SIZE = 640;
 
     public DatabaseQuery {
         scope = DatabaseScope.normalize(scope);
@@ -30,7 +31,7 @@ public record DatabaseQuery(
         searchText = normalize(searchText);
         searchConfig = searchConfig == null ? DatabaseSearchConfig.defaultConfig() : searchConfig;
         pageIndex = Math.max(0, pageIndex);
-        pageSize = Math.max(1, pageSize);
+        pageSize = normalizePageSize(pageSize);
     }
 
     public DatabaseQuery(
@@ -149,6 +150,10 @@ public record DatabaseQuery(
             return trimmed;
         }
         return trimmed.substring(0, MAX_SEARCH_LENGTH);
+    }
+
+    private static int normalizePageSize(int pageSize) {
+        return Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize));
     }
 
     private static <T extends Enum<T>> T readEnum(String serializedName, Class<T> enumType, T fallbackValue) {

@@ -16,11 +16,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DatabaseQueryTest {
     @Test
     void queryShouldTrimAndClampInputs() {
-        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.ALL, DatabaseSortOption.NAME_ASC, "  diamonds  ", -3, 0);
+        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.ALL, DatabaseSortOption.NAME_ASC, "  diamonds  ", -3, Integer.MAX_VALUE);
 
         assertEquals("diamonds", query.searchText());
         assertEquals(0, query.pageIndex());
-        assertEquals(1, query.pageSize());
+        assertEquals(DatabaseQuery.MAX_PAGE_SIZE, query.pageSize());
         assertEquals(DatabaseScope.PUBLIC, query.scope());
     }
 
@@ -34,7 +34,7 @@ class DatabaseQueryTest {
         assertEquals(72, query.withSearchText("stone").pageSize());
         assertEquals(4, query.withSortOption(DatabaseSortOption.NAME_DESC).pageIndex());
         assertEquals(72, query.withSortOption(DatabaseSortOption.NAME_DESC).pageSize());
-        assertEquals(90, query.withPageSize(90).pageSize());
+        assertEquals(DatabaseQuery.MAX_PAGE_SIZE, query.withPageSize(Integer.MAX_VALUE).pageSize());
     }
 
     @Test

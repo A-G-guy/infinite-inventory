@@ -246,6 +246,16 @@ public record PersonalDatabaseLayout(
         return this.databaseColumns * this.databaseRows;
     }
 
+    public int visibleDatabaseSlotCount() {
+        int visibleCount = 0;
+        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(); slotIndex++) {
+            if (this.isDatabaseSlotVisible(slotIndex)) {
+                visibleCount++;
+            }
+        }
+        return visibleCount;
+    }
+
     public int accessoryMaxScrollRow() {
         return Math.max(0, this.accessoryTotalRows - this.accessoryVisibleRows);
     }
@@ -270,6 +280,23 @@ public record PersonalDatabaseLayout(
 
     public Rect databaseSlotBounds(int slotIndex) {
         return new Rect(this.databaseSlotX(slotIndex), this.databaseSlotY(slotIndex), DATABASE_SLOT_SIZE, DATABASE_SLOT_SIZE);
+    }
+
+    public Rect visibleDatabaseSlotBounds(int visibleSlotIndex) {
+        if (visibleSlotIndex < 0) {
+            return Rect.empty();
+        }
+        int resolvedVisibleIndex = 0;
+        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(); slotIndex++) {
+            if (!this.isDatabaseSlotVisible(slotIndex)) {
+                continue;
+            }
+            if (resolvedVisibleIndex == visibleSlotIndex) {
+                return this.databaseSlotBounds(slotIndex);
+            }
+            resolvedVisibleIndex++;
+        }
+        return Rect.empty();
     }
 
     public Rect tabBounds(int index, int totalTabs) {
@@ -358,6 +385,14 @@ public record PersonalDatabaseLayout(
 
     private static Rect hiddenSlotRect() {
         return new Rect(HIDDEN_SLOT_X, HIDDEN_SLOT_Y, SLOT_SIZE, SLOT_SIZE);
+    }
+
+    private boolean isDatabaseSlotVisible(int slotIndex) {
+        return !this.accessoriesPanelCovers(this.databaseSlotBounds(slotIndex));
+    }
+
+    private boolean accessoriesPanelCovers(Rect rect) {
+        return this.accessoriesPanelRect.height() > 0 && this.accessoriesPanelRect.intersects(rect);
     }
 
     private static int clamp(int value, int min, int max) {

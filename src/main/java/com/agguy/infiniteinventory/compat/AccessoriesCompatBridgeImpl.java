@@ -59,6 +59,7 @@ final class AccessoriesCompatBridgeImpl implements AccessoriesCompatBridge {
                 continue;
             }
             int firstSlotIndex = -1;
+            int addedSlotCount = 0;
             for (int slot = 0; slot < container.getSize(); slot++) {
                 AccessoriesBasedSlot accessoriesSlot = AccessoriesBasedSlot.of(player, slotType, slot, 0, 0);
                 if (accessoriesSlot == null) {
@@ -68,9 +69,10 @@ final class AccessoriesCompatBridgeImpl implements AccessoriesCompatBridge {
                 if (firstSlotIndex < 0) {
                     firstSlotIndex = menuIndex;
                 }
+                addedSlotCount++;
             }
-            if (firstSlotIndex >= 0) {
-                groups.add(new AccessorySlotGroup(slotType.name(), slotType.translation(), firstSlotIndex, container.getSize()));
+            if (firstSlotIndex >= 0 && addedSlotCount > 0) {
+                groups.add(new AccessorySlotGroup(slotType.name(), slotType.translation(), firstSlotIndex, addedSlotCount));
             }
         }
         return List.copyOf(groups);
