@@ -6,14 +6,13 @@ import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import java.util.List;
 import java.util.Locale;
-import org.apache.commons.text.similarity.FuzzyScore;
 
 public final class DatabaseSearchEvaluator {
     private static final int EXACT_BASE_SCORE = 40_000;
     private static final int PREFIX_BASE_SCORE = 30_000;
     private static final int CONTAINS_BASE_SCORE = 20_000;
     private static final int FUZZY_BASE_SCORE = 10_000;
-    private static final FuzzyScore FUZZY_SCORE = new FuzzyScore(Locale.ROOT);
+    private static final SequentialFuzzyScore FUZZY_SCORE = new SequentialFuzzyScore(Locale.ROOT);
 
     public DatabaseSearchRanking evaluate(DatabaseQuery query, DatabaseSearchIndex index, long amount) {
         List<String> terms = SearchTextNormalizer.splitTerms(query.searchText());
@@ -205,7 +204,7 @@ public final class DatabaseSearchEvaluator {
         if (term.length() < 2 || candidate.isEmpty() || !SearchTextNormalizer.isSubsequence(candidate, term)) {
             return TokenMatch.noMatch();
         }
-        int fuzzyScore = FUZZY_SCORE.fuzzyScore(candidate, term);
+        int fuzzyScore = FUZZY_SCORE.score(candidate, term);
         if (fuzzyScore <= 0) {
             return TokenMatch.noMatch();
         }

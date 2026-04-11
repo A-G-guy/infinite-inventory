@@ -89,6 +89,22 @@ class DatabaseSearchEvaluatorTest {
     }
 
     @Test
+    void fuzzyMatchesShouldStayAvailableWithoutExternalLibrary() {
+        DatabaseSearchConfig displayOnlyConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+        DatabaseSearchRanking fuzzyRanking = this.evaluator.evaluate(
+                this.query("dmnd", displayOnlyConfig),
+                this.index("diamond", "minecraft:diamond", "minecraft", "", "", List.of()),
+                1L
+        );
+
+        assertTrue(fuzzyRanking.matched());
+        assertTrue(fuzzyRanking.fuzzyMatches() > 0);
+    }
+
+    @Test
     void weightsAndCountBoostShouldInfluenceScores() {
         DatabaseSearchIndex index = this.index("diamond", "minecraft:diamond", "minecraft", "", "", List.of());
         DatabaseSearchConfig highDisplayConfig = DatabaseSearchConfig.defaultConfig()
