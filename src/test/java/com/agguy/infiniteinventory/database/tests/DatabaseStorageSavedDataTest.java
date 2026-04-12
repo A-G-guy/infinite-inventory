@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseItemClassifier;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,6 +66,28 @@ class DatabaseStorageSavedDataTest {
     }
 
     @Test
+    void shouldMarkStorageDirtyWhenNestedDatabaseRequiresResave() {
+        UUID playerId = UUID.fromString("99999999-8888-7777-6666-555555555555");
+        CompoundTag currentRoot = new CompoundTag();
+        currentRoot.putInt("schema_version", DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION);
+        currentRoot.put("public_database", this.currentSchemaDatabaseTag());
+
+        CompoundTag personalDatabaseTag = new CompoundTag();
+        personalDatabaseTag.putUUID("player_uuid", playerId);
+        personalDatabaseTag.put("database", this.oldSchemaDatabaseTag());
+        ListTag personalDatabases = new ListTag();
+        personalDatabases.add(personalDatabaseTag);
+        currentRoot.put("personal_databases", personalDatabases);
+        currentRoot.put("migration_states", new ListTag());
+
+        DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(currentRoot, null);
+
+        assertFalse(restored.publicDatabase().needsResave());
+        assertFalse(restored.hasPersonalDatabase(playerId));
+        assertTrue(restored.isDirty());
+    }
+
+    @Test
     void personalAndPublicDatabasesShouldStoreAndStackIndependently() throws ReflectiveOperationException {
         UUID playerId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
@@ -102,6 +126,25 @@ class DatabaseStorageSavedDataTest {
         StoredItemDatabase database = new StoredItemDatabase();
         database.deserializeNBT(null, currentRoot);
         return database;
+    }
+
+    private CompoundTag oldSchemaDatabaseTag() {
+        CompoundTag databaseTag = new CompoundTag();
+        databaseTag.putInt("schema_version", 1);
+        databaseTag.put("entries", new ListTag());
+        databaseTag.put("unresolved_entries", new ListTag());
+        databaseTag.putLong("next_sequence", 1L);
+        return databaseTag;
+    }
+
+    private CompoundTag currentSchemaDatabaseTag() {
+        CompoundTag databaseTag = new CompoundTag();
+        databaseTag.putInt("schema_version", StoredItemDatabase.CURRENT_SCHEMA_VERSION);
+        databaseTag.putInt("classifier_version", DatabaseItemClassifier.CURRENT_VERSION);
+        databaseTag.put("entries", new ListTag());
+        databaseTag.put("unresolved_entries", new ListTag());
+        databaseTag.putLong("next_sequence", 1L);
+        return databaseTag;
     }
 
     private CompoundTag entryTag(String itemId, long count, DatabaseCategory category, long lastModified) {
