@@ -9,6 +9,7 @@ import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.service.DatabaseQueryEngine;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.EnumMap;
 import java.util.Map;
 import net.minecraft.world.item.ItemStack;
@@ -80,6 +81,23 @@ class DatabaseQueryEngineTest {
         assertEquals(2, page.totalEntries());
         assertEquals(11L, page.totalItems());
         assertTrue(page.entries().stream().allMatch(entry -> entry.view().category() == DatabaseCategory.BLOCKS));
+    }
+
+    @Test
+    void pageWindowCalculationShouldAvoidIntegerOverflow() throws ReflectiveOperationException {
+        Method fromIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageFromIndex", int.class, int.class, int.class);
+        Method toIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageToIndex", int.class, int.class, int.class);
+        fromIndexMethod.setAccessible(true);
+        toIndexMethod.setAccessible(true);
+
+        int totalEntries = Integer.MAX_VALUE;
+        int pageSize = 640;
+        int pageIndex = totalEntries / pageSize;
+        int fromIndex = (int) fromIndexMethod.invoke(null, pageIndex, pageSize, totalEntries);
+        int toIndex = (int) toIndexMethod.invoke(null, fromIndex, pageSize, totalEntries);
+
+        assertEquals(2_147_483_520, fromIndex);
+        assertEquals(Integer.MAX_VALUE, toIndex);
     }
 
     private DatabaseQuery query(DatabaseCategory category, DatabaseSortOption sortOption, String searchText, int pageIndex, int pageSize) {
