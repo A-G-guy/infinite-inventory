@@ -89,6 +89,59 @@ class DatabaseSearchEvaluatorTest {
     }
 
     @Test
+    void compactNaturalQueriesShouldCountAsExactOrPrefixMatches() {
+        DatabaseSearchConfig displayOnlyConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+        DatabaseSearchIndex index = this.index("diamond sword", "minecraft:diamond_sword", "minecraft", "", "", List.of());
+
+        DatabaseSearchRanking exactRanking = this.evaluator.evaluate(this.query("diamondsword", displayOnlyConfig), index, 1L);
+        DatabaseSearchRanking prefixRanking = this.evaluator.evaluate(this.query("diamondswo", displayOnlyConfig), index, 1L);
+
+        assertTrue(exactRanking.matched());
+        assertTrue(exactRanking.exactMatches() > 0);
+        assertTrue(exactRanking.fuzzyMatches() == 0);
+        assertTrue(prefixRanking.matched());
+        assertTrue(prefixRanking.prefixMatches() > 0);
+        assertTrue(prefixRanking.fuzzyMatches() == 0);
+    }
+
+    @Test
+    void compactIdentifierAndFullPinyinQueriesShouldCountAsExactMatches() {
+        DatabaseSearchConfig itemIdOnlyConfig = DatabaseSearchConfig.defaultConfig()
+                .withWeight(DatabaseSearchField.DISPLAY_NAME, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.OFF);
+        DatabaseSearchConfig pinyinOnlyConfig = itemIdOnlyConfig
+                .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
+                .withWeight(DatabaseSearchField.PINYIN, DatabaseSearchWeight.HIGH);
+        DatabaseSearchIndex index = this.index("钻石剑", "minecraft:diamond_sword", "minecraft", "zuanshijian", "zsj", List.of("zuan", "shi", "jian"));
+
+        DatabaseSearchRanking itemIdRanking = this.evaluator.evaluate(this.query("diamondsword", itemIdOnlyConfig), index, 1L);
+        DatabaseSearchRanking pinyinRanking = this.evaluator.evaluate(this.query("zuanshijian", pinyinOnlyConfig), index, 1L);
+
+        assertTrue(itemIdRanking.matched());
+        assertTrue(itemIdRanking.exactMatches() > 0);
+        assertTrue(itemIdRanking.fuzzyMatches() == 0);
+        assertTrue(pinyinRanking.matched());
+        assertTrue(pinyinRanking.exactMatches() > 0);
+        assertTrue(pinyinRanking.fuzzyMatches() == 0);
+    }
+
+    @Test
+    void punctuationOnlyQueriesShouldBehaveLikeEmptySearch() {
+        DatabaseSearchRanking ranking = this.evaluator.evaluate(
+                this.query("  ::: --- ___  ", DatabaseSearchConfig.defaultConfig()),
+                this.index("diamond sword", "minecraft:diamond_sword", "minecraft", "", "", List.of()),
+                1L
+        );
+
+        assertTrue(ranking.matched());
+        assertFalse(ranking.active());
+    }
+
+    @Test
     void fuzzyMatchesShouldStayAvailableWithoutExternalLibrary() {
         DatabaseSearchConfig displayOnlyConfig = DatabaseSearchConfig.defaultConfig()
                 .withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.OFF)
