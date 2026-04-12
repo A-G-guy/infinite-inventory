@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PersonalDatabaseLayoutTest {
@@ -107,6 +108,20 @@ class PersonalDatabaseLayoutTest {
         assertTrue(expandedLayout.accessoriesPanelRect().x() >= collapsedLayout.bottomInventoryRect().right() + PersonalDatabaseLayout.SECTION_GAP);
         assertTrue(expandedLayout.bottomInventoryRect().y() == collapsedLayout.bottomInventoryRect().y());
         assertTrue(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
+    }
+
+    @Test
+    void expandedAccessoriesPanelShouldShrinkToContentHeight() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("back", "accessories.slot.back", 46, 3)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
+
+        int expectedHeight = PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
+                + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
+                + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
+                + PersonalDatabaseLayout.SLOT_SIZE;
+        assertEquals(expectedHeight, layout.accessoriesPanelRect().height());
     }
 
     @Test

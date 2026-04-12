@@ -180,7 +180,7 @@ public record PersonalDatabaseLayout(
                 ? accessoryToggleRect.bottom() + SECTION_GAP
                 : equipmentPanelRect.bottom() + SECTION_GAP;
         Rect bottomInventoryRect = new Rect(playerColumnX, bottomInventoryTop, bottomInventoryWidth, bottomInventoryHeight);
-        Rect accessoriesPanelRect = createAccessoriesPanelRect(frameRect, accessoryToggleRect, accessoriesExpanded);
+        Rect accessoriesPanelRect = createAccessoriesPanelRect(frameRect, accessoryToggleRect, accessoryGroups, accessoriesExpanded);
         AccessorySlotLayoutResult accessorySlotLayoutResult = buildAccessorySlotLayouts(
                 accessoryGroups,
                 accessoriesPanelRect,
@@ -310,16 +310,42 @@ public record PersonalDatabaseLayout(
         return new Rect(x, this.tabBarRect.y(), width, this.tabBarRect.height());
     }
 
-    private static Rect createAccessoriesPanelRect(Rect frameRect, Rect accessoryToggleRect, boolean accessoriesExpanded) {
+    private static Rect createAccessoriesPanelRect(
+            Rect frameRect,
+            Rect accessoryToggleRect,
+            List<AccessorySlotGroup> accessoryGroups,
+            boolean accessoriesExpanded
+    ) {
         if (!accessoriesExpanded || accessoryToggleRect.height() <= 0) {
+            return Rect.empty();
+        }
+        int totalSlotCount = countAccessorySlots(accessoryGroups);
+        if (totalSlotCount <= 0) {
             return Rect.empty();
         }
         int drawerX = accessoryToggleRect.right() + SECTION_GAP;
         int drawerY = accessoryToggleRect.bottom() + ACCESSORY_DRAWER_TOP_GAP;
         int maxDrawerWidth = Math.max(1, frameRect.right() - INNER_PADDING - drawerX);
         int drawerWidth = Math.min(maxDrawerWidth, Math.max(accessoryToggleRect.width(), ACCESSORY_DRAWER_MIN_WIDTH));
-        int drawerBottom = Math.max(drawerY + 1, frameRect.bottom() - INNER_PADDING - FOOTER_HEIGHT - SECTION_GAP);
-        return new Rect(drawerX, drawerY, drawerWidth, drawerBottom - drawerY);
+        int contentWidth = Math.max(SLOT_SIZE, drawerWidth - ACCESSORY_DRAWER_PADDING * 2);
+        int columns = Math.max(1, contentWidth / SLOT_SIZE);
+        int totalRows = Math.max(1, (totalSlotCount + columns - 1) / columns);
+        int maxDrawerBottom = Math.max(drawerY + 1, frameRect.bottom() - INNER_PADDING - FOOTER_HEIGHT - SECTION_GAP);
+        int maxGridHeight = Math.max(
+                0,
+                maxDrawerBottom
+                        - drawerY
+                        - ACCESSORY_DRAWER_PADDING * 2
+                        - ACCESSORY_DRAWER_TITLE_HEIGHT
+                        - ACCESSORY_DRAWER_TITLE_GAP
+        );
+        int visibleRows = Math.max(1, Math.min(totalRows, maxGridHeight / SLOT_SIZE));
+        int drawerHeight = ACCESSORY_DRAWER_PADDING * 2
+                + ACCESSORY_DRAWER_TITLE_HEIGHT
+                + ACCESSORY_DRAWER_TITLE_GAP
+                + visibleRows * SLOT_SIZE;
+        int drawerBottom = Math.min(maxDrawerBottom, drawerY + drawerHeight);
+        return new Rect(drawerX, drawerY, drawerWidth, Math.max(1, drawerBottom - drawerY));
     }
 
     private static AccessorySlotLayoutResult buildAccessorySlotLayouts(
@@ -331,10 +357,7 @@ public record PersonalDatabaseLayout(
             return AccessorySlotLayoutResult.empty();
         }
 
-        int totalSlotCount = 0;
-        for (AccessorySlotGroup accessoryGroup : accessoryGroups) {
-            totalSlotCount += Math.max(0, accessoryGroup.slotCount());
-        }
+        int totalSlotCount = countAccessorySlots(accessoryGroups);
         if (totalSlotCount <= 0) {
             return AccessorySlotLayoutResult.empty();
         }
@@ -385,6 +408,17 @@ public record PersonalDatabaseLayout(
 
     private static Rect hiddenSlotRect() {
         return new Rect(HIDDEN_SLOT_X, HIDDEN_SLOT_Y, SLOT_SIZE, SLOT_SIZE);
+    }
+
+    private static int countAccessorySlots(List<AccessorySlotGroup> accessoryGroups) {
+        if (accessoryGroups == null || accessoryGroups.isEmpty()) {
+            return 0;
+        }
+        int totalSlotCount = 0;
+        for (AccessorySlotGroup accessoryGroup : accessoryGroups) {
+            totalSlotCount += Math.max(0, accessoryGroup.slotCount());
+        }
+        return totalSlotCount;
     }
 
     private boolean isDatabaseSlotVisible(int slotIndex) {
