@@ -100,6 +100,20 @@ class StoredItemDatabaseTest {
     }
 
     @Test
+    void extractShouldClampOversizedRequestToLegalStackSize() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+
+        database.store(new ItemStack(Items.STONE, 64));
+        database.store(new ItemStack(Items.STONE, 6));
+
+        ItemStack extracted = database.extract(key, Integer.MAX_VALUE);
+
+        assertEquals(64, extracted.getCount());
+        assertEquals(6L, database.getAmount(key));
+    }
+
+    @Test
     void oldSchemaShouldRequestResaveAfterDeserialize() {
         CompoundTag oldSchemaRoot = new CompoundTag();
         oldSchemaRoot.putInt("schema_version", 1);

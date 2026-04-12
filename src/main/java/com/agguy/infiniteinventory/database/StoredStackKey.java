@@ -36,7 +36,7 @@ public final class StoredStackKey {
         if (count <= 0) {
             return ItemStack.EMPTY;
         }
-        return this.displayStack.copyWithCount(count);
+        return this.displayStack.copyWithCount(this.clampToLegalStackSize(count));
     }
 
     public String registryName() {
@@ -53,6 +53,10 @@ public final class StoredStackKey {
 
     public int maxStackSize() {
         return this.displayStack.getMaxStackSize();
+    }
+
+    private int clampToLegalStackSize(int count) {
+        return Math.min(count, Math.max(1, this.maxStackSize()));
     }
 
     @Override

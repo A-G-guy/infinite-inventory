@@ -70,20 +70,22 @@ public final class PersonalDatabaseService {
         return true;
     }
 
-    public int depositMainInventory(ServerPlayer player, DatabaseScope scope) {
+    public long depositMainInventory(ServerPlayer player, DatabaseScope scope) {
         Inventory inventory = player.getInventory();
         StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
-        int movedItems = 0;
+        long movedItems = 0L;
+        boolean movedAny = false;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
             ItemStack stack = inventory.items.get(slotIndex);
             if (!this.canStore(stack)) {
                 continue;
             }
-            movedItems += stack.getCount();
+            movedItems = safeAddMovedItems(movedItems, stack);
+            movedAny = true;
             database.store(stack.copy());
             inventory.items.set(slotIndex, ItemStack.EMPTY);
         }
-        if (movedItems > 0) {
+        if (movedAny) {
             this.markScopeDirty(player, scope);
             inventory.setChanged();
         }
@@ -182,6 +184,20 @@ public final class PersonalDatabaseService {
     private boolean hasSpaceFor(Inventory inventory, StoredStackKey key) {
         ItemStack probe = key.toStack(1);
         return inventory.getFreeSlot() != -1 || inventory.getSlotWithRemainingSpace(probe) != -1;
+    }
+
+    private static long safeAddMovedItems(long currentTotal, ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return currentTotal;
+        }
+        int stackCount = stack.getCount();
+        if (stackCount <= 0) {
+            return currentTotal;
+        }
+        if (Long.MAX_VALUE - currentTotal < stackCount) {
+            return Long.MAX_VALUE;
+        }
+        return currentTotal + stackCount;
     }
 
     private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {

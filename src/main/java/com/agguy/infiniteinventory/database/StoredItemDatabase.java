@@ -144,7 +144,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (entry == null) {
             return ItemStack.EMPTY;
         }
-        int extractedAmount = (int) Math.min(entry.amount(), Math.min((long) requestedAmount, Integer.MAX_VALUE));
+        int maxExtractableAmount = Math.max(1, key.maxStackSize());
+        int extractedAmount = (int) Math.min(entry.amount(), Math.min((long) requestedAmount, (long) maxExtractableAmount));
         if (extractedAmount <= 0) {
             return ItemStack.EMPTY;
         }
