@@ -165,9 +165,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         root.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
         root.putInt(CLASSIFIER_VERSION_KEY, DatabaseItemClassifier.CURRENT_VERSION);
         ListTag serializedEntries = new ListTag();
+        HolderLookup.Provider resolvedProvider = null;
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.entries.entrySet()) {
+            if (resolvedProvider == null) {
+                resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
+            }
             ItemStack stack = mapEntry.getKey().displayStack();
-            Tag serializedStack = stack.saveOptional(provider);
+            Tag serializedStack = stack.saveOptional(resolvedProvider);
             if (!(serializedStack instanceof CompoundTag stackTag)) {
                 continue;
             }
@@ -193,15 +197,16 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
         this.resetContent();
         if (tag == null || tag.isEmpty()) {
             this.markRuntimeStateDirty();
             return;
         }
         if (tag.contains(SCHEMA_VERSION_KEY)) {
-            this.readCurrentFormat(provider, tag, Math.max(0, tag.getInt(SCHEMA_VERSION_KEY)));
+            this.readCurrentFormat(resolvedProvider, tag, Math.max(0, tag.getInt(SCHEMA_VERSION_KEY)));
         } else {
-            this.readLegacyFormat(provider, tag);
+            this.readLegacyFormat(resolvedProvider, tag);
         }
         this.markRuntimeStateDirty();
     }

@@ -6,8 +6,10 @@ import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
@@ -66,6 +68,46 @@ class StoredItemDatabaseTest {
         StoredItemDatabase database = new StoredItemDatabase();
 
         assertEquals(DatabaseItemClassifier.CURRENT_VERSION, database.serializeNBT(null).getInt("classifier_version"));
+    }
+
+    @Test
+    void storeShouldStackOnlyCompletelyIdenticalItems() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        ItemStack namedStone = new ItemStack(Items.STONE, 4);
+        namedStone.set(DataComponents.CUSTOM_NAME, Component.literal("仓库A"));
+        ItemStack sameNamedStone = new ItemStack(Items.STONE, 7);
+        sameNamedStone.set(DataComponents.CUSTOM_NAME, Component.literal("仓库A"));
+        ItemStack differentNamedStone = new ItemStack(Items.STONE, 5);
+        differentNamedStone.set(DataComponents.CUSTOM_NAME, Component.literal("仓库B"));
+
+        database.store(namedStone);
+        database.store(sameNamedStone);
+        database.store(differentNamedStone);
+
+        assertEquals(2, database.entryCount());
+        assertEquals(11L, database.getAmount(StoredStackKey.of(namedStone)));
+        assertEquals(5L, database.getAmount(StoredStackKey.of(differentNamedStone)));
+    }
+
+    @Test
+    void serializeAndDeserializeShouldPreserveStackComponents() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        ItemStack namedSword = new ItemStack(Items.DIAMOND_SWORD);
+        namedSword.set(DataComponents.CUSTOM_NAME, Component.literal("无限之刃"));
+        namedSword.set(DataComponents.DAMAGE, 17);
+        StoredStackKey originalKey = StoredStackKey.of(namedSword);
+        database.store(namedSword);
+
+        CompoundTag serialized = database.serializeNBT(null);
+        StoredItemDatabase restored = new StoredItemDatabase();
+        restored.deserializeNBT(null, serialized);
+
+        assertEquals(1, restored.entryCount());
+        StoredStackKey restoredKey = restored.entries().keySet().iterator().next();
+        assertEquals(1L, restored.getAmount(restoredKey));
+        assertEquals(originalKey, restoredKey);
+        assertEquals(originalKey.displayStack().getHoverName().getString(), restoredKey.displayStack().getHoverName().getString());
+        assertEquals(originalKey.displayStack().getOrDefault(DataComponents.DAMAGE, 0), restoredKey.displayStack().getOrDefault(DataComponents.DAMAGE, 0));
     }
 
     @Test

@@ -8,8 +8,13 @@ import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -20,6 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseStorageSavedDataTest {
+    static {
+        MinecraftTestBootstrap.ensureBootstrapped();
+    }
+
     @Test
     void shouldLoadLegacyPublicDatabaseIntoUnifiedStorage() {
         CompoundTag legacyRoot = new CompoundTag();
@@ -101,6 +110,26 @@ class DatabaseStorageSavedDataTest {
         assertEquals(3L, storage.personalDatabaseView(playerId).getAmount(key));
         assertEquals(0, storage.unresolvedEntryCount(DatabaseScope.PUBLIC, playerId));
         assertEquals(0, storage.unresolvedEntryCount(DatabaseScope.PERSONAL, playerId));
+    }
+
+    @Test
+    void exportAndRestoreWithoutProviderShouldPreserveResolvedItemData() {
+        UUID playerId = UUID.fromString("12345678-90ab-cdef-1234-567890abcdef");
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
+        ItemStack namedPickaxe = new ItemStack(Items.DIAMOND_PICKAXE);
+        namedPickaxe.set(DataComponents.CUSTOM_NAME, Component.literal("矿工一号"));
+        namedPickaxe.set(DataComponents.DAMAGE, 9);
+        StoredStackKey expectedKey = StoredStackKey.of(namedPickaxe);
+
+        storage.personalDatabase(playerId).store(namedPickaxe);
+
+        CompoundTag serialized = storage.exportStorageTag(null);
+        DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(serialized, null);
+
+        assertTrue(restored.hasPersonalDatabase(playerId));
+        assertEquals(1, restored.personalDatabaseView(playerId).entryCount());
+        assertEquals(0, restored.personalDatabaseView(playerId).unresolvedEntryCount());
+        assertEquals(1L, restored.personalDatabaseView(playerId).getAmount(expectedKey));
     }
 
     private StoredItemDatabase databaseWithEntry(StoredStackKey key, StoredStackEntry entry) {

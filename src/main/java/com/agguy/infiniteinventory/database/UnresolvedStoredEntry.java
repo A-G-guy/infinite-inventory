@@ -56,10 +56,11 @@ public final class UnresolvedStoredEntry {
     }
 
     public Optional<ResolvedStoredEntry> tryResolve(HolderLookup.Provider provider) {
-        if (provider == null || this.isEmpty()) {
+        HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
+        if (resolvedProvider == null || this.isEmpty()) {
             return Optional.empty();
         }
-        ItemStack stack = ItemStack.parseOptional(provider, this.stackTag.copy());
+        ItemStack stack = ItemStack.parseOptional(resolvedProvider, this.stackTag.copy());
         if (stack.isEmpty()) {
             return Optional.empty();
         }
