@@ -1,14 +1,20 @@
 package com.agguy.infiniteinventory.service.tests;
 
+import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
+import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PersonalDatabaseServiceTest {
     static {
@@ -40,5 +46,23 @@ class PersonalDatabaseServiceTest {
         long result = (long) method.invoke(null, Long.MAX_VALUE - 1L, new ItemStack(Items.STONE, 64));
 
         assertEquals(Long.MAX_VALUE, result);
+    }
+
+    @Test
+    void pruneStaleMigrationStateShouldClearRetainedMigrationEntries() throws ReflectiveOperationException {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
+        UUID playerId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        storage.recordMigrationState(playerId, new LegacyMigrationState(
+                LegacyMigrationState.Status.MIGRATED,
+                123L,
+                8
+        ));
+
+        var method = PersonalDatabaseService.class.getDeclaredMethod("pruneStaleMigrationState", DatabaseStorageSavedData.class, UUID.class);
+        method.setAccessible(true);
+        method.invoke(PersonalDatabaseService.INSTANCE, storage, playerId);
+
+        assertNull(storage.migrationState(playerId));
+        assertTrue(storage.isDirty());
     }
 }

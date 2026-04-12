@@ -233,6 +233,7 @@ public final class PersonalDatabaseService {
     private void ensureLegacyPersonalMigration(ServerPlayer player, DatabaseStorageSavedData storage) {
         PlayerDatabaseAttachment legacyDatabase = this.getLegacyPersonalDatabase(player);
         if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
+            this.pruneStaleMigrationState(storage, player.getUUID());
             return;
         }
         UUID playerId = player.getUUID();
@@ -284,15 +285,20 @@ public final class PersonalDatabaseService {
                     storage.exportStorageTag(player.registryAccess())
             );
             legacyDatabase.clear();
-            storage.recordMigrationState(playerId, new LegacyMigrationState(
-                    LegacyMigrationState.Status.MIGRATED,
-                    System.currentTimeMillis(),
-                    migrationState.legacyEntryCount()
-            ));
+            storage.clearMigrationState(playerId);
             storage.setDirty();
             LOGGER.info("已完成玩家 {} 的旧个人数据库迁移并清理旧附件", player.getGameProfile().getName());
         } catch (java.io.IOException exception) {
             LOGGER.error("为玩家 {} 生成旧个人数据库迁移备份失败，旧附件已保留", player.getGameProfile().getName(), exception);
+        }
+    }
+
+    private void pruneStaleMigrationState(DatabaseStorageSavedData storage, UUID playerId) {
+        if (storage == null || playerId == null) {
+            return;
+        }
+        if (storage.clearMigrationState(playerId)) {
+            storage.setDirty();
         }
     }
 
