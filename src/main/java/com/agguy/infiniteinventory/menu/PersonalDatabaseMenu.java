@@ -224,13 +224,15 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             if (pageEntry == null) {
                 refreshSharedView = this.activeScope == DatabaseScope.PUBLIC;
             } else {
+                long requestedAmount = action.resolveRequestedAmount(pageEntry.view().amount(), pageEntry.key().maxStackSize());
                 if (action.extractsToInventory()) {
-                    long requestedAmount = action.extractsEntireEntry()
-                            ? Long.MAX_VALUE
-                            : action.resolveRequestedAmount(pageEntry.key().maxStackSize());
                     changed = PersonalDatabaseService.INSTANCE.extractToInventory(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
                 } else {
-                    changed = this.withdrawToCarried(serverPlayer, pageEntry.key(), action.resolveRequestedAmount(pageEntry.key().maxStackSize()));
+                    changed = this.withdrawToCarried(
+                            serverPlayer,
+                            pageEntry.key(),
+                            (int) Math.min(Integer.MAX_VALUE, requestedAmount)
+                    );
                 }
                 if (!changed && this.activeScope == DatabaseScope.PUBLIC) {
                     refreshSharedView = true;

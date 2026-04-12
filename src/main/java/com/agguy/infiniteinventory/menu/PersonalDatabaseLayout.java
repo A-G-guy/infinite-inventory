@@ -46,7 +46,7 @@ public record PersonalDatabaseLayout(
     public static final int FOOTER_HEIGHT = 20;
     public static final int PAGE_BUTTON_WIDTH = 20;
     public static final int PAGE_BUTTON_GAP = 4;
-    public static final int PAGE_LABEL_WIDTH = 64;
+    public static final int PAGE_LABEL_WIDTH = 80;
     public static final int PAGE_CONTROLS_WIDTH = PAGE_BUTTON_WIDTH * 2 + PAGE_BUTTON_GAP * 2 + PAGE_LABEL_WIDTH;
     public static final int MAX_COLUMNS = 40;
     public static final int MAX_ROWS = 16;

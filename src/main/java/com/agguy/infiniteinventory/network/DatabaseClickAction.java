@@ -6,6 +6,8 @@ public enum DatabaseClickAction {
     TAKE_SINGLE,
     TAKE_STACK,
     TAKE_STACK_TO_INVENTORY,
+    TAKE_HALF_STACK_TO_INVENTORY,
+    TAKE_HALF_ENTRY_TO_INVENTORY,
     TAKE_ALL;
 
     public boolean isStoreAction() {
@@ -17,18 +19,32 @@ public enum DatabaseClickAction {
     }
 
     public boolean extractsToInventory() {
-        return this == TAKE_STACK_TO_INVENTORY || this == TAKE_ALL;
+        return this == TAKE_STACK_TO_INVENTORY
+                || this == TAKE_HALF_STACK_TO_INVENTORY
+                || this == TAKE_HALF_ENTRY_TO_INVENTORY
+                || this == TAKE_ALL;
     }
 
     public boolean extractsEntireEntry() {
         return this == TAKE_ALL;
     }
 
-    public int resolveRequestedAmount(int maxStackSize) {
+    public long resolveRequestedAmount(long entryAmount, int maxStackSize) {
+        long safeMaxStackSize = Math.max(1L, maxStackSize);
         return switch (this) {
-            case TAKE_SINGLE -> 1;
-            case TAKE_STACK, TAKE_STACK_TO_INVENTORY -> Math.max(1, maxStackSize);
-            default -> 0;
+            case TAKE_SINGLE -> 1L;
+            case TAKE_STACK, TAKE_STACK_TO_INVENTORY -> safeMaxStackSize;
+            case TAKE_HALF_STACK_TO_INVENTORY -> halfRoundedUp(safeMaxStackSize);
+            case TAKE_HALF_ENTRY_TO_INVENTORY -> halfRoundedUp(Math.max(1L, entryAmount));
+            case TAKE_ALL -> Math.max(1L, entryAmount);
+            default -> 0L;
         };
+    }
+
+    private static long halfRoundedUp(long value) {
+        if (value <= 1L) {
+            return 1L;
+        }
+        return value / 2L + value % 2L;
     }
 }
