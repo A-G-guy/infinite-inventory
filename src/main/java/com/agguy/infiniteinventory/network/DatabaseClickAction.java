@@ -20,7 +20,6 @@ public enum DatabaseClickAction {
 
     public boolean extractsToInventory() {
         return this == TAKE_STACK_TO_INVENTORY
-                || this == TAKE_HALF_STACK_TO_INVENTORY
                 || this == TAKE_HALF_ENTRY_TO_INVENTORY
                 || this == TAKE_ALL;
     }

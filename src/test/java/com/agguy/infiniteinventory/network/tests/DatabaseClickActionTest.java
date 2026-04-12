@@ -32,11 +32,11 @@ class DatabaseClickActionTest {
     @Test
     void inventoryExtractionFlagsShouldMatchActions() {
         assertTrue(DatabaseClickAction.TAKE_STACK_TO_INVENTORY.extractsToInventory());
-        assertTrue(DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_ALL.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_ALL.extractsEntireEntry());
         assertFalse(DatabaseClickAction.TAKE_STACK.extractsToInventory());
+        assertFalse(DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY.extractsToInventory());
         assertFalse(DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY.extractsEntireEntry());
         assertFalse(DatabaseClickAction.TAKE_STACK_TO_INVENTORY.extractsEntireEntry());
     }
