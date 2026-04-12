@@ -100,6 +100,13 @@ public final class DatabaseStorageSavedData extends SavedData {
         this.migrationStates.put(playerId, migrationState);
     }
 
+    public boolean clearMigrationState(UUID playerId) {
+        if (playerId == null) {
+            return false;
+        }
+        return this.migrationStates.remove(playerId) != null;
+    }
+
     public CompoundTag exportStorageTag(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         tag.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);

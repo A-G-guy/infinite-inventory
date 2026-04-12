@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseStorageSavedDataTest {
@@ -130,6 +131,24 @@ class DatabaseStorageSavedDataTest {
         assertEquals(1, restored.personalDatabaseView(playerId).entryCount());
         assertEquals(0, restored.personalDatabaseView(playerId).unresolvedEntryCount());
         assertEquals(1L, restored.personalDatabaseView(playerId).getAmount(expectedKey));
+    }
+
+    @Test
+    void clearedMigrationStateShouldNotBePersisted() {
+        UUID playerId = UUID.fromString("fedcba98-7654-3210-fedc-ba9876543210");
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
+        storage.recordMigrationState(playerId, new LegacyMigrationState(
+                LegacyMigrationState.Status.MIGRATED,
+                456L,
+                3
+        ));
+
+        assertTrue(storage.clearMigrationState(playerId));
+
+        CompoundTag serialized = storage.exportStorageTag(null);
+        DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(serialized, null);
+
+        assertNull(restored.migrationState(playerId));
     }
 
     private StoredItemDatabase databaseWithEntry(StoredStackKey key, StoredStackEntry entry) {
