@@ -62,8 +62,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private static final int TAB_TEXT_GAP = 3;
     private static final DatabaseClickAction[] CONTEXT_MENU_ACTIONS = {
             DatabaseClickAction.TAKE_SINGLE,
-            DatabaseClickAction.TAKE_STACK,
             DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY,
+            DatabaseClickAction.TAKE_STACK,
             DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY,
             DatabaseClickAction.TAKE_ALL
     };
