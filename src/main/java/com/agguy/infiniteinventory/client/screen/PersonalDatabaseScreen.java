@@ -31,6 +31,7 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -203,6 +204,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    }
+
+    @Override
+    protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
+        PersonalDatabaseLayout.AccessorySlotLayout accessorySlotLayout = this.resolveAccessorySlotLayout(slot);
+        if (accessorySlotLayout != null && accessorySlotLayout.visible()) {
+            PersonalDatabaseLayout.Rect slotRect = accessorySlotLayout.slotRect();
+            VanillaWidgetRenderer.renderMenuSlot(guiGraphics, slotRect.x(), slotRect.y());
+        }
+        super.renderSlot(guiGraphics, slot);
+    }
+
+    @Override
+    protected void renderSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick) {
+        if (this.resolveAccessorySlotLayout(slot) != null) {
+            return;
+        }
+        super.renderSlotHighlight(guiGraphics, slot, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -678,23 +697,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 OVERLAY_TEXT_COLOR,
                 true
         );
-        if (this.layout.accessoryTotalRows() > 0) {
-            Component pageLabel = Component.translatable(
-                    "screen.infiniteinventory.accessories_scroll",
-                    this.layout.accessoryScrollRow() + 1,
-                    Math.max(1, this.layout.accessoryTotalRows())
-            );
-            int indicatorRight = panelRect.right() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING;
-            int indicatorLeft = Math.max(panelRect.x(), indicatorRight - 56);
-            this.drawCenteredShadow(
-                    guiGraphics,
-                    pageLabel,
-                    indicatorLeft,
-                    indicatorRight,
-                    panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
-                    OVERLAY_MUTED_TEXT_COLOR
-            );
-        }
         guiGraphics.fill(
                 panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 1,
@@ -702,12 +704,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 2,
                 0x70A89E8C
         );
-        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : this.layout.accessorySlotLayouts()) {
-            if (!slotLayout.visible()) {
-                continue;
-            }
-            VanillaWidgetRenderer.renderSlot(guiGraphics, slotLayout.slotRect());
-        }
         guiGraphics.pose().popPose();
     }
 
@@ -719,7 +715,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 230.0F);
-        guiGraphics.fill(slotRect.x() + 1, slotRect.y() + 1, slotRect.right() - 1, slotRect.bottom() - 1, 0x52000000);
+        guiGraphics.fill(slotRect.x(), slotRect.y(), slotRect.x() + 16, slotRect.y() + 16, 0x52000000);
         guiGraphics.pose().popPose();
     }
 
@@ -1411,6 +1407,23 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : this.layout.accessorySlotLayouts()) {
             if (slotLayout.visible() && slotLayout.slotRect().contains(mouseX, mouseY)) {
+                return slotLayout;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private PersonalDatabaseLayout.AccessorySlotLayout resolveAccessorySlotLayout(@Nullable Slot slot) {
+        if (slot == null || this.layout == null) {
+            return null;
+        }
+        int menuSlotIndex = this.menu.slots.indexOf(slot);
+        if (!this.menu.isAccessorySlotIndex(menuSlotIndex)) {
+            return null;
+        }
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : this.layout.accessorySlotLayouts()) {
+            if (slotLayout.slotIndex() == menuSlotIndex) {
                 return slotLayout;
             }
         }

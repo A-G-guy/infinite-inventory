@@ -42,6 +42,10 @@ final class VanillaWidgetRenderer {
         guiGraphics.blitSprite(SLOT_SPRITE, rect.x(), rect.y(), rect.width(), rect.height());
     }
 
+    static void renderMenuSlot(GuiGraphics guiGraphics, int slotX, int slotY) {
+        guiGraphics.blitSprite(SLOT_SPRITE, slotX - 1, slotY - 1, PersonalDatabaseLayout.SLOT_SIZE, PersonalDatabaseLayout.SLOT_SIZE);
+    }
+
     static void renderTab(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean selected, boolean hovered) {
         ResourceLocation sprite = selected
                 ? hovered ? TAB_SELECTED_HIGHLIGHTED_SPRITE : TAB_SELECTED_SPRITE
