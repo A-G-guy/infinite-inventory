@@ -105,8 +105,8 @@ public final class DatabaseQueryEngine {
         int totalPages = DatabasePagination.resolveTotalPages(totalEntries, safePageSize);
         int pageIndex = Math.min(query.pageIndex(), totalPages - 1);
         DatabaseQuery resolvedQuery = query.withPageSize(safePageSize).withPageIndex(pageIndex);
-        int fromIndex = Math.min(pageIndex * safePageSize, totalEntries);
-        int toIndex = Math.min(fromIndex + safePageSize, totalEntries);
+        int fromIndex = resolvePageFromIndex(pageIndex, safePageSize, totalEntries);
+        int toIndex = resolvePageToIndex(fromIndex, safePageSize, totalEntries);
 
         List<DatabasePageEntry> pageEntries = new ArrayList<>(safePageSize);
         for (int index = fromIndex; index < toIndex; index++) {
@@ -114,6 +114,16 @@ public final class DatabaseQueryEngine {
             pageEntries.add(record.entryRecord().toPageEntry());
         }
         return new DatabasePage(resolvedQuery, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
+    }
+
+    private static int resolvePageFromIndex(int pageIndex, int pageSize, int totalEntries) {
+        long startIndex = Math.min((long) Math.max(0, pageIndex) * Math.max(1L, pageSize), Math.max(0L, totalEntries));
+        return (int) startIndex;
+    }
+
+    private static int resolvePageToIndex(int fromIndex, int pageSize, int totalEntries) {
+        long endIndex = Math.min((long) Math.max(0, totalEntries), (long) Math.max(0, fromIndex) + Math.max(1L, pageSize));
+        return (int) endIndex;
     }
 
     private static DatabaseCategory normalizeCategory(DatabaseCategory category) {

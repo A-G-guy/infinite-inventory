@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
@@ -36,14 +35,14 @@ public final class DatabaseItemSearchResolver {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final HanyuPinyinOutputFormat PINYIN_FORMAT = createPinyinFormat();
 
-    private final Map<StoredStackKey, DatabaseSearchIndex> indexCache = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, String>> translationsByNamespace = new ConcurrentHashMap<>();
+    private final DatabaseSearchIndexCache indexCache = new DatabaseSearchIndexCache();
+    private final Map<String, Map<String, String>> translationsByNamespace = new java.util.concurrent.ConcurrentHashMap<>();
 
     private DatabaseItemSearchResolver() {
     }
 
     public DatabaseSearchIndex resolve(StoredStackKey key) {
-        return this.indexCache.computeIfAbsent(key, this::createIndex);
+        return this.indexCache.resolve(key, this::createIndex);
     }
 
     private DatabaseSearchIndex createIndex(StoredStackKey key) {
