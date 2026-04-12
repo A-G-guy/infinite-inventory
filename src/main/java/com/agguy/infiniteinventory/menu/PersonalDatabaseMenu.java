@@ -200,7 +200,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
 
     public void depositAllFromMainInventory() {
         if (this.owner instanceof ServerPlayer serverPlayer
-                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope) > 0) {
+                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope) > 0L) {
             this.broadcastChanges();
             this.syncAfterDatabaseMutation(serverPlayer);
         }
