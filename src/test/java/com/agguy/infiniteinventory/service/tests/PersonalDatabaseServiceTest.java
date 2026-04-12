@@ -49,6 +49,17 @@ class PersonalDatabaseServiceTest {
     }
 
     @Test
+    void depositMainInventoryShouldSkipHotbarSlots() throws ReflectiveOperationException {
+        var method = PersonalDatabaseService.class.getDeclaredMethod("isPrimaryStorageSlot", int.class);
+        method.setAccessible(true);
+
+        assertEquals(false, method.invoke(null, 0));
+        assertEquals(false, method.invoke(null, 8));
+        assertEquals(true, method.invoke(null, 9));
+        assertEquals(true, method.invoke(null, 35));
+    }
+
+    @Test
     void pruneStaleMigrationStateShouldClearRetainedMigrationEntries() throws ReflectiveOperationException {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
         UUID playerId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");

@@ -11,6 +11,7 @@ import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
+import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
 import java.util.UUID;
@@ -29,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
+    private static final int HOTBAR_SLOT_COUNT = 9;
 
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -76,6 +78,9 @@ public final class PersonalDatabaseService {
         long movedItems = 0L;
         boolean movedAny = false;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
+            if (!isPrimaryStorageSlot(slotIndex)) {
+                continue;
+            }
             ItemStack stack = inventory.items.get(slotIndex);
             if (!this.canStore(stack)) {
                 continue;
@@ -198,6 +203,10 @@ public final class PersonalDatabaseService {
             return Long.MAX_VALUE;
         }
         return currentTotal + stackCount;
+    }
+
+    private static boolean isPrimaryStorageSlot(int slotIndex) {
+        return slotIndex >= HOTBAR_SLOT_COUNT;
     }
 
     private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
@@ -340,9 +349,14 @@ public final class PersonalDatabaseService {
         @Override
         public void writeClientSideData(net.minecraft.world.inventory.AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
             if (menu instanceof PersonalDatabaseMenu databaseMenu) {
-                buffer.writeVarLong(databaseMenu.sessionId());
+                PersonalDatabaseOpenState.write(buffer, new PersonalDatabaseOpenState(
+                        databaseMenu.sessionId(),
+                        databaseMenu.activeScope(),
+                        databaseMenu.queryForScope(DatabaseScope.PERSONAL),
+                        databaseMenu.queryForScope(DatabaseScope.PUBLIC)
+                ));
             } else {
-                buffer.writeVarLong(0L);
+                PersonalDatabaseOpenState.write(buffer, PersonalDatabaseOpenState.defaultState());
             }
         }
     }

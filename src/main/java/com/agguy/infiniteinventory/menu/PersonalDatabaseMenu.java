@@ -91,6 +91,11 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this(containerId, playerInventory, playerInventory.player, sessionId);
     }
 
+    public PersonalDatabaseMenu(int containerId, Inventory playerInventory, PersonalDatabaseOpenState openState) {
+        this(containerId, playerInventory, playerInventory.player, openState == null ? 0L : openState.sessionId());
+        this.applyOpenState(openState);
+    }
+
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory, Player owner) {
         this(containerId, playerInventory, owner, NEXT_SESSION_ID.getAndIncrement());
     }
@@ -131,10 +136,12 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (preferences == null) {
             return;
         }
-        this.personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, preferences.queryFor(DatabaseScope.PERSONAL));
-        this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, preferences.queryFor(DatabaseScope.PUBLIC));
-        this.activeScope = DatabaseScope.normalize(preferences.lastScope());
-        this.viewState = DatabaseViewState.empty(this.containerId, this.sessionId, this.currentQuery());
+        this.applyOpenState(new PersonalDatabaseOpenState(
+                this.sessionId,
+                preferences.lastScope(),
+                preferences.queryFor(DatabaseScope.PERSONAL),
+                preferences.queryFor(DatabaseScope.PUBLIC)
+        ));
     }
 
     public void applyViewState(DatabaseViewState newState) {
@@ -143,6 +150,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.activeScope = newState.query().scope();
         this.personalQuery = newState.personalQuery();
         this.publicQuery = newState.publicQuery();
+    }
+
+    public DatabaseQuery queryForScope(DatabaseScope scope) {
+        return DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
     }
 
     public void applySlotLayout(PersonalDatabaseLayout layout) {
@@ -542,6 +553,24 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
 
     private DatabaseQuery currentQuery() {
         return this.activeScope == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
+    }
+
+    private void applyOpenState(PersonalDatabaseOpenState openState) {
+        PersonalDatabaseOpenState normalizedState = openState == null ? PersonalDatabaseOpenState.defaultState() : openState;
+        this.personalQuery = normalizedState.queryForScope(DatabaseScope.PERSONAL);
+        this.publicQuery = normalizedState.queryForScope(DatabaseScope.PUBLIC);
+        this.activeScope = DatabaseScope.normalize(normalizedState.activeScope());
+        this.viewState = new DatabaseViewState(
+                this.containerId,
+                normalizedState.sessionId(),
+                this.currentQuery(),
+                this.personalQuery,
+                this.publicQuery,
+                0,
+                1,
+                0L,
+                List.of()
+        );
     }
 
     private void setActiveQuery(DatabaseQuery query) {
