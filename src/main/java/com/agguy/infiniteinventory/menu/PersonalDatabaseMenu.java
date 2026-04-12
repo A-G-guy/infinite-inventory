@@ -156,6 +156,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
     }
 
+    public boolean isAccessorySlotIndex(int slotIndex) {
+        return this.accessorySlotRange.contains(slotIndex);
+    }
+
     public void applySlotLayout(PersonalDatabaseLayout layout) {
         if (layout == null) {
             return;
