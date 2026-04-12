@@ -206,7 +206,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        this.blurSearchBoxIfNeeded(mouseX, mouseY);
         if (this.advancedSearchExpanded && !this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
             this.advancedSearchExpanded = false;
         }
@@ -243,19 +242,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             this.closeContextMenu();
         }
         return handled;
-    }
-
-    private void blurSearchBoxIfNeeded(double mouseX, double mouseY) {
-        if (this.searchBox == null || this.layout == null || !this.searchBox.isFocused()) {
-            return;
-        }
-        if (this.layout.searchFieldRect().contains(mouseX, mouseY)) {
-            return;
-        }
-        this.searchBox.setFocused(false);
-        if (this.getFocused() == this.searchBox) {
-            this.setFocused(null);
-        }
     }
 
     @Override
