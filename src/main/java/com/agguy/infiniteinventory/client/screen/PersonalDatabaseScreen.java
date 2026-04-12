@@ -140,6 +140,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         } finally {
             this.suppressVanillaTooltipRender = false;
         }
+        this.renderAccessorySlotHover(guiGraphics, mouseX, mouseY);
         this.renderToolbarOverlays(guiGraphics);
         if (this.advancedSearchExpanded) {
             this.renderAdvancedSearchPanel(guiGraphics, mouseX, mouseY);
@@ -701,11 +702,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 2,
                 0x70A89E8C
         );
-        PersonalDatabaseLayout.AccessorySlotLayout hoveredSlot = this.findHoveredAccessorySlot(mouseX, mouseY);
-        if (hoveredSlot != null) {
-            PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
-            guiGraphics.fill(slotRect.x() + 1, slotRect.y() + 1, slotRect.right() - 1, slotRect.bottom() - 1, 0x35000000);
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : this.layout.accessorySlotLayouts()) {
+            if (!slotLayout.visible()) {
+                continue;
+            }
+            VanillaWidgetRenderer.renderSlot(guiGraphics, slotLayout.slotRect());
         }
+        guiGraphics.pose().popPose();
+    }
+
+    private void renderAccessorySlotHover(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        PersonalDatabaseLayout.AccessorySlotLayout hoveredSlot = this.findHoveredAccessorySlot(mouseX, mouseY);
+        if (hoveredSlot == null) {
+            return;
+        }
+        PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 230.0F);
+        guiGraphics.fill(slotRect.x() + 1, slotRect.y() + 1, slotRect.right() - 1, slotRect.bottom() - 1, 0x52000000);
         guiGraphics.pose().popPose();
     }
 
