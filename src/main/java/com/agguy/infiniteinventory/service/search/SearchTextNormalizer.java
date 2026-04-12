@@ -38,7 +38,13 @@ public final class SearchTextNormalizer {
         if (normalizedText.isEmpty()) {
             return List.of();
         }
-        return List.of(normalizedText.split(" "));
+        List<String> terms = new ArrayList<>();
+        for (String term : normalizedText.split(" ")) {
+            if (!term.isEmpty() && hasMeaningfulCharacters(term)) {
+                terms.add(term);
+            }
+        }
+        return List.copyOf(terms);
     }
 
     public static String normalizeNaturalText(String text) {
@@ -131,6 +137,10 @@ public final class SearchTextNormalizer {
             }
         }
         return builder.toString();
+    }
+
+    private static boolean hasMeaningfulCharacters(String text) {
+        return !compactNaturalText(text).isEmpty() || !compactIdentifierText(text).isEmpty();
     }
 
     private static boolean isChineseCharacter(char character) {

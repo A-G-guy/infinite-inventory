@@ -166,7 +166,9 @@ public final class DatabaseSearchEvaluator {
             String normalizedText,
             String compactText
     ) {
-        TokenMatch exactMatch = TokenMatch.noMatch();
+        TokenMatch exactMatch = TokenMatch.noMatch()
+                .betterOf(this.matchExact(term, weight, normalizedText, EXACT_BASE_SCORE))
+                .betterOf(this.matchExact(term, weight, compactText, EXACT_BASE_SCORE));
         for (String token : tokens) {
             exactMatch = exactMatch.betterOf(this.matchExact(term, weight, token, EXACT_BASE_SCORE));
         }
@@ -174,7 +176,9 @@ public final class DatabaseSearchEvaluator {
             return exactMatch;
         }
 
-        TokenMatch prefixMatch = TokenMatch.noMatch();
+        TokenMatch prefixMatch = TokenMatch.noMatch()
+                .betterOf(this.matchPrefix(term, weight, normalizedText, PREFIX_BASE_SCORE))
+                .betterOf(this.matchPrefix(term, weight, compactText, PREFIX_BASE_SCORE));
         for (String token : tokens) {
             prefixMatch = prefixMatch.betterOf(this.matchPrefix(term, weight, token, PREFIX_BASE_SCORE));
         }
