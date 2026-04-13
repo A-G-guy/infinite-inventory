@@ -1,6 +1,8 @@
 package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
@@ -18,13 +20,16 @@ class DatabaseViewStateTest {
         DatabaseQuery personalQuery = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.BLOCKS, DatabaseSortOption.NAME_ASC, "stone", 2, 81);
         DatabaseQuery publicQuery = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.MATERIALS, DatabaseSortOption.COUNT_DESC, "iron", 1, 96);
         DatabaseQuery activePublicQuery = publicQuery.withSearchText("gold");
+        DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig()
+                .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true);
 
-        DatabaseViewState viewState = new DatabaseViewState(3, sessionId, activePublicQuery, personalQuery, publicQuery, 5, 2, 64L, List.of());
+        DatabaseViewState viewState = new DatabaseViewState(3, sessionId, activePublicQuery, personalQuery, publicQuery, enhancementConfig, 5, 2, 64L, List.of());
 
         assertEquals(activePublicQuery, viewState.query());
         assertEquals(sessionId, viewState.sessionId());
         assertEquals(personalQuery, viewState.queryForScope(DatabaseScope.PERSONAL));
         assertEquals(activePublicQuery, viewState.queryForScope(DatabaseScope.PUBLIC));
+        assertEquals(enhancementConfig, viewState.enhancementConfig());
     }
 
     @Test
@@ -34,5 +39,6 @@ class DatabaseViewStateTest {
         assertEquals(5, viewState.containerId());
         assertEquals(99L, viewState.sessionId());
         assertEquals(DatabaseScope.PUBLIC, viewState.query().scope());
+        assertEquals(DatabaseEnhancementConfig.defaultConfig(), viewState.enhancementConfig());
     }
 }

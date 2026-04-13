@@ -3,6 +3,8 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.compat.PlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.compat.VanillaPlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
@@ -15,6 +17,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseClickPayload;
+import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
 import com.agguy.infiniteinventory.network.DatabaseQueryPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
 import com.agguy.infiniteinventory.util.CompactNumberFormatter;
@@ -58,6 +61,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private static final int ADVANCED_SEARCH_ROW_GAP = 2;
     private static final int ADVANCED_SEARCH_TOGGLE_WIDTH = 24;
     private static final int ADVANCED_SEARCH_WEIGHT_WIDTH = 40;
+    private static final int ENHANCEMENT_PANEL_WIDTH = 236;
+    private static final int ENHANCEMENT_PANEL_PADDING = 6;
+    private static final int ENHANCEMENT_TITLE_HEIGHT = 12;
+    private static final int ENHANCEMENT_ROW_HEIGHT = 20;
+    private static final int ENHANCEMENT_ROW_GAP = 2;
+    private static final int ENHANCEMENT_TOGGLE_WIDTH = 24;
     private static final int TAB_ICON_SIZE = 16;
     private static final int TAB_ICON_LEFT_PADDING = 4;
     private static final int TAB_TEXT_GAP = 3;
@@ -80,15 +89,18 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private Button nextPageButton;
     private Button sortButton;
     private Button advancedSearchButton;
+    private Button enhancementButton;
     private Button personalScopeButton;
     private Button publicScopeButton;
     private Button accessoriesToggleButton;
     private final Map<DatabaseSearchField, Button> advancedSearchToggleButtons = new EnumMap<>(DatabaseSearchField.class);
     private final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
+    private final Map<DatabaseEnhancementOption, Button> enhancementToggleButtons = new EnumMap<>(DatabaseEnhancementOption.class);
     private boolean syncingSearchBox;
     private boolean sortDropdownExpanded;
     private boolean pagePickerExpanded;
     private boolean advancedSearchExpanded;
+    private boolean enhancementPanelExpanded;
     private boolean accessoriesExpanded;
     private boolean contextMenuExpanded;
     private boolean suppressVanillaTooltipRender;
@@ -119,6 +131,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.sortDropdownExpanded = false;
         this.pagePickerExpanded = false;
         this.advancedSearchExpanded = false;
+        this.enhancementPanelExpanded = false;
         this.closeContextMenu();
         this.buildWidgets();
         this.syncWidgetsFromState();
@@ -145,6 +158,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.renderToolbarOverlays(guiGraphics);
         if (this.advancedSearchExpanded) {
             this.renderAdvancedSearchPanel(guiGraphics, mouseX, mouseY);
+        }
+        if (this.enhancementPanelExpanded) {
+            this.renderEnhancementPanel(guiGraphics, mouseX, mouseY);
         }
         this.renderSearchHint(guiGraphics);
         if (this.sortDropdownExpanded) {
@@ -229,10 +245,17 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.advancedSearchExpanded && !this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
             this.advancedSearchExpanded = false;
         }
+        if (this.enhancementPanelExpanded && !this.isWithinEnhancementPanel(mouseX, mouseY)) {
+            this.enhancementPanelExpanded = false;
+        }
         if (this.pagePickerExpanded && this.handlePagePickerClick(mouseX, mouseY)) {
             return true;
         }
         if (this.advancedSearchExpanded && this.isWithinAdvancedSearchPanel(mouseX, mouseY)) {
+            super.mouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+        if (this.enhancementPanelExpanded && this.isWithinEnhancementPanel(mouseX, mouseY)) {
             super.mouseClicked(mouseX, mouseY, button);
             return true;
         }
@@ -259,6 +282,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (!handled) {
             this.sortDropdownExpanded = false;
             this.pagePickerExpanded = false;
+            this.enhancementPanelExpanded = false;
             this.closeContextMenu();
         }
         return handled;
@@ -342,6 +366,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     this.closeContextMenu();
                     this.sortDropdownExpanded = false;
                     this.pagePickerExpanded = false;
+                    this.enhancementPanelExpanded = false;
                     this.advancedSearchExpanded = !this.advancedSearchExpanded;
                 })
                 .bounds(advancedSearchRect.x(), advancedSearchRect.y(), advancedSearchRect.width(), advancedSearchRect.height())
@@ -349,10 +374,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
         this.buildAdvancedSearchButtons();
 
+        PersonalDatabaseLayout.Rect enhancementRect = this.layout.enhancementButtonRect();
+        this.enhancementButton = this.addRenderableWidget(Button.builder(Component.translatable("screen.infiniteinventory.enhancement_button"), button -> {
+                    this.closeContextMenu();
+                    this.sortDropdownExpanded = false;
+                    this.pagePickerExpanded = false;
+                    this.advancedSearchExpanded = false;
+                    this.enhancementPanelExpanded = !this.enhancementPanelExpanded;
+                })
+                .bounds(enhancementRect.x(), enhancementRect.y(), enhancementRect.width(), enhancementRect.height())
+                .build());
+
+        this.buildEnhancementButtons();
+
         PersonalDatabaseLayout.Rect sortRect = this.layout.sortButtonRect();
         this.sortButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> {
                     this.closeContextMenu();
                     this.advancedSearchExpanded = false;
+                    this.enhancementPanelExpanded = false;
                     this.pagePickerExpanded = false;
                     this.sortDropdownExpanded = !this.sortDropdownExpanded;
                 })
@@ -380,6 +419,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     this.closeContextMenu();
                     this.sortDropdownExpanded = false;
                     this.pagePickerExpanded = false;
+                    this.enhancementPanelExpanded = false;
                     PacketDistributor.sendToServer(new DepositAllPayload(this.menu.containerId, this.menu.viewState().sessionId()));
                 })
                 .bounds(depositRect.x(), depositRect.y(), depositRect.width(), depositRect.height())
@@ -424,6 +464,20 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
     }
 
+    private void buildEnhancementButtons() {
+        this.enhancementToggleButtons.clear();
+        if (this.layout == null) {
+            return;
+        }
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+            PersonalDatabaseLayout.Rect rowRect = this.enhancementRowRect(option);
+            Button toggleButton = this.addRenderableWidget(Button.builder(Component.empty(), button -> this.toggleEnhancementOption(option))
+                    .bounds(rowRect.x(), rowRect.y(), ENHANCEMENT_TOGGLE_WIDTH, ENHANCEMENT_ROW_HEIGHT)
+                    .build());
+            this.enhancementToggleButtons.put(option, toggleButton);
+        }
+    }
+
     private void syncAdvancedSearchButtons(DatabaseQuery query) {
         DatabaseSearchConfig searchConfig = query.searchConfig();
         int enabledTextFieldCount = this.enabledTextFieldCount(searchConfig);
@@ -440,6 +494,17 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 weightButton.visible = this.advancedSearchExpanded;
                 weightButton.active = weight != DatabaseSearchWeight.OFF;
                 weightButton.setMessage(Component.empty());
+            }
+        }
+    }
+
+    private void syncEnhancementButtons(DatabaseEnhancementConfig config) {
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+            Button toggleButton = this.enhancementToggleButtons.get(option);
+            if (toggleButton != null) {
+                toggleButton.visible = this.enhancementPanelExpanded;
+                toggleButton.active = true;
+                toggleButton.setMessage(Component.empty());
             }
         }
     }
@@ -465,11 +530,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.sendSearchConfig(currentQuery, searchConfig.withWeight(field, this.nextWeight(currentWeight)));
     }
 
+    private void toggleEnhancementOption(DatabaseEnhancementOption option) {
+        DatabaseEnhancementConfig currentConfig = this.menu.viewState().enhancementConfig();
+        this.sendEnhancementConfig(currentConfig.withOption(option, !currentConfig.isEnabled(option)));
+    }
+
     private void sendSearchConfig(DatabaseQuery currentQuery, DatabaseSearchConfig newSearchConfig) {
         if (currentQuery.searchConfig().equals(newSearchConfig)) {
             return;
         }
         this.sendQuery(currentQuery.withSearchConfig(newSearchConfig));
+    }
+
+    private void sendEnhancementConfig(DatabaseEnhancementConfig newConfig) {
+        DatabaseEnhancementConfig currentConfig = this.menu.viewState().enhancementConfig();
+        if (currentConfig.equals(newConfig)) {
+            return;
+        }
+        PacketDistributor.sendToServer(new DatabaseEnhancementPayload(this.menu.containerId, this.menu.viewState().sessionId(), newConfig));
     }
 
     private DatabaseSearchWeight nextWeight(DatabaseSearchWeight currentWeight) {
@@ -503,6 +581,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.advancedSearchButton != null) {
             this.advancedSearchButton.setMessage(Component.translatable("screen.infiniteinventory.search_advanced_button"));
         }
+        if (this.enhancementButton != null) {
+            this.enhancementButton.setMessage(Component.translatable("screen.infiniteinventory.enhancement_button"));
+        }
         if (this.sortButton != null) {
             this.sortButton.setMessage(Component.translatable(query.sortOption().translationKey()));
         }
@@ -531,8 +612,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             ));
         }
         this.syncAdvancedSearchButtons(query);
+        this.syncEnhancementButtons(viewState.enhancementConfig());
         if (!this.menu.getCarried().isEmpty()) {
             this.pagePickerExpanded = false;
+            this.enhancementPanelExpanded = false;
             this.closeContextMenu();
             return;
         }
@@ -604,6 +687,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.closeContextMenu();
         this.sortDropdownExpanded = false;
         this.pagePickerExpanded = false;
+        this.enhancementPanelExpanded = false;
     }
 
     private void switchScope(DatabaseScope scope) {
@@ -625,6 +709,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.closeContextMenu();
         this.sortDropdownExpanded = false;
         this.pagePickerExpanded = false;
+        this.enhancementPanelExpanded = false;
         this.rebuildLayout();
     }
 
@@ -881,6 +966,64 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         guiGraphics.pose().popPose();
     }
 
+    private void renderEnhancementPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        PersonalDatabaseLayout.Rect panelRect = this.enhancementPanelRect();
+        if (panelRect.width() <= 0 || panelRect.height() <= 0) {
+            return;
+        }
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 245.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
+        guiGraphics.drawString(
+                this.font,
+                Component.translatable("screen.infiniteinventory.enhancement_title"),
+                panelRect.x() + ENHANCEMENT_PANEL_PADDING,
+                panelRect.y() + ENHANCEMENT_PANEL_PADDING,
+                OVERLAY_TEXT_COLOR,
+                true
+        );
+        guiGraphics.fill(
+                panelRect.x() + ENHANCEMENT_PANEL_PADDING,
+                panelRect.y() + ENHANCEMENT_PANEL_PADDING + ENHANCEMENT_TITLE_HEIGHT - 2,
+                panelRect.right() - ENHANCEMENT_PANEL_PADDING,
+                panelRect.y() + ENHANCEMENT_PANEL_PADDING + ENHANCEMENT_TITLE_HEIGHT - 1,
+                0x70A89E8C
+        );
+        DatabaseEnhancementConfig config = this.menu.viewState().enhancementConfig();
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+            PersonalDatabaseLayout.Rect rowRect = this.enhancementRowRect(option);
+            PersonalDatabaseLayout.Rect toggleRect = new PersonalDatabaseLayout.Rect(rowRect.x(), rowRect.y(), ENHANCEMENT_TOGGLE_WIDTH, ENHANCEMENT_ROW_HEIGHT);
+            boolean enabled = config.isEnabled(option);
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, rowRect.contains(mouseX, mouseY), false);
+            VanillaWidgetRenderer.renderOverlayChip(
+                    guiGraphics,
+                    toggleRect,
+                    toggleRect.contains(mouseX, mouseY),
+                    enabled,
+                    true
+            );
+            this.drawCenteredShadow(
+                    guiGraphics,
+                    Component.literal(enabled ? "ON" : "OFF"),
+                    toggleRect.x(),
+                    toggleRect.right(),
+                    toggleRect.y() + 6,
+                    enabled ? OVERLAY_ACCENT_TEXT_COLOR : OVERLAY_MUTED_TEXT_COLOR
+            );
+            int labelX = rowRect.x() + ENHANCEMENT_TOGGLE_WIDTH + 6;
+            int labelWidth = Math.max(0, rowRect.width() - ENHANCEMENT_TOGGLE_WIDTH - 8);
+            guiGraphics.drawString(
+                    this.font,
+                    this.truncateToWidth(Component.translatable(option.translationKey()).getString(), labelWidth),
+                    labelX,
+                    rowRect.y() + 6,
+                    enabled ? OVERLAY_TEXT_COLOR : OVERLAY_MUTED_TEXT_COLOR,
+                    true
+            );
+        }
+        guiGraphics.pose().popPose();
+    }
+
     private void renderSortDropdown(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseLayout.Rect dropdownRect = this.sortDropdownRect();
         if (dropdownRect == null) {
@@ -1019,6 +1162,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.closeContextMenu();
         this.sortDropdownExpanded = false;
         this.advancedSearchExpanded = false;
+        this.enhancementPanelExpanded = false;
         this.pagePickerExpanded = !this.pagePickerExpanded;
         return true;
     }
@@ -1102,6 +1246,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             this.closeContextMenu();
             this.sortDropdownExpanded = false;
             this.pagePickerExpanded = false;
+            this.enhancementPanelExpanded = false;
             DatabaseClickAction action = hasShiftDown()
                     ? DatabaseClickAction.TAKE_STACK_TO_INVENTORY
                     : DatabaseClickAction.TAKE_SINGLE;
@@ -1111,6 +1256,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (button == 1) {
             this.sortDropdownExpanded = false;
             this.pagePickerExpanded = false;
+            this.enhancementPanelExpanded = false;
             this.openContextMenu(slotIndex);
             return true;
         }
@@ -1118,7 +1264,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     private void renderScreenTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        if (this.contextMenuExpanded || this.sortDropdownExpanded || this.pagePickerExpanded || this.advancedSearchExpanded) {
+        if (this.contextMenuExpanded || this.sortDropdownExpanded || this.pagePickerExpanded || this.advancedSearchExpanded || this.enhancementPanelExpanded) {
             return;
         }
         super.renderTooltip(guiGraphics, mouseX, mouseY);
@@ -1194,6 +1340,15 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     guiGraphics,
                     advancedRect.right() - 10,
                     advancedRect.y() + advancedRect.height() / 2,
+                    0xFF3F3F3F
+            );
+        }
+        if (this.enhancementButton != null && this.layout.enhancementButtonRect().width() > 0) {
+            PersonalDatabaseLayout.Rect enhancementRect = this.layout.enhancementButtonRect();
+            VanillaWidgetRenderer.renderDropdownIndicator(
+                    guiGraphics,
+                    enhancementRect.right() - 10,
+                    enhancementRect.y() + enhancementRect.height() / 2,
                     0xFF3F3F3F
             );
         }
@@ -1315,6 +1470,47 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         return this.layout.advancedSearchButtonRect().contains(mouseX, mouseY)
                 || this.advancedSearchPanelRect().contains(mouseX, mouseY);
+    }
+
+    private PersonalDatabaseLayout.Rect enhancementPanelRect() {
+        if (this.layout == null) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        PersonalDatabaseLayout.Rect anchorRect = this.layout.enhancementButtonRect();
+        int width = ENHANCEMENT_PANEL_WIDTH;
+        int height = ENHANCEMENT_PANEL_PADDING * 2
+                + ENHANCEMENT_TITLE_HEIGHT
+                + DatabaseEnhancementOption.orderedValues().size() * ENHANCEMENT_ROW_HEIGHT
+                + Math.max(0, DatabaseEnhancementOption.orderedValues().size() - 1) * ENHANCEMENT_ROW_GAP;
+        int minX = this.layout.frameRect().x() + CONTEXT_MENU_MARGIN;
+        int maxX = Math.max(minX, this.layout.frameRect().right() - width - CONTEXT_MENU_MARGIN);
+        int x = Mth.clamp(anchorRect.right() - width, minX, maxX);
+        int minY = anchorRect.bottom() + 4;
+        int maxY = Math.max(minY, this.layout.frameRect().bottom() - height - CONTEXT_MENU_MARGIN);
+        int y = Mth.clamp(minY, minY, maxY);
+        return new PersonalDatabaseLayout.Rect(x, y, width, height);
+    }
+
+    private PersonalDatabaseLayout.Rect enhancementRowRect(DatabaseEnhancementOption option) {
+        PersonalDatabaseLayout.Rect panelRect = this.enhancementPanelRect();
+        int rowY = panelRect.y()
+                + ENHANCEMENT_PANEL_PADDING
+                + ENHANCEMENT_TITLE_HEIGHT
+                + option.ordinal() * (ENHANCEMENT_ROW_HEIGHT + ENHANCEMENT_ROW_GAP);
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + ENHANCEMENT_PANEL_PADDING,
+                rowY,
+                panelRect.width() - ENHANCEMENT_PANEL_PADDING * 2,
+                ENHANCEMENT_ROW_HEIGHT
+        );
+    }
+
+    private boolean isWithinEnhancementPanel(double mouseX, double mouseY) {
+        if (!this.enhancementPanelExpanded || this.layout == null) {
+            return false;
+        }
+        return this.layout.enhancementButtonRect().contains(mouseX, mouseY)
+                || this.enhancementPanelRect().contains(mouseX, mouseY);
     }
 
     private void validateContextMenu(DatabaseViewState viewState) {

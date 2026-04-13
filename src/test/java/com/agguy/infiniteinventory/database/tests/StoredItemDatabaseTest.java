@@ -7,6 +7,7 @@ import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
@@ -87,6 +88,35 @@ class StoredItemDatabaseTest {
         assertEquals(2, database.entryCount());
         assertEquals(11L, database.getAmount(StoredStackKey.of(namedStone)));
         assertEquals(5L, database.getAmount(StoredStackKey.of(differentNamedStone)));
+    }
+
+    @Test
+    void storeShouldKeepOriginalFirstAddedWhenExistingEntryGetsMoreItems() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+
+        database.store(new ItemStack(Items.STONE, 4));
+        database.store(new ItemStack(Items.STONE, 2));
+
+        StoredStackEntry entry = database.entries().get(key);
+        assertEquals(6L, entry.amount());
+        assertEquals(1L, entry.firstAdded());
+        assertEquals(2L, entry.lastModified());
+    }
+
+    @Test
+    void storeAfterEntryWasClearedShouldAssignNewFirstAddedSequence() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+
+        database.store(new ItemStack(Items.STONE, 1));
+        database.extract(key, 1);
+        database.store(new ItemStack(Items.STONE, 1));
+
+        StoredStackEntry entry = database.entries().get(key);
+        assertEquals(1L, entry.amount());
+        assertEquals(3L, entry.firstAdded());
+        assertEquals(3L, entry.lastModified());
     }
 
     @Test
@@ -171,6 +201,26 @@ class StoredItemDatabaseTest {
     }
 
     @Test
+    void deserializeShouldBackfillFirstAddedWhenOldEntriesDoNotStoreIt() {
+        CompoundTag oldSchemaRoot = new CompoundTag();
+        oldSchemaRoot.putInt("schema_version", 2);
+        oldSchemaRoot.putInt("classifier_version", DatabaseItemClassifier.CURRENT_VERSION);
+        ListTag entries = new ListTag();
+        entries.add(this.entryTag(new ItemStack(Items.STONE), 4L, DatabaseCategory.BLOCKS, 9L));
+        oldSchemaRoot.put("entries", entries);
+        oldSchemaRoot.put("unresolved_entries", new ListTag());
+        oldSchemaRoot.putLong("next_sequence", 10L);
+
+        StoredItemDatabase restored = new StoredItemDatabase();
+        restored.deserializeNBT(null, oldSchemaRoot);
+
+        StoredStackEntry entry = restored.entries().values().iterator().next();
+        assertEquals(9L, entry.firstAdded());
+        assertEquals(9L, entry.lastModified());
+        assertTrue(restored.needsResave());
+    }
+
+    @Test
     void recategorizeShouldApplyLatestClassifierRulesToResolvedEntries() throws ReflectiveOperationException {
         StoredItemDatabase database = new StoredItemDatabase();
         StoredStackKey key = StoredStackKey.of(new ItemStack(Items.MINECART));
@@ -222,6 +272,13 @@ class StoredItemDatabaseTest {
         entryTag.putString("category", category.name());
         entryTag.putLong("last_modified", lastModified);
         return entryTag;
+    }
+
+    private CompoundTag entryTag(ItemStack stack, long count, DatabaseCategory category, long lastModified) {
+        CompoundTag stackTag = new CompoundTag();
+        stackTag.putString("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+        stackTag.putInt("count", Math.max(1, stack.getCount()));
+        return this.entryTag(stackTag, count, category, lastModified);
     }
 
     private CompoundTag invalidStackTag(String itemId) {

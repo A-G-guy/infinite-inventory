@@ -21,12 +21,23 @@ public record DatabasePage(DatabaseQuery query, int totalEntries, int totalPages
     }
 
     public DatabaseViewState toViewState(int containerId, long sessionId, DatabaseQuery personalQuery, DatabaseQuery publicQuery) {
+        return this.toViewState(containerId, sessionId, personalQuery, publicQuery, DatabaseEnhancementConfig.defaultConfig());
+    }
+
+    public DatabaseViewState toViewState(
+            int containerId,
+            long sessionId,
+            DatabaseQuery personalQuery,
+            DatabaseQuery publicQuery,
+            DatabaseEnhancementConfig enhancementConfig
+    ) {
         return new DatabaseViewState(
                 containerId,
                 sessionId,
                 this.query,
                 personalQuery,
                 publicQuery,
+                enhancementConfig,
                 this.totalEntries,
                 this.totalPages,
                 this.totalItems,

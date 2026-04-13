@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -79,6 +80,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private DatabaseScope activeScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
+    private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
     private DatabaseViewState viewState;
     @Nullable
     private DatabasePage currentPage;
@@ -132,6 +134,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return this.accessorySlotGroups;
     }
 
+    public DatabaseEnhancementConfig enhancementConfig() {
+        return this.enhancementConfig;
+    }
+
     public void initializeFromPreferences(DatabaseViewPreferencesAttachment preferences) {
         if (preferences == null) {
             return;
@@ -140,7 +146,8 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 this.sessionId,
                 preferences.lastScope(),
                 preferences.queryFor(DatabaseScope.PERSONAL),
-                preferences.queryFor(DatabaseScope.PUBLIC)
+                preferences.queryFor(DatabaseScope.PUBLIC),
+                preferences.enhancementConfig()
         ));
     }
 
@@ -150,6 +157,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.activeScope = newState.query().scope();
         this.personalQuery = newState.personalQuery();
         this.publicQuery = newState.publicQuery();
+        this.enhancementConfig = newState.enhancementConfig();
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -197,7 +205,13 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.currentPage = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, this.currentQuery());
         this.setActiveQuery(this.currentPage.query());
         this.persistPreferences(serverPlayer);
-        this.viewState = this.currentPage.toViewState(this.containerId, this.sessionId, this.personalQuery, this.publicQuery);
+        this.viewState = this.currentPage.toViewState(
+                this.containerId,
+                this.sessionId,
+                this.personalQuery,
+                this.publicQuery,
+                this.enhancementConfig
+        );
         PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(this.viewState));
     }
 
@@ -211,6 +225,14 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (this.owner instanceof ServerPlayer serverPlayer && previousScope != this.activeScope) {
             PersonalDatabaseService.INSTANCE.notifyViewerAboutUnresolvedEntries(serverPlayer, this.activeScope);
         }
+    }
+
+    public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig) {
+        this.enhancementConfig = newConfig == null ? DatabaseEnhancementConfig.defaultConfig() : newConfig;
+        if (this.owner instanceof ServerPlayer serverPlayer) {
+            this.persistPreferences(serverPlayer);
+        }
+        this.syncViewToClient();
     }
 
     public void depositAllFromMainInventory() {
@@ -570,11 +592,13 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 this.currentQuery(),
                 this.personalQuery,
                 this.publicQuery,
+                normalizedState.enhancementConfig(),
                 0,
                 1,
                 0L,
                 List.of()
         );
+        this.enhancementConfig = normalizedState.enhancementConfig();
     }
 
     private void setActiveQuery(DatabaseQuery query) {
@@ -594,6 +618,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         preferences.setQuery(DatabaseScope.PERSONAL, this.personalQuery);
         preferences.setQuery(DatabaseScope.PUBLIC, this.publicQuery);
         preferences.setLastScope(this.activeScope);
+        preferences.setEnhancementConfig(this.enhancementConfig);
     }
 
     private void syncAfterDatabaseMutation(ServerPlayer player) {

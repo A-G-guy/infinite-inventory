@@ -1,6 +1,8 @@
 package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
@@ -23,9 +25,12 @@ class DatabaseViewPreferencesAttachmentTest {
                 .withWeight(DatabaseSearchField.COUNT_BOOST, DatabaseSearchWeight.HIGH);
         DatabaseQuery personalQuery = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.NAME_ASC, "iron", personalConfig, 2, 81);
         DatabaseQuery publicQuery = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.BLOCKS, DatabaseSortOption.COUNT_DESC, "stone", publicConfig, 1, 96);
+        DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig()
+                .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true);
         preferences.setQuery(DatabaseScope.PERSONAL, personalQuery);
         preferences.setQuery(DatabaseScope.PUBLIC, publicQuery);
         preferences.setLastScope(DatabaseScope.PUBLIC);
+        preferences.setEnhancementConfig(enhancementConfig);
 
         DatabaseViewPreferencesAttachment restored = new DatabaseViewPreferencesAttachment();
         restored.deserializeNBT(null, preferences.serializeNBT(null));
@@ -33,5 +38,6 @@ class DatabaseViewPreferencesAttachmentTest {
         assertEquals(DatabaseScope.PUBLIC, restored.lastScope());
         assertEquals(personalQuery, restored.queryFor(DatabaseScope.PERSONAL));
         assertEquals(publicQuery, restored.queryFor(DatabaseScope.PUBLIC));
+        assertEquals(enhancementConfig, restored.enhancementConfig());
     }
 }

@@ -3,6 +3,8 @@ package com.agguy.infiniteinventory.service;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
@@ -23,7 +25,9 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.stats.Stats;
 import net.neoforged.neoforge.client.extensions.IMenuProviderExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,6 +58,10 @@ public final class PersonalDatabaseService {
 
     public DatabaseViewPreferencesAttachment getViewPreferences(Player player) {
         return player.getData(ModAttachments.DATABASE_VIEW_PREFERENCES.get());
+    }
+
+    public DatabaseEnhancementConfig getEnhancementConfig(Player player) {
+        return this.getViewPreferences(player).enhancementConfig();
     }
 
     public boolean canStore(ItemStack stack) {
@@ -103,6 +111,39 @@ public final class PersonalDatabaseService {
         }
         this.resolveDatabaseForMutation(player, scope).store(stack);
         this.markScopeDirty(player, scope);
+        return true;
+    }
+
+    public boolean tryAutoStorePickedUpItem(ServerPlayer player, ItemEntity itemEntity) {
+        if (player == null || itemEntity == null) {
+            return false;
+        }
+        if (!this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS)) {
+            return false;
+        }
+        if (itemEntity.hasPickUpDelay()) {
+            return false;
+        }
+        if (itemEntity.getTarget() != null && !itemEntity.getTarget().equals(player.getUUID())) {
+            return false;
+        }
+        ItemStack stack = itemEntity.getItem();
+        if (!this.canStore(stack)) {
+            return false;
+        }
+        int pickedUpAmount = stack.getCount();
+        if (pickedUpAmount <= 0) {
+            return false;
+        }
+        this.resolveDatabaseForMutation(player, DatabaseScope.PERSONAL).store(stack.copy());
+        this.markScopeDirty(player, DatabaseScope.PERSONAL);
+        player.take(itemEntity, pickedUpAmount);
+        player.awardStat(Stats.ITEM_PICKED_UP.get(stack.getItem()), pickedUpAmount);
+        player.onItemPickup(itemEntity);
+        itemEntity.discard();
+        if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PERSONAL) {
+            menu.syncViewToClient();
+        }
         return true;
     }
 
@@ -353,7 +394,8 @@ public final class PersonalDatabaseService {
                         databaseMenu.sessionId(),
                         databaseMenu.activeScope(),
                         databaseMenu.queryForScope(DatabaseScope.PERSONAL),
-                        databaseMenu.queryForScope(DatabaseScope.PUBLIC)
+                        databaseMenu.queryForScope(DatabaseScope.PUBLIC),
+                        databaseMenu.enhancementConfig()
                 ));
             } else {
                 PersonalDatabaseOpenState.write(buffer, PersonalDatabaseOpenState.defaultState());

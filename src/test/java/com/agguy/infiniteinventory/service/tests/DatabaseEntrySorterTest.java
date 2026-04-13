@@ -20,9 +20,9 @@ class DatabaseEntrySorterTest {
     void recentlyChangedSortShouldPreferNewerEntriesThenLargerAmounts() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.RECENTLY_CHANGED, ""),
-                this.snapshot("stone", "minecraft:stone", 16L, 10L, 1),
-                this.snapshot("apple", "minecraft:apple", 64L, 10L, 2),
-                this.snapshot("dirt", "minecraft:dirt", 1L, 20L, 3)
+                this.snapshot("stone", "minecraft:stone", 16L, 1L, 10L, 1),
+                this.snapshot("apple", "minecraft:apple", 64L, 2L, 10L, 2),
+                this.snapshot("dirt", "minecraft:dirt", 1L, 3L, 20L, 3)
         );
 
         assertEquals(
@@ -35,9 +35,9 @@ class DatabaseEntrySorterTest {
     void countSortShouldUseLastModifiedAsTieBreaker() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.COUNT_DESC, ""),
-                this.snapshot("stone", "minecraft:stone", 16L, 10L, 1),
-                this.snapshot("dirt", "minecraft:dirt", 16L, 20L, 2),
-                this.snapshot("apple", "minecraft:apple", 8L, 30L, 3)
+                this.snapshot("stone", "minecraft:stone", 16L, 1L, 10L, 1),
+                this.snapshot("dirt", "minecraft:dirt", 16L, 2L, 20L, 2),
+                this.snapshot("apple", "minecraft:apple", 8L, 3L, 30L, 3)
         );
 
         assertEquals(
@@ -50,9 +50,9 @@ class DatabaseEntrySorterTest {
     void modNamespaceSortShouldGroupByNamespaceBeforeDisplayName() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.MOD_NAMESPACE_ASC, ""),
-                this.snapshot("stone", "beta:stone", 1L, 1L, 1),
-                this.snapshot("apple", "alpha:apple", 1L, 1L, 2),
-                this.snapshot("dirt", "alpha:dirt", 1L, 1L, 3)
+                this.snapshot("stone", "beta:stone", 1L, 1L, 1L, 1),
+                this.snapshot("apple", "alpha:apple", 1L, 1L, 1L, 2),
+                this.snapshot("dirt", "alpha:dirt", 1L, 1L, 1L, 3)
         );
 
         assertEquals(
@@ -65,9 +65,9 @@ class DatabaseEntrySorterTest {
     void itemIdDescendingSortShouldReverseRegistryOrder() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.ITEM_ID_DESC, ""),
-                this.snapshot("apple", "alpha:apple", 1L, 1L, 1),
-                this.snapshot("stone", "beta:stone", 1L, 1L, 2),
-                this.snapshot("dirt", "alpha:dirt", 1L, 1L, 3)
+                this.snapshot("apple", "alpha:apple", 1L, 1L, 1L, 1),
+                this.snapshot("stone", "beta:stone", 1L, 1L, 1L, 2),
+                this.snapshot("dirt", "alpha:dirt", 1L, 1L, 1L, 3)
         );
 
         assertEquals(
@@ -80,13 +80,28 @@ class DatabaseEntrySorterTest {
     void searchSortShouldKeepRelevanceFirstAndUseManualSortForTies() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.COUNT_DESC, "stone"),
-                this.snapshot("stone", "minecraft:stone", 1L, 1L, 1, this.ranking(1, 0, 0, 0, 40_600.0D, 0.0D)),
-                this.snapshot("stone bricks", "minecraft:stone_bricks", 500L, 1L, 2, this.ranking(1, 0, 0, 0, 40_600.0D, 0.0D)),
-                this.snapshot("stonelight", "minecraft:stonelight", 999L, 1L, 3, this.ranking(0, 1, 0, 0, 30_600.0D, 0.0D))
+                this.snapshot("stone", "minecraft:stone", 1L, 1L, 1L, 1, this.ranking(1, 0, 0, 0, 40_600.0D, 0.0D)),
+                this.snapshot("stone bricks", "minecraft:stone_bricks", 500L, 1L, 1L, 2, this.ranking(1, 0, 0, 0, 40_600.0D, 0.0D)),
+                this.snapshot("stonelight", "minecraft:stonelight", 999L, 1L, 1L, 3, this.ranking(0, 1, 0, 0, 30_600.0D, 0.0D))
         );
 
         assertEquals(
                 List.of("minecraft:stone_bricks", "minecraft:stone", "minecraft:stonelight"),
+                sorted.stream().map(DatabaseSortSnapshot::registryName).toList()
+        );
+    }
+
+    @Test
+    void recentlyAddedSortShouldPreferNewerFirstInsertThenRecentChanges() {
+        List<DatabaseSortSnapshot> sorted = this.sort(
+                this.query(DatabaseSortOption.RECENTLY_ADDED, ""),
+                this.snapshot("stone", "minecraft:stone", 32L, 5L, 10L, 1),
+                this.snapshot("apple", "minecraft:apple", 16L, 9L, 10L, 2),
+                this.snapshot("dirt", "minecraft:dirt", 8L, 7L, 7L, 3)
+        );
+
+        assertEquals(
+                List.of("minecraft:apple", "minecraft:dirt", "minecraft:stone"),
                 sorted.stream().map(DatabaseSortSnapshot::registryName).toList()
         );
     }
@@ -108,14 +123,15 @@ class DatabaseEntrySorterTest {
         );
     }
 
-    private DatabaseSortSnapshot snapshot(String displayName, String registryName, long amount, long lastModified, int stackHash) {
-        return this.snapshot(displayName, registryName, amount, lastModified, stackHash, DatabaseSearchRanking.unfiltered());
+    private DatabaseSortSnapshot snapshot(String displayName, String registryName, long amount, long firstAdded, long lastModified, int stackHash) {
+        return this.snapshot(displayName, registryName, amount, firstAdded, lastModified, stackHash, DatabaseSearchRanking.unfiltered());
     }
 
     private DatabaseSortSnapshot snapshot(
             String displayName,
             String registryName,
             long amount,
+            long firstAdded,
             long lastModified,
             int stackHash,
             DatabaseSearchRanking searchRanking
@@ -127,6 +143,7 @@ class DatabaseEntrySorterTest {
                 idParts[0],
                 idParts[1],
                 amount,
+                firstAdded,
                 lastModified,
                 stackHash,
                 searchRanking

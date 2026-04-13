@@ -9,6 +9,7 @@ public record DatabaseViewState(
         DatabaseQuery query,
         DatabaseQuery personalQuery,
         DatabaseQuery publicQuery,
+        DatabaseEnhancementConfig enhancementConfig,
         int totalEntries,
         int totalPages,
         long totalItems,
@@ -23,6 +24,7 @@ public record DatabaseViewState(
         } else {
             personalQuery = query;
         }
+        enhancementConfig = enhancementConfig == null ? DatabaseEnhancementConfig.defaultConfig() : enhancementConfig;
         sessionId = Math.max(0L, sessionId);
         totalEntries = Math.max(0, totalEntries);
         totalPages = Math.max(1, totalPages);
@@ -45,6 +47,7 @@ public record DatabaseViewState(
                 query,
                 DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
                 DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
+                DatabaseEnhancementConfig.defaultConfig(),
                 0,
                 1,
                 0L,
@@ -62,6 +65,7 @@ public record DatabaseViewState(
         DatabaseQuery query = DatabaseQuery.read(buffer);
         DatabaseQuery personalQuery = DatabaseQuery.read(buffer);
         DatabaseQuery publicQuery = DatabaseQuery.read(buffer);
+        DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.read(buffer);
         int totalEntries = buffer.readVarInt();
         int totalPages = buffer.readVarInt();
         long totalItems = buffer.readVarLong();
@@ -70,7 +74,7 @@ public record DatabaseViewState(
         for (int index = 0; index < entryCount; index++) {
             entries.add(VisibleDatabaseEntry.read(buffer));
         }
-        return new DatabaseViewState(containerId, sessionId, query, personalQuery, publicQuery, totalEntries, totalPages, totalItems, entries);
+        return new DatabaseViewState(containerId, sessionId, query, personalQuery, publicQuery, enhancementConfig, totalEntries, totalPages, totalItems, entries);
     }
 
     public void write(RegistryFriendlyByteBuf buffer) {
@@ -79,6 +83,7 @@ public record DatabaseViewState(
         DatabaseQuery.write(buffer, this.query);
         DatabaseQuery.write(buffer, this.personalQuery);
         DatabaseQuery.write(buffer, this.publicQuery);
+        DatabaseEnhancementConfig.write(buffer, this.enhancementConfig);
         buffer.writeVarInt(this.totalEntries);
         buffer.writeVarInt(this.totalPages);
         buffer.writeVarLong(this.totalItems);

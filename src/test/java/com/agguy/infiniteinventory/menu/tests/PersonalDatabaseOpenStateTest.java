@@ -1,6 +1,8 @@
 package com.agguy.infiniteinventory.menu.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
@@ -18,7 +20,8 @@ class PersonalDatabaseOpenStateTest {
                 42L,
                 DatabaseScope.PUBLIC,
                 new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.NAME_ASC, "iron", 3, 81),
-                new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.BLOCKS, DatabaseSortOption.COUNT_DESC, "stone", 1, 96)
+                new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.BLOCKS, DatabaseSortOption.COUNT_DESC, "stone", 1, 96),
+                DatabaseEnhancementConfig.defaultConfig().withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true)
         );
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
 

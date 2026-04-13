@@ -4,6 +4,7 @@ import java.util.List;
 
 public enum DatabaseSortOption {
     RECENTLY_CHANGED("screen.infiniteinventory.sort.recent"),
+    RECENTLY_ADDED("screen.infiniteinventory.sort.recently_added"),
     NAME_ASC("screen.infiniteinventory.sort.name_asc"),
     NAME_DESC("screen.infiniteinventory.sort.name_desc"),
     COUNT_DESC("screen.infiniteinventory.sort.count_desc"),

@@ -3,12 +3,18 @@ package com.agguy.infiniteinventory.database;
 public final class StoredStackEntry {
     private final DatabaseCategory category;
     private long amount;
+    private final long firstAdded;
     private long lastModified;
 
     public StoredStackEntry(DatabaseCategory category, long amount, long lastModified) {
+        this(category, amount, lastModified, lastModified);
+    }
+
+    public StoredStackEntry(DatabaseCategory category, long amount, long lastModified, long firstAdded) {
         this.category = category;
         this.amount = Math.max(0L, amount);
-        this.lastModified = Math.max(0L, lastModified);
+        this.firstAdded = Math.max(0L, firstAdded);
+        this.lastModified = Math.max(this.firstAdded, Math.max(0L, lastModified));
     }
 
     public DatabaseCategory category() {
@@ -17,6 +23,10 @@ public final class StoredStackEntry {
 
     public long amount() {
         return this.amount;
+    }
+
+    public long firstAdded() {
+        return this.firstAdded;
     }
 
     public long lastModified() {

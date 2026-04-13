@@ -12,18 +12,25 @@ public final class UnresolvedStoredEntry {
     private static final String STACK_KEY = "stack";
     private static final String COUNT_KEY = "count";
     private static final String CATEGORY_KEY = "category";
+    private static final String FIRST_ADDED_KEY = "first_added";
     private static final String LAST_MODIFIED_KEY = "last_modified";
 
     private final CompoundTag stackTag;
     private final long amount;
     private final DatabaseCategory category;
+    private final long firstAdded;
     private final long lastModified;
 
     public UnresolvedStoredEntry(CompoundTag stackTag, long amount, DatabaseCategory category, long lastModified) {
+        this(stackTag, amount, category, lastModified, lastModified);
+    }
+
+    public UnresolvedStoredEntry(CompoundTag stackTag, long amount, DatabaseCategory category, long lastModified, long firstAdded) {
         this.stackTag = stackTag == null ? new CompoundTag() : stackTag.copy();
         this.amount = Math.max(0L, amount);
         this.category = category == null ? DatabaseCategory.OTHER : category;
-        this.lastModified = Math.max(0L, lastModified);
+        this.firstAdded = Math.max(0L, firstAdded);
+        this.lastModified = Math.max(this.firstAdded, Math.max(0L, lastModified));
     }
 
     public CompoundTag stackTag() {
@@ -36,6 +43,10 @@ public final class UnresolvedStoredEntry {
 
     public DatabaseCategory category() {
         return this.category;
+    }
+
+    public long firstAdded() {
+        return this.firstAdded;
     }
 
     public long lastModified() {
@@ -51,6 +62,7 @@ public final class UnresolvedStoredEntry {
         tag.put(STACK_KEY, this.stackTag.copy());
         tag.putLong(COUNT_KEY, this.amount);
         tag.putString(CATEGORY_KEY, this.category.name());
+        tag.putLong(FIRST_ADDED_KEY, this.firstAdded);
         tag.putLong(LAST_MODIFIED_KEY, this.lastModified);
         return tag;
     }
@@ -66,7 +78,7 @@ public final class UnresolvedStoredEntry {
         }
         return Optional.of(new ResolvedStoredEntry(
                 StoredStackKey.of(stack),
-                new StoredStackEntry(DatabaseItemClassifier.INSTANCE.classify(stack), this.amount, this.lastModified)
+                new StoredStackEntry(DatabaseItemClassifier.INSTANCE.classify(stack), this.amount, this.lastModified, this.firstAdded)
         ));
     }
 
@@ -78,7 +90,8 @@ public final class UnresolvedStoredEntry {
                 tag.getCompound(STACK_KEY),
                 Math.max(0L, tag.getLong(COUNT_KEY)),
                 readCategory(tag),
-                Math.max(0L, tag.getLong(LAST_MODIFIED_KEY))
+                Math.max(0L, tag.getLong(LAST_MODIFIED_KEY)),
+                readFirstAdded(tag)
         );
     }
 
@@ -88,6 +101,14 @@ public final class UnresolvedStoredEntry {
         } catch (IllegalArgumentException exception) {
             return DatabaseCategory.OTHER;
         }
+    }
+
+    private static long readFirstAdded(CompoundTag tag) {
+        long lastModified = Math.max(0L, tag.getLong(LAST_MODIFIED_KEY));
+        if (!tag.contains(FIRST_ADDED_KEY)) {
+            return lastModified;
+        }
+        return Math.max(0L, tag.getLong(FIRST_ADDED_KEY));
     }
 
     public record ResolvedStoredEntry(StoredStackKey key, StoredStackEntry entry) {
