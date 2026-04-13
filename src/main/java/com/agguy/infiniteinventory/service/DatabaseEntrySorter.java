@@ -28,6 +28,10 @@ public final class DatabaseEntrySorter {
 
     private Comparator<DatabaseSortSnapshot> manualComparatorFor(DatabaseSortOption sortOption) {
         return switch (sortOption) {
+            case RECENTLY_ADDED -> Comparator.comparingLong(DatabaseSortSnapshot::firstAdded).reversed()
+                    .thenComparing(Comparator.comparingLong(DatabaseSortSnapshot::lastModified).reversed())
+                    .thenComparing(Comparator.comparingLong(DatabaseSortSnapshot::amount).reversed())
+                    .thenComparing(this.nameAscendingComparator());
             case NAME_ASC -> this.nameAscendingComparator();
             case NAME_DESC -> this.nameDescendingComparator();
             case COUNT_ASC -> Comparator.comparingLong(DatabaseSortSnapshot::amount)

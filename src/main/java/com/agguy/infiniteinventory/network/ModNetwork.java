@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "8";
+    private static final String NETWORK_VERSION = "9";
 
     private ModNetwork() {
     }
@@ -22,6 +22,7 @@ public final class ModNetwork {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
+        registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
         registrar.playToServer(DatabaseClickPayload.TYPE, DatabaseClickPayload.STREAM_CODEC, ModNetwork::handleDatabaseClick);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
@@ -40,6 +41,16 @@ public final class ModNetwork {
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
             menu.updateQuery(payload.query());
+        }
+    }
+
+    private static void handleEnhancementConfig(DatabaseEnhancementPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu != null) {
+            menu.updateEnhancementConfig(payload.enhancementConfig());
         }
     }
 

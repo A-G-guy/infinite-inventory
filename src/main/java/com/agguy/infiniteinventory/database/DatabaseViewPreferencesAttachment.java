@@ -8,10 +8,12 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
     private static final String LAST_SCOPE_KEY = "last_scope";
     private static final String PERSONAL_QUERY_KEY = "personal_query";
     private static final String PUBLIC_QUERY_KEY = "public_query";
+    private static final String ENHANCEMENT_CONFIG_KEY = "enhancement_config";
 
     private DatabaseScope lastScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
+    private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
 
     public DatabaseScope lastScope() {
         return this.lastScope;
@@ -19,6 +21,10 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
 
     public DatabaseQuery queryFor(DatabaseScope scope) {
         return DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
+    }
+
+    public DatabaseEnhancementConfig enhancementConfig() {
+        return this.enhancementConfig;
     }
 
     public void setLastScope(DatabaseScope scope) {
@@ -43,12 +49,17 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         }
     }
 
+    public void setEnhancementConfig(DatabaseEnhancementConfig config) {
+        this.enhancementConfig = config == null ? DatabaseEnhancementConfig.defaultConfig() : config;
+    }
+
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         tag.putString(LAST_SCOPE_KEY, this.lastScope.name());
         tag.put(PERSONAL_QUERY_KEY, this.personalQuery.toTag());
         tag.put(PUBLIC_QUERY_KEY, this.publicQuery.toTag());
+        tag.put(ENHANCEMENT_CONFIG_KEY, this.enhancementConfig.toTag());
         return tag;
     }
 
@@ -57,6 +68,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.lastScope = readScope(tag.getString(LAST_SCOPE_KEY));
         this.personalQuery = DatabaseQuery.fromTag(tag.getCompound(PERSONAL_QUERY_KEY), DatabaseScope.PERSONAL);
         this.publicQuery = DatabaseQuery.fromTag(tag.getCompound(PUBLIC_QUERY_KEY), DatabaseScope.PUBLIC);
+        this.enhancementConfig = DatabaseEnhancementConfig.fromTag(tag.getCompound(ENHANCEMENT_CONFIG_KEY));
     }
 
     private static DatabaseScope readScope(String serializedScope) {

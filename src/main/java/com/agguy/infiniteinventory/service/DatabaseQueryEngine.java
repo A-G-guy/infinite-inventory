@@ -187,6 +187,7 @@ public final class DatabaseQueryEngine {
                             key.registryNamespace(),
                             key.registryPath(),
                             entry.amount(),
+                            entry.firstAdded(),
                             entry.lastModified(),
                             key.hashCode(),
                             DatabaseSearchRanking.unfiltered()

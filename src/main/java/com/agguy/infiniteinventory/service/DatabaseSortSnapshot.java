@@ -8,6 +8,7 @@ public record DatabaseSortSnapshot(
         String registryNamespace,
         String registryPath,
         long amount,
+        long firstAdded,
         long lastModified,
         int stackHash,
         DatabaseSearchRanking searchRanking
@@ -18,6 +19,7 @@ public record DatabaseSortSnapshot(
         registryNamespace = registryNamespace == null ? "" : registryNamespace;
         registryPath = registryPath == null ? "" : registryPath;
         amount = Math.max(0L, amount);
+        firstAdded = Math.max(0L, firstAdded);
         lastModified = Math.max(0L, lastModified);
         searchRanking = searchRanking == null ? DatabaseSearchRanking.unfiltered() : searchRanking;
     }
@@ -29,6 +31,7 @@ public record DatabaseSortSnapshot(
                 this.registryNamespace,
                 this.registryPath,
                 this.amount,
+                this.firstAdded,
                 this.lastModified,
                 this.stackHash,
                 ranking

@@ -3,6 +3,8 @@ package com.agguy.infiniteinventory.database.tests;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import org.junit.jupiter.api.Test;
 
@@ -28,15 +30,18 @@ class DatabasePageTest {
         DatabaseQuery pageQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
         DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
         DatabaseQuery publicQuery = pageQuery.withPageIndex(1);
+        DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig()
+                .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true);
         DatabasePage page = new DatabasePage(pageQuery, 1, 1, 12L, List.of());
 
-        DatabaseViewState viewState = page.toViewState(7, 88L, personalQuery, publicQuery);
+        DatabaseViewState viewState = page.toViewState(7, 88L, personalQuery, publicQuery, enhancementConfig);
 
         assertEquals(7, viewState.containerId());
         assertEquals(88L, viewState.sessionId());
         assertEquals(pageQuery, viewState.query());
         assertEquals(personalQuery, viewState.personalQuery());
         assertEquals(pageQuery, viewState.publicQuery());
+        assertEquals(enhancementConfig, viewState.enhancementConfig());
         assertEquals(0, viewState.entries().size());
     }
 }
