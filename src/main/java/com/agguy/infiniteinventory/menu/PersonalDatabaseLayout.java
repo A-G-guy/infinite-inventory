@@ -14,6 +14,8 @@ public record PersonalDatabaseLayout(
         Rect searchFieldRect,
         Rect advancedSearchButtonRect,
         Rect enhancementButtonRect,
+        Rect viewSelectorButtonRect,
+        Rect tabManagementButtonRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
         Rect pageLabelRect,
@@ -26,13 +28,12 @@ public record PersonalDatabaseLayout(
         Rect databaseFooterRect,
         Rect previousPageButtonRect,
         Rect nextPageButtonRect,
+        List<DatabaseViewportLayout> databaseViewportLayouts,
         List<AccessorySlotLayout> accessorySlotLayouts,
         int accessoryColumns,
         int accessoryVisibleRows,
         int accessoryTotalRows,
-        int accessoryScrollRow,
-        int databaseColumns,
-        int databaseRows
+        int accessoryScrollRow
 ) {
     public static final int FRAME_MARGIN = 12;
     public static final int INNER_PADDING = 10;
@@ -54,12 +55,16 @@ public record PersonalDatabaseLayout(
     public static final int ACCESSORY_DRAWER_PADDING = 8;
     public static final int ACCESSORY_DRAWER_TITLE_HEIGHT = 12;
     public static final int ACCESSORY_DRAWER_TITLE_GAP = 8;
+    public static final int VIEWPORT_HEADER_HEIGHT = 20;
+    public static final int VIEWPORT_GAP = 8;
     private static final int TITLE_HEIGHT = CONTROL_HEIGHT;
     private static final int TITLE_GAP = 6;
-    private static final int SEARCH_MIN_WIDTH = 140;
+    private static final int SEARCH_MIN_WIDTH = 120;
     private static final int ADVANCED_SEARCH_BUTTON_WIDTH = 40;
     private static final int ENHANCEMENT_BUTTON_WIDTH = 48;
-    private static final int SORT_BUTTON_WIDTH = 128;
+    private static final int VIEW_SELECTOR_BUTTON_WIDTH = 48;
+    private static final int TAB_MANAGEMENT_BUTTON_WIDTH = 48;
+    private static final int SORT_BUTTON_WIDTH = 112;
     private static final int DEPOSIT_BUTTON_WIDTH = 88;
     private static final int SCOPE_BUTTON_WIDTH = 72;
     private static final int ACCESSORY_DRAWER_MIN_WIDTH = 212;
@@ -77,6 +82,8 @@ public record PersonalDatabaseLayout(
         searchFieldRect = searchFieldRect == null ? Rect.empty() : searchFieldRect;
         advancedSearchButtonRect = advancedSearchButtonRect == null ? Rect.empty() : advancedSearchButtonRect;
         enhancementButtonRect = enhancementButtonRect == null ? Rect.empty() : enhancementButtonRect;
+        viewSelectorButtonRect = viewSelectorButtonRect == null ? Rect.empty() : viewSelectorButtonRect;
+        tabManagementButtonRect = tabManagementButtonRect == null ? Rect.empty() : tabManagementButtonRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;
@@ -89,13 +96,12 @@ public record PersonalDatabaseLayout(
         databaseFooterRect = databaseFooterRect == null ? Rect.empty() : databaseFooterRect;
         previousPageButtonRect = previousPageButtonRect == null ? Rect.empty() : previousPageButtonRect;
         nextPageButtonRect = nextPageButtonRect == null ? Rect.empty() : nextPageButtonRect;
+        databaseViewportLayouts = databaseViewportLayouts == null ? List.of() : List.copyOf(databaseViewportLayouts);
         accessorySlotLayouts = accessorySlotLayouts == null ? List.of() : List.copyOf(accessorySlotLayouts);
         accessoryColumns = Math.max(0, accessoryColumns);
         accessoryVisibleRows = Math.max(0, accessoryVisibleRows);
         accessoryTotalRows = Math.max(0, accessoryTotalRows);
         accessoryScrollRow = Math.max(0, accessoryScrollRow);
-        databaseColumns = Math.max(1, databaseColumns);
-        databaseRows = Math.max(1, databaseRows);
     }
 
     public static PersonalDatabaseLayout create(
@@ -115,6 +121,7 @@ public record PersonalDatabaseLayout(
                 bottomInventoryWidth,
                 bottomInventoryHeight,
                 accessoryGroups,
+                1,
                 false,
                 0
         );
@@ -128,6 +135,32 @@ public record PersonalDatabaseLayout(
             int bottomInventoryWidth,
             int bottomInventoryHeight,
             List<AccessorySlotGroup> accessoryGroups,
+            boolean accessoriesExpanded,
+            int accessoryScrollRow
+    ) {
+        return create(
+                screenWidth,
+                screenHeight,
+                equipmentWidth,
+                equipmentHeight,
+                bottomInventoryWidth,
+                bottomInventoryHeight,
+                accessoryGroups,
+                1,
+                accessoriesExpanded,
+                accessoryScrollRow
+        );
+    }
+
+    public static PersonalDatabaseLayout create(
+            int screenWidth,
+            int screenHeight,
+            int equipmentWidth,
+            int equipmentHeight,
+            int bottomInventoryWidth,
+            int bottomInventoryHeight,
+            List<AccessorySlotGroup> accessoryGroups,
+            int visibleDatabasePanels,
             boolean accessoriesExpanded,
             int accessoryScrollRow
     ) {
@@ -168,7 +201,9 @@ public record PersonalDatabaseLayout(
         Rect nextPageButtonRect = new Rect(pageLabelRect.right() + PAGE_BUTTON_GAP, toolbarY, PAGE_BUTTON_WIDTH, CONTROL_HEIGHT);
         Rect depositButtonRect = new Rect(previousPageButtonRect.x() - TOOLBAR_GAP - DEPOSIT_BUTTON_WIDTH, toolbarY, DEPOSIT_BUTTON_WIDTH, CONTROL_HEIGHT);
         Rect sortButtonRect = new Rect(depositButtonRect.x() - TOOLBAR_GAP - SORT_BUTTON_WIDTH, toolbarY, SORT_BUTTON_WIDTH, CONTROL_HEIGHT);
-        Rect enhancementButtonRect = new Rect(sortButtonRect.x() - TOOLBAR_GAP - ENHANCEMENT_BUTTON_WIDTH, toolbarY, ENHANCEMENT_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect tabManagementButtonRect = new Rect(sortButtonRect.x() - TOOLBAR_GAP - TAB_MANAGEMENT_BUTTON_WIDTH, toolbarY, TAB_MANAGEMENT_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect viewSelectorButtonRect = new Rect(tabManagementButtonRect.x() - TOOLBAR_GAP - VIEW_SELECTOR_BUTTON_WIDTH, toolbarY, VIEW_SELECTOR_BUTTON_WIDTH, CONTROL_HEIGHT);
+        Rect enhancementButtonRect = new Rect(viewSelectorButtonRect.x() - TOOLBAR_GAP - ENHANCEMENT_BUTTON_WIDTH, toolbarY, ENHANCEMENT_BUTTON_WIDTH, CONTROL_HEIGHT);
         Rect advancedSearchButtonRect = new Rect(enhancementButtonRect.x() - TOOLBAR_GAP - ADVANCED_SEARCH_BUTTON_WIDTH, toolbarY, ADVANCED_SEARCH_BUTTON_WIDTH, CONTROL_HEIGHT);
         int searchWidth = Math.max(SEARCH_MIN_WIDTH, advancedSearchButtonRect.x() - TOOLBAR_GAP - toolbarLeft);
         Rect searchFieldRect = new Rect(toolbarLeft, toolbarY, searchWidth, CONTROL_HEIGHT);
@@ -201,19 +236,8 @@ public record PersonalDatabaseLayout(
         );
         int databasePanelHeight = Math.max(1, databaseFooterRect.y() - SECTION_GAP - contentTop);
         Rect databasePanelRect = new Rect(databasePanelX, contentTop, databasePanelWidth, databasePanelHeight);
-
-        int availableGridWidth = Math.max(DATABASE_SLOT_SIZE, databasePanelRect.width() - GRID_PADDING * 2);
-        int availableGridHeight = Math.max(DATABASE_SLOT_SIZE, databasePanelRect.height() - GRID_PADDING * 2);
-        int databaseColumns = clamp(availableGridWidth / DATABASE_SLOT_SIZE, 1, MAX_COLUMNS);
-        int databaseRows = clamp(availableGridHeight / DATABASE_SLOT_SIZE, 1, MAX_ROWS);
-        int gridWidth = databaseColumns * DATABASE_SLOT_SIZE;
-        int gridHeight = databaseRows * DATABASE_SLOT_SIZE;
-        Rect databaseGridRect = new Rect(
-                databasePanelRect.x() + GRID_PADDING,
-                databasePanelRect.y() + GRID_PADDING,
-                gridWidth,
-                gridHeight
-        );
+        List<DatabaseViewportLayout> databaseViewports = buildDatabaseViewports(databasePanelRect, visibleDatabasePanels, accessoriesPanelRect);
+        Rect databaseGridRect = databaseViewports.isEmpty() ? Rect.empty() : databaseViewports.getFirst().gridRect();
 
         return new PersonalDatabaseLayout(
                 frameRect,
@@ -225,6 +249,8 @@ public record PersonalDatabaseLayout(
                 searchFieldRect,
                 advancedSearchButtonRect,
                 enhancementButtonRect,
+                viewSelectorButtonRect,
+                tabManagementButtonRect,
                 sortButtonRect,
                 depositButtonRect,
                 pageLabelRect,
@@ -237,28 +263,43 @@ public record PersonalDatabaseLayout(
                 databaseFooterRect,
                 previousPageButtonRect,
                 nextPageButtonRect,
+                databaseViewports,
                 accessorySlotLayoutResult.slotLayouts(),
                 accessorySlotLayoutResult.columns(),
                 accessorySlotLayoutResult.visibleRows(),
                 accessorySlotLayoutResult.totalRows(),
-                accessorySlotLayoutResult.scrollRow(),
-                databaseColumns,
-                databaseRows
+                accessorySlotLayoutResult.scrollRow()
         );
     }
 
-    public int databaseSlotCount() {
-        return this.databaseColumns * this.databaseRows;
+    public int databaseViewportCount() {
+        return this.databaseViewportLayouts.size();
     }
 
-    public int visibleDatabaseSlotCount() {
+    public DatabaseViewportLayout databaseViewportLayout(int viewportIndex) {
+        if (viewportIndex < 0 || viewportIndex >= this.databaseViewportLayouts.size()) {
+            return DatabaseViewportLayout.empty();
+        }
+        return this.databaseViewportLayouts.get(viewportIndex);
+    }
+
+    public int databaseSlotCount(int viewportIndex) {
+        DatabaseViewportLayout viewportLayout = this.databaseViewportLayout(viewportIndex);
+        return viewportLayout.columns() * viewportLayout.rows();
+    }
+
+    public int visibleDatabaseSlotCount(int viewportIndex) {
         int visibleCount = 0;
-        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(); slotIndex++) {
-            if (this.isDatabaseSlotVisible(slotIndex)) {
+        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(viewportIndex); slotIndex++) {
+            if (this.isDatabaseSlotVisible(viewportIndex, slotIndex)) {
                 visibleCount++;
             }
         }
         return visibleCount;
+    }
+
+    public int visibleDatabaseSlotCount() {
+        return this.visibleDatabaseSlotCount(0);
     }
 
     public int accessoryMaxScrollRow() {
@@ -275,33 +316,35 @@ public record PersonalDatabaseLayout(
         return count;
     }
 
-    public int databaseSlotX(int slotIndex) {
-        return this.databaseGridRect.x() + slotIndex % this.databaseColumns * DATABASE_SLOT_SIZE;
+    public Rect databaseSlotBounds(int viewportIndex, int slotIndex) {
+        DatabaseViewportLayout viewportLayout = this.databaseViewportLayout(viewportIndex);
+        return new Rect(
+                viewportLayout.gridRect().x() + slotIndex % viewportLayout.columns() * DATABASE_SLOT_SIZE,
+                viewportLayout.gridRect().y() + slotIndex / viewportLayout.columns() * DATABASE_SLOT_SIZE,
+                DATABASE_SLOT_SIZE,
+                DATABASE_SLOT_SIZE
+        );
     }
 
-    public int databaseSlotY(int slotIndex) {
-        return this.databaseGridRect.y() + slotIndex / this.databaseColumns * DATABASE_SLOT_SIZE;
-    }
-
-    public Rect databaseSlotBounds(int slotIndex) {
-        return new Rect(this.databaseSlotX(slotIndex), this.databaseSlotY(slotIndex), DATABASE_SLOT_SIZE, DATABASE_SLOT_SIZE);
-    }
-
-    public Rect visibleDatabaseSlotBounds(int visibleSlotIndex) {
+    public Rect visibleDatabaseSlotBounds(int viewportIndex, int visibleSlotIndex) {
         if (visibleSlotIndex < 0) {
             return Rect.empty();
         }
         int resolvedVisibleIndex = 0;
-        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(); slotIndex++) {
-            if (!this.isDatabaseSlotVisible(slotIndex)) {
+        for (int slotIndex = 0; slotIndex < this.databaseSlotCount(viewportIndex); slotIndex++) {
+            if (!this.isDatabaseSlotVisible(viewportIndex, slotIndex)) {
                 continue;
             }
             if (resolvedVisibleIndex == visibleSlotIndex) {
-                return this.databaseSlotBounds(slotIndex);
+                return this.databaseSlotBounds(viewportIndex, slotIndex);
             }
             resolvedVisibleIndex++;
         }
         return Rect.empty();
+    }
+
+    public Rect visibleDatabaseSlotBounds(int visibleSlotIndex) {
+        return this.visibleDatabaseSlotBounds(0, visibleSlotIndex);
     }
 
     public Rect tabBounds(int index, int totalTabs) {
@@ -313,6 +356,61 @@ public record PersonalDatabaseLayout(
         int x = this.tabBarRect.x() + index * (tabWidth + TAB_GAP);
         int width = index == totalTabs - 1 ? this.tabBarRect.right() - x : tabWidth;
         return new Rect(x, this.tabBarRect.y(), width, this.tabBarRect.height());
+    }
+
+    private static List<DatabaseViewportLayout> buildDatabaseViewports(Rect databasePanelRect, int visibleDatabasePanels, Rect accessoriesPanelRect) {
+        int panelCount = clamp(visibleDatabasePanels, 1, 4);
+        List<Rect> panelRects = switch (panelCount) {
+            case 1 -> List.of(databasePanelRect);
+            case 2 -> buildTwoPanelRects(databasePanelRect);
+            case 3 -> buildThreePanelRects(databasePanelRect);
+            case 4 -> buildFourPanelRects(databasePanelRect);
+            default -> List.of(databasePanelRect);
+        };
+        List<DatabaseViewportLayout> viewports = new ArrayList<>(panelRects.size());
+        for (Rect panelRect : panelRects) {
+            int headerHeight = Math.min(VIEWPORT_HEADER_HEIGHT, Math.max(CONTROL_HEIGHT, panelRect.height() / 5));
+            Rect headerRect = new Rect(panelRect.x() + GRID_PADDING, panelRect.y() + GRID_PADDING / 2, Math.max(1, panelRect.width() - GRID_PADDING * 2), headerHeight);
+            int availableGridWidth = Math.max(DATABASE_SLOT_SIZE, panelRect.width() - GRID_PADDING * 2);
+            int availableGridHeight = Math.max(DATABASE_SLOT_SIZE, panelRect.height() - headerHeight - GRID_PADDING * 2);
+            int columns = clamp(availableGridWidth / DATABASE_SLOT_SIZE, 1, MAX_COLUMNS);
+            int rows = clamp(availableGridHeight / DATABASE_SLOT_SIZE, 1, MAX_ROWS);
+            Rect gridRect = new Rect(
+                    panelRect.x() + GRID_PADDING,
+                    headerRect.bottom() + 2,
+                    columns * DATABASE_SLOT_SIZE,
+                    rows * DATABASE_SLOT_SIZE
+            );
+            viewports.add(new DatabaseViewportLayout(panelRect, headerRect, gridRect, columns, rows, accessoriesPanelRect));
+        }
+        return List.copyOf(viewports);
+    }
+
+    private static List<Rect> buildTwoPanelRects(Rect databasePanelRect) {
+        int width = Math.max(1, (databasePanelRect.width() - VIEWPORT_GAP) / 2);
+        Rect left = new Rect(databasePanelRect.x(), databasePanelRect.y(), width, databasePanelRect.height());
+        Rect right = new Rect(left.right() + VIEWPORT_GAP, databasePanelRect.y(), databasePanelRect.right() - left.right() - VIEWPORT_GAP, databasePanelRect.height());
+        return List.of(left, right);
+    }
+
+    private static List<Rect> buildThreePanelRects(Rect databasePanelRect) {
+        int leftWidth = Math.max(1, (databasePanelRect.width() - VIEWPORT_GAP) * 3 / 5);
+        int rightWidth = Math.max(1, databasePanelRect.width() - leftWidth - VIEWPORT_GAP);
+        Rect left = new Rect(databasePanelRect.x(), databasePanelRect.y(), leftWidth, databasePanelRect.height());
+        int stackedHeight = Math.max(1, (databasePanelRect.height() - VIEWPORT_GAP) / 2);
+        Rect topRight = new Rect(left.right() + VIEWPORT_GAP, databasePanelRect.y(), rightWidth, stackedHeight);
+        Rect bottomRight = new Rect(topRight.x(), topRight.bottom() + VIEWPORT_GAP, rightWidth, databasePanelRect.bottom() - topRight.bottom() - VIEWPORT_GAP);
+        return List.of(left, topRight, bottomRight);
+    }
+
+    private static List<Rect> buildFourPanelRects(Rect databasePanelRect) {
+        int width = Math.max(1, (databasePanelRect.width() - VIEWPORT_GAP) / 2);
+        int height = Math.max(1, (databasePanelRect.height() - VIEWPORT_GAP) / 2);
+        Rect topLeft = new Rect(databasePanelRect.x(), databasePanelRect.y(), width, height);
+        Rect topRight = new Rect(topLeft.right() + VIEWPORT_GAP, databasePanelRect.y(), databasePanelRect.right() - topLeft.right() - VIEWPORT_GAP, height);
+        Rect bottomLeft = new Rect(databasePanelRect.x(), topLeft.bottom() + VIEWPORT_GAP, width, databasePanelRect.bottom() - topLeft.bottom() - VIEWPORT_GAP);
+        Rect bottomRight = new Rect(topRight.x(), topRight.bottom() + VIEWPORT_GAP, topRight.width(), databasePanelRect.bottom() - topRight.bottom() - VIEWPORT_GAP);
+        return List.of(topLeft, topRight, bottomLeft, bottomRight);
     }
 
     private static Rect createAccessoriesPanelRect(
@@ -426,16 +524,35 @@ public record PersonalDatabaseLayout(
         return totalSlotCount;
     }
 
-    private boolean isDatabaseSlotVisible(int slotIndex) {
-        return !this.accessoriesPanelCovers(this.databaseSlotBounds(slotIndex));
-    }
-
-    private boolean accessoriesPanelCovers(Rect rect) {
-        return this.accessoriesPanelRect.height() > 0 && this.accessoriesPanelRect.intersects(rect);
+    private boolean isDatabaseSlotVisible(int viewportIndex, int slotIndex) {
+        DatabaseViewportLayout viewportLayout = this.databaseViewportLayout(viewportIndex);
+        if (viewportLayout.isEmpty()) {
+            return false;
+        }
+        return !viewportLayout.accessoriesPanelRect().intersects(this.databaseSlotBounds(viewportIndex, slotIndex));
     }
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    public record DatabaseViewportLayout(Rect panelRect, Rect headerRect, Rect gridRect, int columns, int rows, Rect accessoriesPanelRect) {
+        public DatabaseViewportLayout {
+            panelRect = panelRect == null ? Rect.empty() : panelRect;
+            headerRect = headerRect == null ? Rect.empty() : headerRect;
+            gridRect = gridRect == null ? Rect.empty() : gridRect;
+            columns = Math.max(1, columns);
+            rows = Math.max(1, rows);
+            accessoriesPanelRect = accessoriesPanelRect == null ? Rect.empty() : accessoriesPanelRect;
+        }
+
+        public static DatabaseViewportLayout empty() {
+            return new DatabaseViewportLayout(Rect.empty(), Rect.empty(), Rect.empty(), 1, 1, Rect.empty());
+        }
+
+        public boolean isEmpty() {
+            return this.panelRect.height() <= 0 || this.panelRect.width() <= 0;
+        }
     }
 
     public record AccessorySlotLayout(AccessorySlotGroup group, int slotIndex, int slotOffset, Rect slotRect, boolean visible) {

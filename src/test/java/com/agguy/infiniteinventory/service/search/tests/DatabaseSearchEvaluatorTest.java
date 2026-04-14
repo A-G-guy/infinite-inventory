@@ -1,17 +1,18 @@
 package com.agguy.infiniteinventory.service.search.tests;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchEvaluator;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
 import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -235,12 +236,13 @@ class DatabaseSearchEvaluatorTest {
     private DatabaseQuery query(String text, DatabaseSearchConfig searchConfig) {
         return new DatabaseQuery(
                 DatabaseScope.PERSONAL,
-                DatabaseCategory.ALL,
+                DatabaseTabs.ALL_TAB_ID,
+                List.of(DatabaseTabs.ALL_TAB_ID),
+                Map.of(DatabaseTabs.ALL_TAB_ID, 0),
+                Map.of(DatabaseTabs.ALL_TAB_ID, DatabaseQuery.DEFAULT_PAGE_SIZE),
                 DatabaseSortOption.RECENTLY_CHANGED,
                 text,
-                searchConfig,
-                0,
-                DatabaseQuery.DEFAULT_PAGE_SIZE
+                searchConfig
         );
     }
 

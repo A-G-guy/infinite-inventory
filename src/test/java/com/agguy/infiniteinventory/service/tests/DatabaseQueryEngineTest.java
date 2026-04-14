@@ -1,16 +1,18 @@
 package com.agguy.infiniteinventory.service.tests;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTab;
+import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.service.DatabaseQueryEngine;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -32,34 +34,36 @@ class DatabaseQueryEngineTest {
     @Test
     void noSearchQueriesShouldReuseSortedCacheAcrossPages() throws ReflectiveOperationException {
         StoredItemDatabase database = this.seededBrowseDatabase();
-        DatabaseQuery firstPageQuery = this.query(DatabaseCategory.ALL, DatabaseSortOption.NAME_ASC, "", 0, 1);
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseQuery firstPageQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_ASC, "", 0, 1);
 
-        DatabasePage firstPage = this.queryEngine.buildPage(database, firstPageQuery);
-        DatabasePage secondPage = this.queryEngine.buildPage(database, firstPageQuery.withPageIndex(1));
+        DatabasePage firstPage = this.queryEngine.buildPage(database, tabDirectory, firstPageQuery, DatabaseTabs.ALL_TAB_ID);
+        DatabasePage secondPage = this.queryEngine.buildPage(database, tabDirectory, firstPageQuery.withPageIndex(1), DatabaseTabs.ALL_TAB_ID);
         Object runtimeIndex = this.runtimeIndexFor(database);
 
         assertEquals(3, firstPage.totalEntries());
         assertEquals(3, secondPage.totalEntries());
         assertNotEquals(firstPage.entries().getFirst().key().registryName(), secondPage.entries().getFirst().key().registryName());
-        assertEquals(1, this.noSearchCacheSize(runtimeIndex, DatabaseCategory.ALL));
+        assertEquals(1, this.noSearchCacheSize(runtimeIndex, DatabaseTabs.ALL_TAB_ID));
         assertEquals(0, this.searchCacheSize(runtimeIndex));
     }
 
     @Test
     void searchQueriesShouldCacheByFingerprintAndRebuildAfterRevisionChanges() throws ReflectiveOperationException {
         StoredItemDatabase database = this.seededSearchDatabase();
-        DatabaseQuery searchQuery = this.query(DatabaseCategory.ALL, DatabaseSortOption.COUNT_DESC, "diamond", 0, 1);
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseQuery searchQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.COUNT_DESC, "diamond", 0, 1);
 
-        this.queryEngine.buildPage(database, searchQuery);
+        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseTabs.ALL_TAB_ID);
         Object firstRuntimeIndex = this.runtimeIndexFor(database);
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
-        this.queryEngine.buildPage(database, searchQuery.withPageIndex(1));
+        this.queryEngine.buildPage(database, tabDirectory, searchQuery.withPageIndex(1), DatabaseTabs.ALL_TAB_ID);
         assertSame(firstRuntimeIndex, this.runtimeIndexFor(database));
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
         database.store(new ItemStack(Items.DIAMOND_BLOCK, 2));
-        this.queryEngine.buildPage(database, searchQuery);
+        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseTabs.ALL_TAB_ID);
         Object rebuiltRuntimeIndex = this.runtimeIndexFor(database);
 
         assertNotSame(firstRuntimeIndex, rebuiltRuntimeIndex);
@@ -67,20 +71,24 @@ class DatabaseQueryEngineTest {
     }
 
     @Test
-    void categoryQueriesShouldOnlyReturnBucketedEntries() {
+    void tabQueriesShouldOnlyReturnEntriesAssignedToThatTab() {
         StoredItemDatabase database = new StoredItemDatabase();
-        database.store(new ItemStack(Items.STONE, 8));
-        database.store(new ItemStack(Items.DIRT, 3));
-        database.store(new ItemStack(Items.BREAD, 2));
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseTab blocksTab = tabDirectory.addCustomTab("Blocks", DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID);
+        database.store(new ItemStack(Items.STONE, 8), blocksTab.id());
+        database.store(new ItemStack(Items.DIRT, 3), blocksTab.id());
+        database.store(new ItemStack(Items.BREAD, 2), DatabaseTabs.DEFAULT_TAB_ID);
 
         DatabasePage page = this.queryEngine.buildPage(
                 database,
-                this.query(DatabaseCategory.BLOCKS, DatabaseSortOption.RECENTLY_CHANGED, "", 0, 10)
+                tabDirectory,
+                this.query(blocksTab.id(), DatabaseSortOption.RECENTLY_CHANGED, "", 0, 10),
+                blocksTab.id()
         );
 
         assertEquals(2, page.totalEntries());
         assertEquals(11L, page.totalItems());
-        assertTrue(page.entries().stream().allMatch(entry -> entry.view().category() == DatabaseCategory.BLOCKS));
+        assertTrue(page.entries().stream().allMatch(entry -> entry.view().tabId().equals(blocksTab.id())));
     }
 
     @Test
@@ -100,8 +108,17 @@ class DatabaseQueryEngineTest {
         assertEquals(Integer.MAX_VALUE, toIndex);
     }
 
-    private DatabaseQuery query(DatabaseCategory category, DatabaseSortOption sortOption, String searchText, int pageIndex, int pageSize) {
-        return new DatabaseQuery(DatabaseScope.PERSONAL, category, sortOption, searchText, pageIndex, pageSize);
+    private DatabaseQuery query(String focusedTabId, DatabaseSortOption sortOption, String searchText, int pageIndex, int pageSize) {
+        return new DatabaseQuery(
+                DatabaseScope.PERSONAL,
+                focusedTabId,
+                List.of(focusedTabId),
+                Map.of(focusedTabId, pageIndex),
+                Map.of(focusedTabId, pageSize),
+                sortOption,
+                searchText,
+                com.agguy.infiniteinventory.database.DatabaseSearchConfig.defaultConfig()
+        );
     }
 
     private StoredItemDatabase seededBrowseDatabase() {
@@ -128,13 +145,13 @@ class DatabaseQueryEngineTest {
         return runtimeIndexes.get(database);
     }
 
-    private int noSearchCacheSize(Object runtimeIndex, DatabaseCategory category) throws ReflectiveOperationException {
+    private int noSearchCacheSize(Object runtimeIndex, String tabId) throws ReflectiveOperationException {
         Field noSearchSortedCacheField = runtimeIndex.getClass().getDeclaredField("noSearchSortedCache");
         noSearchSortedCacheField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        EnumMap<DatabaseCategory, EnumMap<DatabaseSortOption, ?>> noSearchSortedCache =
-                (EnumMap<DatabaseCategory, EnumMap<DatabaseSortOption, ?>>) noSearchSortedCacheField.get(runtimeIndex);
-        return noSearchSortedCache.get(category).size();
+        Map<String, Map<DatabaseSortOption, ?>> noSearchSortedCache =
+                (Map<String, Map<DatabaseSortOption, ?>>) noSearchSortedCacheField.get(runtimeIndex);
+        return noSearchSortedCache.get(tabId).size();
     }
 
     private int searchCacheSize(Object runtimeIndex) throws ReflectiveOperationException {

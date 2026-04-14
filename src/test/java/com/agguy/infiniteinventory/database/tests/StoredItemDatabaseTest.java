@@ -2,6 +2,8 @@ package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseItemClassifier;
+import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
@@ -65,10 +67,10 @@ class StoredItemDatabaseTest {
     }
 
     @Test
-    void serializeShouldWriteClassifierVersion() {
+    void serializeShouldWriteCurrentSchemaVersion() {
         StoredItemDatabase database = new StoredItemDatabase();
 
-        assertEquals(DatabaseItemClassifier.CURRENT_VERSION, database.serializeNBT(null).getInt("classifier_version"));
+        assertEquals(StoredItemDatabase.CURRENT_SCHEMA_VERSION, database.serializeNBT(null).getInt("schema_version"));
     }
 
     @Test
@@ -141,18 +143,18 @@ class StoredItemDatabaseTest {
     }
 
     @Test
-    void mergeFromShouldNormalizeCategoryAndPreserveStackedAmount() throws ReflectiveOperationException {
+    void mergeFromShouldPreferTabAssignmentFromNewerEntryAndPreserveStackedAmount() throws ReflectiveOperationException {
         StoredItemDatabase targetDatabase = new StoredItemDatabase();
         StoredItemDatabase sourceDatabase = new StoredItemDatabase();
         var key = DatabaseTestReflectionHelper.fakeKey("test:material");
 
-        DatabaseTestReflectionHelper.forceEntry(targetDatabase, key, new StoredStackEntry(DatabaseCategory.OTHER, 16L, 4L));
-        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 8L, 7L));
+        DatabaseTestReflectionHelper.forceEntry(targetDatabase, key, new StoredStackEntry("target_tab", 16L, 4L));
+        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry("source_tab", 8L, 7L));
 
         targetDatabase.mergeFrom(sourceDatabase);
 
         StoredStackEntry mergedEntry = targetDatabase.entries().get(key);
-        assertEquals(DatabaseCategory.MATERIALS, mergedEntry.category());
+        assertEquals("source_tab", mergedEntry.tabId());
         assertEquals(24L, mergedEntry.amount());
         assertEquals(7L, mergedEntry.lastModified());
     }
@@ -163,7 +165,7 @@ class StoredItemDatabaseTest {
         StoredItemDatabase sourceDatabase = new StoredItemDatabase();
         var key = DatabaseTestReflectionHelper.fakeKey("test:sequence_item");
 
-        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 6L, 25L));
+        DatabaseTestReflectionHelper.forceEntry(sourceDatabase, key, new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 6L, 25L));
         DatabaseTestReflectionHelper.forceNextSequence(sourceDatabase, 1L);
 
         targetDatabase.mergeFrom(sourceDatabase);
@@ -221,17 +223,17 @@ class StoredItemDatabaseTest {
     }
 
     @Test
-    void recategorizeShouldApplyLatestClassifierRulesToResolvedEntries() throws ReflectiveOperationException {
+    void ensureTabAssignmentsShouldFallbackMissingTabsToDefaultTab() throws ReflectiveOperationException {
         StoredItemDatabase database = new StoredItemDatabase();
         StoredStackKey key = StoredStackKey.of(new ItemStack(Items.MINECART));
-        DatabaseTestReflectionHelper.forceEntry(database, key, new StoredStackEntry(DatabaseCategory.MATERIALS, 4L, 12L));
+        DatabaseTestReflectionHelper.forceEntry(database, key, new StoredStackEntry("missing_tab", 4L, 12L));
 
-        assertTrue(DatabaseTestReflectionHelper.invokeRecategorizeResolvedEntriesIfNeeded(database, 0));
+        assertTrue(database.ensureTabAssignments(new DatabaseTabDirectory()));
 
-        StoredStackEntry recategorizedEntry = database.entries().get(key);
-        assertEquals(DatabaseCategory.OTHER, recategorizedEntry.category());
-        assertEquals(4L, recategorizedEntry.amount());
-        assertEquals(12L, recategorizedEntry.lastModified());
+        StoredStackEntry reassignedEntry = database.entries().get(key);
+        assertEquals(DatabaseTabs.DEFAULT_TAB_ID, reassignedEntry.tabId());
+        assertEquals(4L, reassignedEntry.amount());
+        assertEquals(12L, reassignedEntry.lastModified());
     }
 
     @Test

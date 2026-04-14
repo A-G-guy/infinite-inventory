@@ -1,24 +1,24 @@
 package com.agguy.infiniteinventory.database;
 
 public final class StoredStackEntry {
-    private final DatabaseCategory category;
+    private String tabId;
     private long amount;
     private final long firstAdded;
     private long lastModified;
 
-    public StoredStackEntry(DatabaseCategory category, long amount, long lastModified) {
-        this(category, amount, lastModified, lastModified);
+    public StoredStackEntry(String tabId, long amount, long lastModified) {
+        this(tabId, amount, lastModified, lastModified);
     }
 
-    public StoredStackEntry(DatabaseCategory category, long amount, long lastModified, long firstAdded) {
-        this.category = category;
+    public StoredStackEntry(String tabId, long amount, long lastModified, long firstAdded) {
+        this.tabId = DatabaseTabs.normalizeConcreteTarget(tabId);
         this.amount = Math.max(0L, amount);
         this.firstAdded = Math.max(0L, firstAdded);
         this.lastModified = Math.max(this.firstAdded, Math.max(0L, lastModified));
     }
 
-    public DatabaseCategory category() {
-        return this.category;
+    public String tabId() {
+        return this.tabId;
     }
 
     public long amount() {
@@ -43,6 +43,16 @@ public final class StoredStackEntry {
         this.amount -= removed;
         this.lastModified = Math.max(this.lastModified, sequence);
         return removed;
+    }
+
+    public boolean moveToTab(String targetTabId, long sequence) {
+        String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
+        if (this.tabId.equals(normalizedTargetTabId)) {
+            return false;
+        }
+        this.tabId = normalizedTargetTabId;
+        this.lastModified = Math.max(this.lastModified, sequence);
+        return true;
     }
 
     public boolean isEmpty() {
