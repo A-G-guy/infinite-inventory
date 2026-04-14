@@ -9,11 +9,13 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
     private static final String PERSONAL_QUERY_KEY = "personal_query";
     private static final String PUBLIC_QUERY_KEY = "public_query";
     private static final String ENHANCEMENT_CONFIG_KEY = "enhancement_config";
+    private static final String AUTO_STORE_TARGET_TAB_ID_KEY = "auto_store_target_tab_id";
 
     private DatabaseScope lastScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
+    private String autoStoreTargetTabId = DatabaseTabs.DEFAULT_TAB_ID;
 
     public DatabaseScope lastScope() {
         return this.lastScope;
@@ -25,6 +27,10 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
 
     public DatabaseEnhancementConfig enhancementConfig() {
         return this.enhancementConfig;
+    }
+
+    public String autoStoreTargetTabId() {
+        return this.autoStoreTargetTabId;
     }
 
     public void setLastScope(DatabaseScope scope) {
@@ -53,6 +59,10 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.enhancementConfig = config == null ? DatabaseEnhancementConfig.defaultConfig() : config;
     }
 
+    public void setAutoStoreTargetTabId(String tabId) {
+        this.autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
+    }
+
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
@@ -60,6 +70,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         tag.put(PERSONAL_QUERY_KEY, this.personalQuery.toTag());
         tag.put(PUBLIC_QUERY_KEY, this.publicQuery.toTag());
         tag.put(ENHANCEMENT_CONFIG_KEY, this.enhancementConfig.toTag());
+        tag.putString(AUTO_STORE_TARGET_TAB_ID_KEY, this.autoStoreTargetTabId);
         return tag;
     }
 
@@ -69,6 +80,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.personalQuery = DatabaseQuery.fromTag(tag.getCompound(PERSONAL_QUERY_KEY), DatabaseScope.PERSONAL);
         this.publicQuery = DatabaseQuery.fromTag(tag.getCompound(PUBLIC_QUERY_KEY), DatabaseScope.PUBLIC);
         this.enhancementConfig = DatabaseEnhancementConfig.fromTag(tag.getCompound(ENHANCEMENT_CONFIG_KEY));
+        this.autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(tag.getString(AUTO_STORE_TARGET_TAB_ID_KEY));
     }
 
     private static DatabaseScope readScope(String serializedScope) {

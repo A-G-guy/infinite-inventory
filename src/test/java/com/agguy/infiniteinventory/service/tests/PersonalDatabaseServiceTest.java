@@ -23,7 +23,7 @@ class PersonalDatabaseServiceTest {
 
     @Test
     void depositMainInventoryShouldReturnLongToAvoidOverflowRegression() throws ReflectiveOperationException {
-        var method = PersonalDatabaseService.class.getDeclaredMethod("depositMainInventory", ServerPlayer.class, DatabaseScope.class);
+        var method = PersonalDatabaseService.class.getDeclaredMethod("depositMainInventory", ServerPlayer.class, DatabaseScope.class, String.class);
 
         assertEquals(long.class, method.getReturnType());
     }

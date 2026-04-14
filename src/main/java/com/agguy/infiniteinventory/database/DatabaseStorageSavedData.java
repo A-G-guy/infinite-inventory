@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.database;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -14,21 +15,27 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
 public final class DatabaseStorageSavedData extends SavedData {
-    public static final int CURRENT_SCHEMA_VERSION = 1;
+    public static final int CURRENT_SCHEMA_VERSION = 2;
 
     private static final String DATA_NAME = "infiniteinventory_public_database";
     private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final String PUBLIC_DATABASE_KEY = "public_database";
+    private static final String PUBLIC_TABS_KEY = "public_tabs";
     private static final String LEGACY_PUBLIC_DATABASE_KEY = "database";
     private static final String PERSONAL_DATABASES_KEY = "personal_databases";
     private static final String PERSONAL_DATABASE_PLAYER_ID_KEY = "player_uuid";
     private static final String PERSONAL_DATABASE_DATA_KEY = "database";
+    private static final String PERSONAL_TAB_DIRECTORIES_KEY = "personal_tab_directories";
+    private static final String PERSONAL_TAB_DIRECTORY_PLAYER_ID_KEY = "player_uuid";
+    private static final String PERSONAL_TAB_DIRECTORY_DATA_KEY = "tabs";
     private static final String MIGRATION_STATES_KEY = "migration_states";
     private static final String MIGRATION_STATE_PLAYER_ID_KEY = "player_uuid";
     private static final String MIGRATION_STATE_DATA_KEY = "state";
 
     private final StoredItemDatabase publicDatabase = new StoredItemDatabase();
+    private DatabaseTabDirectory publicTabs = new DatabaseTabDirectory();
     private final Map<UUID, StoredItemDatabase> personalDatabases = new LinkedHashMap<>();
+    private final Map<UUID, DatabaseTabDirectory> personalTabDirectories = new LinkedHashMap<>();
     private final Map<UUID, LegacyMigrationState> migrationStates = new LinkedHashMap<>();
 
     private long lastAutomaticBackupAtMillis;
@@ -61,13 +68,27 @@ public final class DatabaseStorageSavedData extends SavedData {
         return this.publicDatabase;
     }
 
+    public DatabaseTabDirectory publicTabs() {
+        return this.publicTabs;
+    }
+
     public StoredItemDatabase personalDatabase(UUID playerId) {
+        this.personalTabs(playerId);
         return this.personalDatabases.computeIfAbsent(playerId, ignored -> new StoredItemDatabase());
     }
 
     public StoredItemDatabase personalDatabaseView(UUID playerId) {
         StoredItemDatabase database = this.personalDatabases.get(playerId);
         return database == null ? new StoredItemDatabase() : database;
+    }
+
+    public DatabaseTabDirectory personalTabs(UUID playerId) {
+        return this.personalTabDirectories.computeIfAbsent(playerId, ignored -> new DatabaseTabDirectory());
+    }
+
+    public DatabaseTabDirectory personalTabsView(UUID playerId) {
+        DatabaseTabDirectory tabDirectory = this.personalTabDirectories.get(playerId);
+        return tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
     }
 
     public boolean hasPersonalDatabase(UUID playerId) {
@@ -111,6 +132,7 @@ public final class DatabaseStorageSavedData extends SavedData {
         CompoundTag tag = new CompoundTag();
         tag.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
         tag.put(PUBLIC_DATABASE_KEY, this.publicDatabase.serializeNBT(provider));
+        tag.put(PUBLIC_TABS_KEY, this.publicTabs.toTag());
 
         ListTag serializedPersonalDatabases = new ListTag();
         for (Map.Entry<UUID, StoredItemDatabase> entry : this.personalDatabases.entrySet()) {
@@ -124,6 +146,18 @@ public final class DatabaseStorageSavedData extends SavedData {
             serializedPersonalDatabases.add(personalDatabaseTag);
         }
         tag.put(PERSONAL_DATABASES_KEY, serializedPersonalDatabases);
+
+        ListTag serializedTabDirectories = new ListTag();
+        LinkedHashSet<UUID> playerIds = new LinkedHashSet<>();
+        playerIds.addAll(this.personalDatabases.keySet());
+        playerIds.addAll(this.personalTabDirectories.keySet());
+        for (UUID playerId : playerIds) {
+            CompoundTag tabDirectoryTag = new CompoundTag();
+            tabDirectoryTag.putUUID(PERSONAL_TAB_DIRECTORY_PLAYER_ID_KEY, playerId);
+            tabDirectoryTag.put(PERSONAL_TAB_DIRECTORY_DATA_KEY, this.personalTabsView(playerId).toTag());
+            serializedTabDirectories.add(tabDirectoryTag);
+        }
+        tag.put(PERSONAL_TAB_DIRECTORIES_KEY, serializedTabDirectories);
 
         ListTag serializedMigrationStates = new ListTag();
         for (Map.Entry<UUID, LegacyMigrationState> entry : this.migrationStates.entrySet()) {
@@ -172,7 +206,9 @@ public final class DatabaseStorageSavedData extends SavedData {
 
     private void loadFromStorageTag(CompoundTag tag, HolderLookup.Provider provider) {
         this.publicDatabase.clear();
+        this.publicTabs = new DatabaseTabDirectory();
         this.personalDatabases.clear();
+        this.personalTabDirectories.clear();
         this.migrationStates.clear();
         this.pendingMigrationBackup = null;
         if (tag == null || tag.isEmpty()) {
@@ -189,7 +225,11 @@ public final class DatabaseStorageSavedData extends SavedData {
         int storedSchemaVersion = Math.max(0, tag.getInt(SCHEMA_VERSION_KEY));
         boolean needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.publicDatabase.deserializeNBT(provider, this.resolvePublicDatabaseTag(tag));
-        needsResave = needsResave || this.publicDatabase.needsResave();
+        this.publicTabs = tag.contains(PUBLIC_TABS_KEY, Tag.TAG_COMPOUND)
+                ? DatabaseTabDirectory.fromTag(tag.getCompound(PUBLIC_TABS_KEY))
+                : new DatabaseTabDirectory();
+        needsResave = needsResave || !tag.contains(PUBLIC_TABS_KEY, Tag.TAG_COMPOUND) || this.publicDatabase.needsResave();
+        needsResave = this.publicDatabase.ensureTabAssignments(this.publicTabs) || needsResave;
 
         for (Tag entry : tag.getList(PERSONAL_DATABASES_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof CompoundTag personalDatabaseTag) || !personalDatabaseTag.hasUUID(PERSONAL_DATABASE_PLAYER_ID_KEY)) {
@@ -197,12 +237,31 @@ public final class DatabaseStorageSavedData extends SavedData {
             }
             StoredItemDatabase database = new StoredItemDatabase();
             database.deserializeNBT(provider, personalDatabaseTag.getCompound(PERSONAL_DATABASE_DATA_KEY));
-            if (database.entryCount() == 0 && database.unresolvedEntryCount() == 0) {
-                needsResave = needsResave || database.needsResave();
+            this.personalDatabases.put(personalDatabaseTag.getUUID(PERSONAL_DATABASE_PLAYER_ID_KEY), database);
+            needsResave = needsResave || database.needsResave();
+        }
+
+        for (Tag entry : tag.getList(PERSONAL_TAB_DIRECTORIES_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof CompoundTag tabDirectoryTag) || !tabDirectoryTag.hasUUID(PERSONAL_TAB_DIRECTORY_PLAYER_ID_KEY)) {
                 continue;
             }
-            needsResave = needsResave || database.needsResave();
-            this.personalDatabases.put(personalDatabaseTag.getUUID(PERSONAL_DATABASE_PLAYER_ID_KEY), database);
+            this.personalTabDirectories.put(
+                    tabDirectoryTag.getUUID(PERSONAL_TAB_DIRECTORY_PLAYER_ID_KEY),
+                    DatabaseTabDirectory.fromTag(tabDirectoryTag.getCompound(PERSONAL_TAB_DIRECTORY_DATA_KEY))
+            );
+        }
+
+        LinkedHashSet<UUID> playerIds = new LinkedHashSet<>();
+        playerIds.addAll(this.personalDatabases.keySet());
+        playerIds.addAll(this.personalTabDirectories.keySet());
+        for (UUID playerId : playerIds) {
+            DatabaseTabDirectory tabDirectory = this.personalTabs(playerId);
+            StoredItemDatabase database = this.personalDatabases.get(playerId);
+            if (database != null) {
+                needsResave = database.ensureTabAssignments(tabDirectory) || needsResave;
+            } else if (!this.personalTabDirectories.containsKey(playerId)) {
+                needsResave = true;
+            }
         }
 
         for (Tag entry : tag.getList(MIGRATION_STATES_KEY, Tag.TAG_COMPOUND)) {
@@ -235,6 +294,8 @@ public final class DatabaseStorageSavedData extends SavedData {
 
     private void loadLegacyPublicFormat(CompoundTag tag, HolderLookup.Provider provider) {
         this.publicDatabase.deserializeNBT(provider, tag.getCompound(LEGACY_PUBLIC_DATABASE_KEY));
+        this.publicTabs = new DatabaseTabDirectory();
+        this.publicDatabase.ensureTabAssignments(this.publicTabs);
         this.pendingMigrationBackup = new PendingMigrationBackup(
                 "legacy-public-format",
                 this.exportStorageTag(provider)

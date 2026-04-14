@@ -13,15 +13,14 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
-    public static final int CURRENT_SCHEMA_VERSION = 3;
+    public static final int CURRENT_SCHEMA_VERSION = 4;
 
     private static final String SCHEMA_VERSION_KEY = "schema_version";
-    private static final String CLASSIFIER_VERSION_KEY = "classifier_version";
     private static final String ENTRIES_KEY = "entries";
     private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
     private static final String STACK_KEY = "stack";
     private static final String COUNT_KEY = "count";
-    private static final String CATEGORY_KEY = "category";
+    private static final String TAB_ID_KEY = "tab_id";
     private static final String FIRST_ADDED_KEY = "first_added";
     private static final String LAST_MODIFIED_KEY = "last_modified";
     private static final String NEXT_SEQUENCE_KEY = "next_sequence";
@@ -100,7 +99,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                 this.unresolvedEntries.add(new UnresolvedStoredEntry(
                         unresolvedEntry.stackTag(),
                         unresolvedEntry.amount(),
-                        unresolvedEntry.category(),
+                        unresolvedEntry.tabId(),
                         unresolvedEntry.lastModified(),
                         unresolvedEntry.firstAdded()
                 ));
@@ -120,22 +119,94 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public void store(ItemStack stack) {
+        this.store(stack, DatabaseTabs.DEFAULT_TAB_ID);
+    }
+
+    public void store(ItemStack stack, String tabId) {
         if (stack.isEmpty()) {
             return;
         }
         long sequence = this.nextSequence();
+        String normalizedTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
         StoredStackKey key = StoredStackKey.of(stack);
-        DatabaseCategory normalizedCategory = DatabaseItemClassifier.INSTANCE.classify(stack);
         StoredStackEntry entry = this.entries.get(key);
         if (entry == null) {
-            entry = new StoredStackEntry(normalizedCategory, 0L, sequence, sequence);
+            entry = new StoredStackEntry(normalizedTabId, 0L, sequence, sequence);
             this.entries.put(key, entry);
-        } else if (entry.category() != normalizedCategory) {
-            entry = new StoredStackEntry(normalizedCategory, entry.amount(), entry.lastModified(), entry.firstAdded());
-            this.entries.put(key, entry);
+        } else {
+            entry.moveToTab(normalizedTabId, sequence);
         }
         entry.add(stack.getCount(), sequence);
         this.markRuntimeStateDirty();
+    }
+
+    public boolean transferTab(String sourceTabId, String targetTabId) {
+        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
+        String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
+        if (normalizedSourceTabId.equals(normalizedTargetTabId)) {
+            return false;
+        }
+        long sequence = this.nextSequence();
+        boolean changed = false;
+        for (StoredStackEntry entry : this.entries.values()) {
+            changed = entry.tabId().equals(normalizedSourceTabId) && entry.moveToTab(normalizedTargetTabId, sequence) || changed;
+        }
+        if (!this.unresolvedEntries.isEmpty()) {
+            java.util.ArrayList<UnresolvedStoredEntry> updatedUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
+            for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
+                if (unresolvedEntry.tabId().equals(normalizedSourceTabId)) {
+                    updatedUnresolvedEntries.add(unresolvedEntry.withTabId(normalizedTargetTabId, sequence));
+                    changed = true;
+                } else {
+                    updatedUnresolvedEntries.add(unresolvedEntry);
+                }
+            }
+            this.unresolvedEntries.clear();
+            this.unresolvedEntries.addAll(updatedUnresolvedEntries);
+        }
+        if (changed) {
+            this.markRuntimeStateDirty();
+        }
+        return changed;
+    }
+
+    public boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
+        if (tabDirectory == null) {
+            return false;
+        }
+        String defaultTabId = tabDirectory.defaultConcreteTab().id();
+        boolean changed = false;
+        for (StoredStackEntry entry : this.entries.values()) {
+            if (!tabDirectory.containsConcreteTab(entry.tabId())) {
+                entry.moveToTab(defaultTabId, entry.lastModified());
+                changed = true;
+            }
+        }
+        if (!this.unresolvedEntries.isEmpty()) {
+            java.util.ArrayList<UnresolvedStoredEntry> updatedUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
+            for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
+                if (!tabDirectory.containsConcreteTab(unresolvedEntry.tabId())) {
+                    updatedUnresolvedEntries.add(new UnresolvedStoredEntry(
+                            unresolvedEntry.stackTag(),
+                            unresolvedEntry.amount(),
+                            defaultTabId,
+                            unresolvedEntry.lastModified(),
+                            unresolvedEntry.firstAdded()
+                    ));
+                    changed = true;
+                } else {
+                    updatedUnresolvedEntries.add(unresolvedEntry);
+                }
+            }
+            if (changed) {
+                this.unresolvedEntries.clear();
+                this.unresolvedEntries.addAll(updatedUnresolvedEntries);
+            }
+        }
+        if (changed) {
+            this.markRuntimeStateDirty();
+        }
+        return changed;
     }
 
     public ItemStack extract(StoredStackKey key, int requestedAmount) {
@@ -165,7 +236,6 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag root = new CompoundTag();
         root.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
-        root.putInt(CLASSIFIER_VERSION_KEY, DatabaseItemClassifier.CURRENT_VERSION);
         ListTag serializedEntries = new ListTag();
         HolderLookup.Provider resolvedProvider = null;
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.entries.entrySet()) {
@@ -181,7 +251,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             CompoundTag entryTag = new CompoundTag();
             entryTag.put(STACK_KEY, stackTag);
             entryTag.putLong(COUNT_KEY, entry.amount());
-            entryTag.putString(CATEGORY_KEY, entry.category().name());
+            entryTag.putString(TAB_ID_KEY, entry.tabId());
             entryTag.putLong(FIRST_ADDED_KEY, entry.firstAdded());
             entryTag.putLong(LAST_MODIFIED_KEY, entry.lastModified());
             serializedEntries.add(entryTag);
@@ -215,8 +285,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     private void readCurrentFormat(HolderLookup.Provider provider, CompoundTag tag, int storedSchemaVersion) {
-        long highestSequence = 0L;
-        highestSequence = Math.max(highestSequence, this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true));
+        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true, storedSchemaVersion);
         for (Tag element : tag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
             if (!(element instanceof CompoundTag unresolvedEntryTag)) {
                 continue;
@@ -229,23 +298,18 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             highestSequence = Math.max(highestSequence, unresolvedEntry.lastModified());
         }
         this.resolveUnresolvedEntries(provider);
-        int storedClassifierVersion = storedSchemaVersion >= CURRENT_SCHEMA_VERSION ? Math.max(0, tag.getInt(CLASSIFIER_VERSION_KEY)) : 0;
-        boolean recategorized = this.recategorizeResolvedEntriesIfNeeded(storedClassifierVersion);
-        this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION
-                || storedClassifierVersion < DatabaseItemClassifier.CURRENT_VERSION
-                || recategorized;
+        this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
     }
 
     private void readLegacyFormat(HolderLookup.Provider provider, CompoundTag tag) {
-        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true);
+        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true, 0);
         this.resolveUnresolvedEntries(provider);
-        this.recategorizeResolvedEntriesIfNeeded(0);
         this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
         this.needsResave = true;
     }
 
-    private long readResolvedEntries(HolderLookup.Provider provider, ListTag entryList, boolean preserveInvalidEntries) {
+    private long readResolvedEntries(HolderLookup.Provider provider, ListTag entryList, boolean preserveInvalidEntries, int storedSchemaVersion) {
         long highestSequence = 0L;
         for (Tag element : entryList) {
             if (!(element instanceof CompoundTag entryTag)) {
@@ -258,12 +322,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
             long lastModified = Math.max(0L, entryTag.getLong(LAST_MODIFIED_KEY));
             long firstAdded = readFirstAdded(entryTag, lastModified);
+            String tabId = readTabId(entryTag, storedSchemaVersion);
             if (provider == null) {
                 if (preserveInvalidEntries && !stackTag.isEmpty()) {
                     this.unresolvedEntries.add(new UnresolvedStoredEntry(
                             stackTag,
                             amount,
-                            readCategory(entryTag, null),
+                            tabId,
                             lastModified,
                             firstAdded
                     ));
@@ -277,7 +342,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                     this.unresolvedEntries.add(new UnresolvedStoredEntry(
                             stackTag,
                             amount,
-                            readCategory(entryTag, null),
+                            tabId,
                             lastModified,
                             firstAdded
                     ));
@@ -287,7 +352,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
             this.mergeResolvedEntry(
                     StoredStackKey.of(stack),
-                    new StoredStackEntry(readCategory(entryTag, stack), amount, lastModified, firstAdded)
+                    new StoredStackEntry(tabId, amount, lastModified, firstAdded)
             );
             highestSequence = Math.max(highestSequence, lastModified);
         }
@@ -315,19 +380,21 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
             return;
         }
-        DatabaseCategory normalizedIncomingCategory = normalizeStoredCategory(incomingEntry.category());
         StoredStackEntry existingEntry = this.entries.get(key);
         if (existingEntry == null) {
             this.entries.put(key, new StoredStackEntry(
-                    normalizedIncomingCategory,
+                    incomingEntry.tabId(),
                     incomingEntry.amount(),
                     incomingEntry.lastModified(),
                     incomingEntry.firstAdded()
             ));
             return;
         }
+        String mergedTabId = incomingEntry.lastModified() >= existingEntry.lastModified()
+                ? incomingEntry.tabId()
+                : existingEntry.tabId();
         this.entries.put(key, new StoredStackEntry(
-                mergeStoredCategory(existingEntry.category(), normalizedIncomingCategory),
+                mergedTabId,
                 safeAdd(existingEntry.amount(), incomingEntry.amount()),
                 Math.max(existingEntry.lastModified(), incomingEntry.lastModified()),
                 mergeFirstAdded(existingEntry.firstAdded(), incomingEntry.firstAdded())
@@ -341,12 +408,14 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         }
     }
 
-    private static DatabaseCategory readCategory(CompoundTag tag, ItemStack stack) {
-        try {
-            return DatabaseCategory.valueOf(tag.getString(CATEGORY_KEY));
-        } catch (IllegalArgumentException exception) {
-            return stack == null || stack.isEmpty() ? DatabaseCategory.OTHER : DatabaseItemClassifier.INSTANCE.classify(stack);
+    private static String readTabId(CompoundTag tag, int storedSchemaVersion) {
+        if (storedSchemaVersion >= CURRENT_SCHEMA_VERSION && tag.contains(TAB_ID_KEY)) {
+            return DatabaseTabs.normalizeConcreteTarget(tag.getString(TAB_ID_KEY));
         }
+        if (tag.contains(TAB_ID_KEY)) {
+            return DatabaseTabs.normalizeConcreteTarget(tag.getString(TAB_ID_KEY));
+        }
+        return DatabaseTabs.DEFAULT_TAB_ID;
     }
 
     private static long readFirstAdded(CompoundTag tag, long lastModified) {
@@ -354,28 +423,6 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             return Math.max(0L, lastModified);
         }
         return Math.max(0L, tag.getLong(FIRST_ADDED_KEY));
-    }
-
-    private static DatabaseCategory mergeStoredCategory(DatabaseCategory existingCategory, DatabaseCategory incomingCategory) {
-        DatabaseCategory normalizedExistingCategory = normalizeStoredCategory(existingCategory);
-        DatabaseCategory normalizedIncomingCategory = normalizeStoredCategory(incomingCategory);
-        if (normalizedExistingCategory == normalizedIncomingCategory) {
-            return normalizedIncomingCategory;
-        }
-        if (normalizedExistingCategory == DatabaseCategory.OTHER) {
-            return normalizedIncomingCategory;
-        }
-        if (normalizedIncomingCategory == DatabaseCategory.OTHER) {
-            return normalizedExistingCategory;
-        }
-        return normalizedIncomingCategory;
-    }
-
-    private static DatabaseCategory normalizeStoredCategory(DatabaseCategory category) {
-        if (category == null || category == DatabaseCategory.ALL) {
-            return DatabaseCategory.OTHER;
-        }
-        return category;
     }
 
     private static long mergeFirstAdded(long existingFirstAdded, long incomingFirstAdded) {
@@ -405,26 +452,6 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             return Long.MAX_VALUE;
         }
         return this.nextSequence++;
-    }
-
-    private boolean recategorizeResolvedEntriesIfNeeded(int storedClassifierVersion) {
-        if (storedClassifierVersion >= DatabaseItemClassifier.CURRENT_VERSION || this.entries.isEmpty()) {
-            return false;
-        }
-        boolean recategorized = false;
-        Map<StoredStackKey, StoredStackEntry> recategorizedEntries = new LinkedHashMap<>(this.entries.size());
-        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.entries.entrySet()) {
-            StoredStackKey key = mapEntry.getKey();
-            StoredStackEntry entry = mapEntry.getValue();
-            DatabaseCategory recategorizedCategory = normalizeStoredCategory(DatabaseItemClassifier.INSTANCE.classify(key.displayStack()));
-            if (entry.category() != recategorizedCategory) {
-                recategorized = true;
-            }
-            recategorizedEntries.put(key, new StoredStackEntry(recategorizedCategory, entry.amount(), entry.lastModified(), entry.firstAdded()));
-        }
-        this.entries.clear();
-        this.entries.putAll(recategorizedEntries);
-        return recategorized;
     }
 
     private boolean hasStoredContent() {

@@ -7,15 +7,20 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
+import com.agguy.infiniteinventory.database.DatabaseTab;
+import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
+import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -68,21 +73,22 @@ public final class PersonalDatabaseService {
         return !stack.isEmpty() && stack.getItem() != ModItems.DATABASE_ACCESS_ITEM.get();
     }
 
-    public boolean depositSlot(ServerPlayer player, DatabaseScope scope, Slot slot) {
+    public boolean depositSlot(ServerPlayer player, DatabaseScope scope, String targetTabId, Slot slot) {
         ItemStack stack = slot.getItem();
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, scope).store(stack.copy());
+        this.resolveDatabaseForMutation(player, scope).store(stack.copy(), this.resolveConcreteTargetTabId(player, scope, targetTabId));
         this.markScopeDirty(player, scope);
         slot.setByPlayer(ItemStack.EMPTY, stack.copy());
         slot.setChanged();
         return true;
     }
 
-    public long depositMainInventory(ServerPlayer player, DatabaseScope scope) {
+    public long depositMainInventory(ServerPlayer player, DatabaseScope scope, String targetTabId) {
         Inventory inventory = player.getInventory();
         StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        String resolvedTargetTabId = this.resolveConcreteTargetTabId(player, scope, targetTabId);
         long movedItems = 0L;
         boolean movedAny = false;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
@@ -95,7 +101,7 @@ public final class PersonalDatabaseService {
             }
             movedItems = safeAddMovedItems(movedItems, stack);
             movedAny = true;
-            database.store(stack.copy());
+            database.store(stack.copy(), resolvedTargetTabId);
             inventory.items.set(slotIndex, ItemStack.EMPTY);
         }
         if (movedAny) {
@@ -105,11 +111,11 @@ public final class PersonalDatabaseService {
         return movedItems;
     }
 
-    public boolean storeStack(ServerPlayer player, DatabaseScope scope, ItemStack stack) {
+    public boolean storeStack(ServerPlayer player, DatabaseScope scope, String targetTabId, ItemStack stack) {
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, scope).store(stack);
+        this.resolveDatabaseForMutation(player, scope).store(stack, this.resolveConcreteTargetTabId(player, scope, targetTabId));
         this.markScopeDirty(player, scope);
         return true;
     }
@@ -135,7 +141,7 @@ public final class PersonalDatabaseService {
         if (pickedUpAmount <= 0) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, DatabaseScope.PERSONAL).store(stack.copy());
+        this.resolveDatabaseForMutation(player, DatabaseScope.PERSONAL).store(stack.copy(), this.resolveAutoStoreTargetTabId(player));
         this.markScopeDirty(player, DatabaseScope.PERSONAL);
         player.take(itemEntity, pickedUpAmount);
         player.awardStat(Stats.ITEM_PICKED_UP.get(stack.getItem()), pickedUpAmount);
@@ -165,6 +171,7 @@ public final class PersonalDatabaseService {
         }
         Inventory inventory = player.getInventory();
         StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        String originalTabId = entryTabId(database, key);
         long movedItems = 0L;
         long remainingAmount = requestedAmount;
         while (remainingAmount > 0L && this.hasSpaceFor(inventory, key)) {
@@ -177,13 +184,13 @@ public final class PersonalDatabaseService {
             inventory.add(extracted);
             int movedNow = originalCount - extracted.getCount();
             if (movedNow <= 0) {
-                database.store(extracted);
+                database.store(extracted, originalTabId);
                 break;
             }
             movedItems += movedNow;
             remainingAmount -= movedNow;
             if (!extracted.isEmpty()) {
-                database.store(extracted);
+                database.store(extracted, originalTabId);
                 break;
             }
         }
@@ -194,9 +201,94 @@ public final class PersonalDatabaseService {
         return movedItems;
     }
 
-    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query) {
+    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, String tabId) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        return this.queryEngine.buildPage(this.resolveDatabaseForView(player, normalizedQuery.scope()), normalizedQuery);
+        return this.queryEngine.buildPage(
+                this.resolveDatabaseForView(player, normalizedQuery.scope()),
+                this.resolveTabsForView(player, normalizedQuery.scope()),
+                normalizedQuery,
+                tabId
+        );
+    }
+
+    public DatabaseQuery sanitizeQuery(ServerPlayer player, DatabaseQuery query) {
+        DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
+        return this.resolveTabsForView(player, normalizedQuery.scope()).sanitizeQuery(normalizedQuery);
+    }
+
+    public List<DatabaseTab> tabsForScope(ServerPlayer player, DatabaseScope scope) {
+        return this.resolveTabsForView(player, scope).orderedTabs();
+    }
+
+    public String resolveConcreteTargetTabId(ServerPlayer player, DatabaseScope scope, String requestedTabId) {
+        return this.resolveTabsForMutation(player, scope).sanitizeConcreteTarget(requestedTabId);
+    }
+
+    public String resolveAutoStoreTargetTabId(ServerPlayer player) {
+        DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
+        String targetTabId = this.resolveTabsForMutation(player, DatabaseScope.PERSONAL).sanitizeConcreteTarget(preferences.autoStoreTargetTabId());
+        preferences.setAutoStoreTargetTabId(targetTabId);
+        return targetTabId;
+    }
+
+    public boolean createTab(ServerPlayer player, DatabaseScope scope, String name, String iconItemId) {
+        DatabaseTabDirectory tabDirectory = this.resolveTabsForMutation(player, scope);
+        tabDirectory.addCustomTab(name, iconItemId);
+        this.markScopeDirty(player, scope);
+        return true;
+    }
+
+    public boolean renameTab(ServerPlayer player, DatabaseScope scope, String tabId, String name) {
+        boolean changed = this.resolveTabsForMutation(player, scope).renameTab(tabId, name);
+        if (changed) {
+            this.markScopeDirty(player, scope);
+        }
+        return changed;
+    }
+
+    public boolean updateTabIcon(ServerPlayer player, DatabaseScope scope, String tabId, String iconItemId) {
+        boolean changed = this.resolveTabsForMutation(player, scope).updateTabIcon(tabId, iconItemId);
+        if (changed) {
+            this.markScopeDirty(player, scope);
+        }
+        return changed;
+    }
+
+    public boolean moveTab(ServerPlayer player, DatabaseScope scope, String tabId, int direction) {
+        boolean changed = this.resolveTabsForMutation(player, scope).moveTab(tabId, direction);
+        if (changed) {
+            this.markScopeDirty(player, scope);
+        }
+        return changed;
+    }
+
+    public boolean deleteTab(ServerPlayer player, DatabaseScope scope, String tabId, String targetTabId) {
+        DatabaseTabDirectory tabDirectory = this.resolveTabsForMutation(player, scope);
+        String resolvedTargetTabId = tabDirectory.sanitizeConcreteTarget(targetTabId);
+        if (!tabDirectory.find(tabId).map(DatabaseTab::canDelete).orElse(false)) {
+            return false;
+        }
+        boolean databaseChanged = this.resolveDatabaseForMutation(player, scope).transferTab(tabId, resolvedTargetTabId);
+        boolean directoryChanged = tabDirectory.deleteTab(tabId);
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PERSONAL) {
+            DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
+            if (preferences.autoStoreTargetTabId().equals(tabId)) {
+                preferences.setAutoStoreTargetTabId(resolvedTargetTabId);
+            }
+        }
+        if (databaseChanged || directoryChanged) {
+            this.markScopeDirty(player, scope);
+        }
+        return databaseChanged || directoryChanged;
+    }
+
+    public boolean transferTab(ServerPlayer player, DatabaseScope scope, String sourceTabId, String targetTabId) {
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        boolean changed = database.transferTab(sourceTabId, this.resolveConcreteTargetTabId(player, scope, targetTabId));
+        if (changed) {
+            this.markScopeDirty(player, scope);
+        }
+        return changed;
     }
 
     public void syncPublicViewers(MinecraftServer server) {
@@ -259,13 +351,42 @@ public final class PersonalDatabaseService {
         return storage.personalDatabaseView(player.getUUID());
     }
 
+    private DatabaseTabDirectory resolveTabsForView(ServerPlayer player, DatabaseScope scope) {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
+            return storage.publicTabs();
+        }
+        this.ensureLegacyPersonalMigration(player, storage);
+        StoredItemDatabase database = storage.personalDatabaseView(player.getUUID());
+        DatabaseTabDirectory tabDirectory = storage.personalTabsView(player.getUUID());
+        database.ensureTabAssignments(tabDirectory);
+        return tabDirectory;
+    }
+
     private StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
             return storage.publicDatabase();
         }
         this.ensureLegacyPersonalMigration(player, storage);
-        return storage.personalDatabase(player.getUUID());
+        StoredItemDatabase database = storage.personalDatabase(player.getUUID());
+        database.ensureTabAssignments(storage.personalTabs(player.getUUID()));
+        return database;
+    }
+
+    private DatabaseTabDirectory resolveTabsForMutation(ServerPlayer player, DatabaseScope scope) {
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
+            return storage.publicTabs();
+        }
+        this.ensureLegacyPersonalMigration(player, storage);
+        StoredItemDatabase database = storage.personalDatabase(player.getUUID());
+        DatabaseTabDirectory tabDirectory = storage.personalTabs(player.getUUID());
+        database.ensureTabAssignments(tabDirectory);
+        return tabDirectory;
     }
 
     private void markScopeDirty(ServerPlayer player, DatabaseScope scope) {
@@ -395,11 +516,17 @@ public final class PersonalDatabaseService {
                         databaseMenu.activeScope(),
                         databaseMenu.queryForScope(DatabaseScope.PERSONAL),
                         databaseMenu.queryForScope(DatabaseScope.PUBLIC),
-                        databaseMenu.enhancementConfig()
+                        databaseMenu.enhancementConfig(),
+                        databaseMenu.autoStoreTargetTabId()
                 ));
             } else {
                 PersonalDatabaseOpenState.write(buffer, PersonalDatabaseOpenState.defaultState());
             }
         }
+    }
+
+    private static String entryTabId(StoredItemDatabase database, StoredStackKey key) {
+        StoredStackEntry entry = database.entries().get(key);
+        return entry == null ? DatabaseTabs.DEFAULT_TAB_ID : entry.tabId();
     }
 }

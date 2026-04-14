@@ -1,35 +1,36 @@
 package com.agguy.infiniteinventory.service.tests;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import io.netty.buffer.Unpooled;
-import org.junit.jupiter.api.Test;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.network.FriendlyByteBuf;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DatabaseQueryTest {
     @Test
     void queryShouldTrimAndClampInputs() {
-        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PUBLIC, DatabaseCategory.ALL, DatabaseSortOption.NAME_ASC, "  diamonds  ", -3, Integer.MAX_VALUE);
+        DatabaseQuery query = this.query(DatabaseScope.PUBLIC, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_ASC, "  diamonds  ", DatabaseSearchConfig.defaultConfig(), -3, Integer.MAX_VALUE);
 
         assertEquals("diamonds", query.searchText());
         assertEquals(0, query.pageIndex());
         assertEquals(DatabaseQuery.MAX_PAGE_SIZE, query.pageSize());
         assertEquals(DatabaseScope.PUBLIC, query.scope());
+        assertEquals(DatabaseTabs.ALL_TAB_ID, query.focusedTabId());
     }
 
     @Test
-    void categoryAndSearchUpdatesShouldResetPageIndexButKeepPageSize() {
-        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.COUNT_DESC, "ore", 4, 72);
+    void searchUpdatesShouldResetPageIndexButKeepPageSize() {
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.DEFAULT_TAB_ID, DatabaseSortOption.COUNT_DESC, "ore", DatabaseSearchConfig.defaultConfig(), 4, 72);
 
-        assertEquals(0, query.withCategory(DatabaseCategory.BLOCKS).pageIndex());
-        assertEquals(72, query.withCategory(DatabaseCategory.BLOCKS).pageSize());
         assertEquals(0, query.withSearchText("stone").pageIndex());
         assertEquals(72, query.withSearchText("stone").pageSize());
         assertEquals(4, query.withSortOption(DatabaseSortOption.NAME_DESC).pageIndex());
@@ -41,15 +42,17 @@ class DatabaseQueryTest {
     void defaultQueryShouldUseDefaultPageSize() {
         assertEquals(DatabaseQuery.DEFAULT_PAGE_SIZE, DatabaseQuery.defaultQuery().pageSize());
         assertEquals(DatabaseScope.PERSONAL, DatabaseQuery.defaultQuery().scope());
+        assertEquals(List.of(DatabaseTabs.ALL_TAB_ID), DatabaseQuery.defaultQuery().visibleTabIds());
     }
 
     @Test
     void normalizeForScopeShouldRetargetStoredQueryWithoutDroppingFilters() {
-        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.MATERIALS, DatabaseSortOption.COUNT_DESC, "ore", 4, 72);
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.DEFAULT_TAB_ID, DatabaseSortOption.COUNT_DESC, "ore", DatabaseSearchConfig.defaultConfig(), 4, 72);
         DatabaseQuery normalized = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, query);
 
         assertEquals(DatabaseScope.PUBLIC, normalized.scope());
-        assertEquals(DatabaseCategory.MATERIALS, normalized.category());
+        assertEquals(DatabaseTabs.DEFAULT_TAB_ID, normalized.focusedTabId());
+        assertEquals(List.of(DatabaseTabs.DEFAULT_TAB_ID), normalized.visibleTabIds());
         assertEquals(DatabaseSortOption.COUNT_DESC, normalized.sortOption());
         assertEquals("ore", normalized.searchText());
         assertEquals(4, normalized.pageIndex());
@@ -58,7 +61,7 @@ class DatabaseQueryTest {
 
     @Test
     void searchConfigUpdatesShouldResetPageIndexButKeepPageSize() {
-        DatabaseQuery query = new DatabaseQuery(DatabaseScope.PERSONAL, DatabaseCategory.ALL, DatabaseSortOption.RECENTLY_CHANGED, "diamond", 3, 90);
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "diamond", DatabaseSearchConfig.defaultConfig(), 3, 90);
         DatabaseSearchConfig newConfig = query.searchConfig().withWeight(DatabaseSearchField.ITEM_ID, DatabaseSearchWeight.HIGH);
 
         DatabaseQuery updatedQuery = query.withSearchConfig(newConfig);
@@ -74,15 +77,7 @@ class DatabaseQueryTest {
                 .withWeight(DatabaseSearchField.DISPLAY_NAME, DatabaseSearchWeight.LOW)
                 .withWeight(DatabaseSearchField.MOD_NAMESPACE, DatabaseSearchWeight.HIGH)
                 .withWeight(DatabaseSearchField.COUNT_BOOST, DatabaseSearchWeight.MEDIUM);
-        DatabaseQuery query = new DatabaseQuery(
-                DatabaseScope.PUBLIC,
-                DatabaseCategory.BLOCKS,
-                DatabaseSortOption.NAME_DESC,
-                "diamond sword",
-                searchConfig,
-                2,
-                72
-        );
+        DatabaseQuery query = this.query(DatabaseScope.PUBLIC, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_DESC, "diamond sword", searchConfig, 2, 72);
 
         assertEquals(query, DatabaseQuery.fromTag(query.toTag(), DatabaseScope.PUBLIC));
 
@@ -90,5 +85,26 @@ class DatabaseQueryTest {
         DatabaseQuery.write(buffer, query);
 
         assertEquals(query, DatabaseQuery.read(buffer));
+    }
+
+    private DatabaseQuery query(
+            DatabaseScope scope,
+            String focusedTabId,
+            DatabaseSortOption sortOption,
+            String searchText,
+            DatabaseSearchConfig searchConfig,
+            int pageIndex,
+            int pageSize
+    ) {
+        return new DatabaseQuery(
+                scope,
+                focusedTabId,
+                List.of(focusedTabId),
+                Map.of(focusedTabId, pageIndex),
+                Map.of(focusedTabId, pageSize),
+                sortOption,
+                searchText,
+                searchConfig
+        );
     }
 }

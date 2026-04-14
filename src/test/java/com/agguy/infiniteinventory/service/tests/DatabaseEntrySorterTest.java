@@ -1,14 +1,15 @@
 package com.agguy.infiniteinventory.service.tests;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.service.DatabaseEntrySorter;
 import com.agguy.infiniteinventory.service.DatabaseSortSnapshot;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -115,11 +116,13 @@ class DatabaseEntrySorterTest {
     private DatabaseQuery query(DatabaseSortOption sortOption, String searchText) {
         return new DatabaseQuery(
                 DatabaseScope.PERSONAL,
-                DatabaseCategory.ALL,
+                DatabaseTabs.ALL_TAB_ID,
+                List.of(DatabaseTabs.ALL_TAB_ID),
+                Map.of(DatabaseTabs.ALL_TAB_ID, 0),
+                Map.of(DatabaseTabs.ALL_TAB_ID, DatabaseQuery.DEFAULT_PAGE_SIZE),
                 sortOption,
                 searchText,
-                0,
-                DatabaseQuery.DEFAULT_PAGE_SIZE
+                com.agguy.infiniteinventory.database.DatabaseSearchConfig.defaultConfig()
         );
     }
 

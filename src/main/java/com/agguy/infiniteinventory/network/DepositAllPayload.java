@@ -1,12 +1,13 @@
 package com.agguy.infiniteinventory.network;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
+import com.agguy.infiniteinventory.database.DatabaseQuery;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-public record DepositAllPayload(int containerId, long sessionId) implements CustomPacketPayload {
+public record DepositAllPayload(int containerId, long sessionId, String targetTabId) implements CustomPacketPayload {
     public static final Type<DepositAllPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "deposit_all"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DepositAllPayload> STREAM_CODEC = StreamCodec.of(
             DepositAllPayload::write,
@@ -19,11 +20,12 @@ public record DepositAllPayload(int containerId, long sessionId) implements Cust
     }
 
     private static DepositAllPayload read(RegistryFriendlyByteBuf buffer) {
-        return new DepositAllPayload(buffer.readVarInt(), buffer.readVarLong());
+        return new DepositAllPayload(buffer.readVarInt(), buffer.readVarLong(), buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH));
     }
 
     private static void write(RegistryFriendlyByteBuf buffer, DepositAllPayload payload) {
         buffer.writeVarInt(payload.containerId);
         buffer.writeVarLong(payload.sessionId);
+        buffer.writeUtf(payload.targetTabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
     }
 }

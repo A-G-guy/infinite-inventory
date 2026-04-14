@@ -81,9 +81,9 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
+    private String autoStoreTargetTabId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
     private DatabaseViewState viewState;
-    @Nullable
-    private DatabasePage currentPage;
+    private List<DatabasePage> currentPages = List.of();
 
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, playerInventory.player, 0L);
@@ -138,6 +138,10 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return this.enhancementConfig;
     }
 
+    public String autoStoreTargetTabId() {
+        return this.autoStoreTargetTabId;
+    }
+
     public void initializeFromPreferences(DatabaseViewPreferencesAttachment preferences) {
         if (preferences == null) {
             return;
@@ -147,7 +151,8 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 preferences.lastScope(),
                 preferences.queryFor(DatabaseScope.PERSONAL),
                 preferences.queryFor(DatabaseScope.PUBLIC),
-                preferences.enhancementConfig()
+                preferences.enhancementConfig(),
+                preferences.autoStoreTargetTabId()
         ));
     }
 
@@ -158,6 +163,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         this.personalQuery = newState.personalQuery();
         this.publicQuery = newState.publicQuery();
         this.enhancementConfig = newState.enhancementConfig();
+        this.autoStoreTargetTabId = newState.autoStoreTargetTabId();
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -202,15 +208,33 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
-        this.currentPage = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, this.currentQuery());
-        this.setActiveQuery(this.currentPage.query());
+        this.personalQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, this.personalQuery);
+        this.publicQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, this.publicQuery);
+        DatabaseQuery activeQuery = this.currentQuery();
+        java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabIds().size());
+        DatabaseQuery adjustedQuery = activeQuery;
+        for (String visibleTabId : activeQuery.visibleTabIds()) {
+            DatabasePage page = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, adjustedQuery, visibleTabId);
+            rebuiltPages.add(page);
+            adjustedQuery = adjustedQuery
+                    .withPageIndex(page.tab().id(), page.pageIndex())
+                    .withPageSize(page.tab().id(), page.pageSize());
+        }
+        this.currentPages = List.copyOf(rebuiltPages);
+        this.setActiveQuery(adjustedQuery);
+        this.autoStoreTargetTabId = PersonalDatabaseService.INSTANCE.resolveAutoStoreTargetTabId(serverPlayer);
         this.persistPreferences(serverPlayer);
-        this.viewState = this.currentPage.toViewState(
+        this.viewState = new DatabaseViewState(
                 this.containerId,
                 this.sessionId,
+                this.currentQuery(),
                 this.personalQuery,
                 this.publicQuery,
-                this.enhancementConfig
+                this.enhancementConfig,
+                this.autoStoreTargetTabId,
+                PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PERSONAL),
+                PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC),
+                this.currentPages.stream().map(DatabasePage::toPanelView).toList()
         );
         PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(this.viewState));
     }
@@ -227,23 +251,41 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         }
     }
 
-    public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig) {
+    public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig, String newAutoStoreTargetTabId) {
         this.enhancementConfig = newConfig == null ? DatabaseEnhancementConfig.defaultConfig() : newConfig;
+        this.autoStoreTargetTabId = com.agguy.infiniteinventory.database.DatabaseTabs.normalizeConcreteTarget(newAutoStoreTargetTabId);
         if (this.owner instanceof ServerPlayer serverPlayer) {
             this.persistPreferences(serverPlayer);
         }
         this.syncViewToClient();
     }
 
-    public void depositAllFromMainInventory() {
+    public void depositAllFromMainInventory(String targetTabId) {
         if (this.owner instanceof ServerPlayer serverPlayer
-                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope) > 0L) {
+                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope, targetTabId) > 0L) {
             this.broadcastChanges();
             this.syncAfterDatabaseMutation(serverPlayer);
         }
     }
 
-    public void handleDatabaseClick(int pageSlotIndex, DatabaseClickAction action) {
+    public void depositInventorySlot(int slotIndex, String targetTabId) {
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        if (slotIndex < 0 || slotIndex >= this.slots.size() || !this.shouldDepositQuickMovedSlot(slotIndex)) {
+            return;
+        }
+        Slot slot = this.slots.get(slotIndex);
+        if (!slot.hasItem()) {
+            return;
+        }
+        if (PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, targetTabId, slot)) {
+            this.broadcastChanges();
+            this.syncAfterDatabaseMutation(serverPlayer);
+        }
+    }
+
+    public void handleDatabaseClick(int panelIndex, int pageSlotIndex, DatabaseClickAction action, @Nullable String targetTabId) {
         if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
@@ -251,13 +293,13 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         boolean refreshSharedView = false;
         if (action.isStoreAction()) {
             if (!this.getCarried().isEmpty()) {
-                changed = this.storeCarriedStack(serverPlayer, action.storesSingleItem());
+                changed = this.storeCarriedStack(serverPlayer, action.storesSingleItem(), this.resolveStoreTargetTab(panelIndex, targetTabId));
             }
         } else {
             if (!this.getCarried().isEmpty()) {
                 return;
             }
-            DatabasePageEntry pageEntry = this.getPageEntry(pageSlotIndex);
+            DatabasePageEntry pageEntry = this.getPageEntry(panelIndex, pageSlotIndex);
             if (pageEntry == null) {
                 refreshSharedView = this.activeScope == DatabaseScope.PUBLIC;
             } else {
@@ -315,9 +357,11 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         ItemStack rawStack = slot.getItem();
         ItemStack copy = rawStack.copy();
 
+        String quickMoveTargetTabId = this.resolveSingleStoreTargetTab();
         if (this.shouldDepositQuickMovedSlot(slotIndex)
                 && player instanceof ServerPlayer serverPlayer
-                && PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, slot)) {
+                && quickMoveTargetTabId != null
+                && PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, quickMoveTargetTabId, slot)) {
             this.broadcastChanges();
             this.syncAfterDatabaseMutation(serverPlayer);
             return copy;
@@ -510,7 +554,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         return this.moveItemStackTo(stack, this.accessorySlotRange.firstIndex(), this.accessorySlotRange.lastIndexExclusive(), false);
     }
 
-    private boolean storeCarriedStack(ServerPlayer player, boolean singleItem) {
+    private boolean storeCarriedStack(ServerPlayer player, boolean singleItem, String targetTabId) {
         ItemStack carried = this.getCarried();
         if (!PersonalDatabaseService.INSTANCE.canStore(carried)) {
             return false;
@@ -519,7 +563,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         if (storedStack.isEmpty()) {
             return false;
         }
-        if (!PersonalDatabaseService.INSTANCE.storeStack(player, this.activeScope, storedStack)) {
+        if (!PersonalDatabaseService.INSTANCE.storeStack(player, this.activeScope, targetTabId, storedStack)) {
             this.setCarried(singleItem ? carried.copyWithCount(carried.getCount() + storedStack.getCount()) : storedStack);
             return false;
         }
@@ -550,11 +594,11 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
     }
 
     @Nullable
-    private DatabasePageEntry getPageEntry(int pageSlotIndex) {
-        if (pageSlotIndex < 0 || this.currentPage == null) {
+    private DatabasePageEntry getPageEntry(int panelIndex, int pageSlotIndex) {
+        if (panelIndex < 0 || panelIndex >= this.currentPages.size() || pageSlotIndex < 0) {
             return null;
         }
-        return this.currentPage.entryAt(pageSlotIndex);
+        return this.currentPages.get(panelIndex).entryAt(pageSlotIndex);
     }
 
     private void moveSlot(int slotIndex, int x, int y) {
@@ -593,12 +637,13 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
                 this.personalQuery,
                 this.publicQuery,
                 normalizedState.enhancementConfig(),
-                0,
-                1,
-                0L,
+                normalizedState.autoStoreTargetTabId(),
+                List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
+                List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of()
         );
         this.enhancementConfig = normalizedState.enhancementConfig();
+        this.autoStoreTargetTabId = normalizedState.autoStoreTargetTabId();
     }
 
     private void setActiveQuery(DatabaseQuery query) {
@@ -619,6 +664,7 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
         preferences.setQuery(DatabaseScope.PUBLIC, this.publicQuery);
         preferences.setLastScope(this.activeScope);
         preferences.setEnhancementConfig(this.enhancementConfig);
+        preferences.setAutoStoreTargetTabId(this.autoStoreTargetTabId);
     }
 
     private void syncAfterDatabaseMutation(ServerPlayer player) {
@@ -627,6 +673,42 @@ public final class PersonalDatabaseMenu extends RecipeBookMenu<CraftingInput, Cr
             return;
         }
         this.syncViewToClient();
+    }
+
+    @Nullable
+    private String resolveSingleStoreTargetTab() {
+        DatabaseQuery query = this.currentQuery();
+        if (query.visibleTabIds().size() != 1) {
+            return null;
+        }
+        String onlyVisibleTabId = query.visibleTabIds().getFirst();
+        if (com.agguy.infiniteinventory.database.DatabaseTabs.isAllTabId(onlyVisibleTabId)) {
+            return null;
+        }
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
+            return null;
+        }
+        return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, onlyVisibleTabId);
+    }
+
+    private String resolveStoreTargetTab(int panelIndex, @Nullable String explicitTargetTabId) {
+        if (this.owner instanceof ServerPlayer serverPlayer && explicitTargetTabId != null && !explicitTargetTabId.isBlank()) {
+            return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, explicitTargetTabId);
+        }
+        if (panelIndex >= 0 && panelIndex < this.currentPages.size()) {
+            DatabasePage page = this.currentPages.get(panelIndex);
+            if (!page.tab().isAllTab()) {
+                return page.tab().id();
+            }
+        }
+        String singleStoreTargetTab = this.resolveSingleStoreTargetTab();
+        if (singleStoreTargetTab != null) {
+            return singleStoreTargetTab;
+        }
+        if (this.owner instanceof ServerPlayer serverPlayer) {
+            return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, this.currentQuery().focusedTabId());
+        }
+        return com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
     }
 
     private static final class CraftingMenuAccess extends CraftingMenu {

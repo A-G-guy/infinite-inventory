@@ -27,8 +27,8 @@ class PersonalDatabaseLayoutTest {
         PersonalDatabaseLayout compactLayout = PersonalDatabaseLayout.create(960, 540, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
         PersonalDatabaseLayout largeLayout = PersonalDatabaseLayout.create(1920, 1080, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertTrue(largeLayout.databaseSlotCount() >= compactLayout.databaseSlotCount());
-        assertTrue(largeLayout.databaseSlotCount() > 112);
+        assertTrue(largeLayout.databaseSlotCount(0) >= compactLayout.databaseSlotCount(0));
+        assertTrue(largeLayout.databaseSlotCount(0) > 112);
     }
 
     @Test
@@ -56,9 +56,10 @@ class PersonalDatabaseLayoutTest {
     @Test
     void gridShouldPinToDatabasePanelOriginInsteadOfCentering() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
+        PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = layout.databaseViewportLayout(0);
 
-        assertTrue(layout.databaseGridRect().x() == layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING);
-        assertTrue(layout.databaseGridRect().y() == layout.databasePanelRect().y() + PersonalDatabaseLayout.GRID_PADDING);
+        assertTrue(layout.databaseGridRect().x() == viewportLayout.panelRect().x() + PersonalDatabaseLayout.GRID_PADDING);
+        assertTrue(layout.databaseGridRect().y() == viewportLayout.headerRect().bottom() + 2);
     }
 
     @Test
@@ -132,7 +133,7 @@ class PersonalDatabaseLayoutTest {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
 
         assertTrue(layout.visibleDatabaseSlotCount() > 0);
-        assertTrue(layout.visibleDatabaseSlotCount() < layout.databaseSlotCount());
+        assertTrue(layout.visibleDatabaseSlotCount() < layout.databaseSlotCount(0));
         for (int slotIndex = 0; slotIndex < layout.visibleDatabaseSlotCount(); slotIndex++) {
             assertTrue(!layout.accessoriesPanelRect().intersects(layout.visibleDatabaseSlotBounds(slotIndex)));
         }

@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "9";
+    private static final String NETWORK_VERSION = "10";
 
     private ModNetwork() {
     }
@@ -24,6 +24,8 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
         registrar.playToServer(DatabaseClickPayload.TYPE, DatabaseClickPayload.STREAM_CODEC, ModNetwork::handleDatabaseClick);
+        registrar.playToServer(DatabaseQuickDepositPayload.TYPE, DatabaseQuickDepositPayload.STREAM_CODEC, ModNetwork::handleQuickDeposit);
+        registrar.playToServer(DatabaseTabMutationPayload.TYPE, DatabaseTabMutationPayload.STREAM_CODEC, ModNetwork::handleTabMutation);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
     }
@@ -50,7 +52,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.updateEnhancementConfig(payload.enhancementConfig());
+            menu.updateEnhancementConfig(payload.enhancementConfig(), payload.autoStoreTargetTabId());
         }
     }
 
@@ -60,7 +62,44 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.handleDatabaseClick(payload.pageSlotIndex(), payload.action());
+            menu.handleDatabaseClick(payload.panelIndex(), payload.pageSlotIndex(), payload.action(), payload.targetTabId());
+        }
+    }
+
+    private static void handleQuickDeposit(DatabaseQuickDepositPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu != null) {
+            menu.depositInventorySlot(payload.slotIndex(), payload.targetTabId());
+        }
+    }
+
+    private static void handleTabMutation(DatabaseTabMutationPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu == null) {
+            return;
+        }
+        boolean changed = switch (payload.action()) {
+            case ADD -> PersonalDatabaseService.INSTANCE.createTab(player, payload.scope(), payload.name(), payload.iconItemId());
+            case RENAME -> PersonalDatabaseService.INSTANCE.renameTab(player, payload.scope(), payload.tabId(), payload.name());
+            case CHANGE_ICON -> PersonalDatabaseService.INSTANCE.updateTabIcon(player, payload.scope(), payload.tabId(), payload.iconItemId());
+            case MOVE_LEFT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), -1);
+            case MOVE_RIGHT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), 1);
+            case DELETE -> PersonalDatabaseService.INSTANCE.deleteTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
+            case TRANSFER -> PersonalDatabaseService.INSTANCE.transferTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
+        };
+        if (!changed) {
+            return;
+        }
+        if (payload.scope() == com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC) {
+            PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+        } else {
+            menu.syncViewToClient();
         }
     }
 
@@ -70,7 +109,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.depositAllFromMainInventory();
+            menu.depositAllFromMainInventory(payload.targetTabId());
         }
     }
 

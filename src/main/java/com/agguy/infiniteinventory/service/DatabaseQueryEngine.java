@@ -1,12 +1,14 @@
 package com.agguy.infiniteinventory.service;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabasePagination;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTab;
+import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
@@ -18,7 +20,6 @@ import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
 import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +39,13 @@ public final class DatabaseQueryEngine {
     private DatabaseQueryEngine() {
     }
 
-    public DatabasePage buildPage(StoredItemDatabase database, DatabaseQuery query) {
+    public DatabasePage buildPage(StoredItemDatabase database, DatabaseTabDirectory tabDirectory, DatabaseQuery query, String tabId) {
         StoredItemDatabase resolvedDatabase = database == null ? new StoredItemDatabase() : database;
-        DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        CachedQueryResult queryResult = this.resolveQueryResult(this.runtimeIndexFor(resolvedDatabase), normalizedQuery);
-        return this.toPage(normalizedQuery, queryResult);
+        DatabaseTabDirectory resolvedTabDirectory = tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
+        DatabaseQuery normalizedQuery = resolvedTabDirectory.sanitizeQuery(query == null ? DatabaseQuery.defaultQuery() : query);
+        String normalizedTabId = normalizeTabId(tabId, resolvedTabDirectory);
+        CachedQueryResult queryResult = this.resolveQueryResult(this.runtimeIndexFor(resolvedDatabase), normalizedQuery, normalizedTabId);
+        return this.toPage(normalizedQuery, queryResult, resolvedTabDirectory.resolve(normalizedTabId));
     }
 
     private synchronized DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database) {
@@ -55,36 +58,36 @@ public final class DatabaseQueryEngine {
         return rebuiltIndex;
     }
 
-    private CachedQueryResult resolveQueryResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query) {
+    private CachedQueryResult resolveQueryResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
         if (SearchTextNormalizer.splitTerms(query.searchText()).isEmpty()) {
-            return this.resolveNoSearchResult(runtimeIndex, query);
+            return this.resolveNoSearchResult(runtimeIndex, query, tabId);
         }
-        return this.resolveSearchResult(runtimeIndex, query);
+        return this.resolveSearchResult(runtimeIndex, query, tabId);
     }
 
-    private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query) {
-        DatabaseCategory normalizedCategory = normalizeCategory(query.category());
-        return runtimeIndex.noSearchResult(normalizedCategory, query.sortOption(), () -> {
-            List<ResolvedQueryRecord> sortedRecords = new ArrayList<>(runtimeIndex.recordsFor(normalizedCategory).size());
-            for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedCategory)) {
+    private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
+        String normalizedTabId = normalizeTabId(tabId, null);
+        return runtimeIndex.noSearchResult(normalizedTabId, query.sortOption(), () -> {
+            List<ResolvedQueryRecord> sortedRecords = new ArrayList<>(runtimeIndex.recordsFor(normalizedTabId).size());
+            for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
                 sortedRecords.add(new ResolvedQueryRecord(entryRecord, entryRecord.baseSortSnapshot()));
             }
             sortedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(query)));
-            return new CachedQueryResult(sortedRecords, runtimeIndex.totalItemsFor(normalizedCategory));
+            return new CachedQueryResult(sortedRecords, runtimeIndex.totalItemsFor(normalizedTabId));
         });
     }
 
-    private CachedQueryResult resolveSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query) {
-        QueryFingerprint fingerprint = QueryFingerprint.of(query);
+    private CachedQueryResult resolveSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
+        String normalizedTabId = normalizeTabId(tabId, null);
+        QueryFingerprint fingerprint = QueryFingerprint.of(query, normalizedTabId);
         CachedQueryResult cachedResult = runtimeIndex.searchResult(fingerprint);
         if (cachedResult != null) {
             return cachedResult;
         }
 
-        DatabaseCategory normalizedCategory = normalizeCategory(query.category());
         List<ResolvedQueryRecord> matchedRecords = new ArrayList<>();
         long totalItems = 0L;
-        for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedCategory)) {
+        for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
             DatabaseSearchRanking ranking = this.searchEvaluator.evaluate(query, entryRecord.searchIndex(), entryRecord.entry().amount());
             if (!ranking.matched()) {
                 continue;
@@ -99,12 +102,12 @@ public final class DatabaseQueryEngine {
         return builtResult;
     }
 
-    private DatabasePage toPage(DatabaseQuery query, CachedQueryResult queryResult) {
-        int safePageSize = Math.max(1, query.pageSize());
+    private DatabasePage toPage(DatabaseQuery query, CachedQueryResult queryResult, DatabaseTab tab) {
+        String tabId = tab.id();
+        int safePageSize = Math.max(1, query.pageSizeFor(tabId));
         int totalEntries = queryResult.records().size();
         int totalPages = DatabasePagination.resolveTotalPages(totalEntries, safePageSize);
-        int pageIndex = Math.min(query.pageIndex(), totalPages - 1);
-        DatabaseQuery resolvedQuery = query.withPageSize(safePageSize).withPageIndex(pageIndex);
+        int pageIndex = Math.min(query.pageIndexFor(tabId), totalPages - 1);
         int fromIndex = resolvePageFromIndex(pageIndex, safePageSize, totalEntries);
         int toIndex = resolvePageToIndex(fromIndex, safePageSize, totalEntries);
 
@@ -113,7 +116,7 @@ public final class DatabaseQueryEngine {
             ResolvedQueryRecord record = queryResult.records().get(index);
             pageEntries.add(record.entryRecord().toPageEntry());
         }
-        return new DatabasePage(resolvedQuery, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
+        return new DatabasePage(tab, pageIndex, safePageSize, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
     }
 
     private static int resolvePageFromIndex(int pageIndex, int pageSize, int totalEntries) {
@@ -126,8 +129,15 @@ public final class DatabaseQueryEngine {
         return (int) endIndex;
     }
 
-    private static DatabaseCategory normalizeCategory(DatabaseCategory category) {
-        return category == null ? DatabaseCategory.ALL : category;
+    private static String normalizeTabId(String tabId, DatabaseTabDirectory tabDirectory) {
+        if (tabDirectory == null) {
+            return DatabaseTabs.isAllTabId(tabId) ? DatabaseTabs.ALL_TAB_ID : DatabaseTabs.normalizeConcreteTarget(tabId);
+        }
+        String resolvedVisibleTabId = tabDirectory.resolveVisibleTabId(tabId);
+        if (resolvedVisibleTabId != null) {
+            return resolvedVisibleTabId;
+        }
+        return tabDirectory.defaultConcreteTab().id();
     }
 
     private static long safeAdd(long left, long right) {
@@ -141,14 +151,14 @@ public final class DatabaseQueryEngine {
     }
 
     private record QueryFingerprint(
-            DatabaseCategory category,
+            String tabId,
             DatabaseSortOption sortOption,
             String normalizedSearchText,
             DatabaseSearchConfig searchConfig
     ) {
-        private static QueryFingerprint of(DatabaseQuery query) {
+        private static QueryFingerprint of(DatabaseQuery query, String tabId) {
             return new QueryFingerprint(
-                    normalizeCategory(query.category()),
+                    normalizeTabId(tabId, null),
                     query.sortOption(),
                     SearchTextNormalizer.normalizeQueryText(query.searchText()),
                     query.searchConfig()
@@ -195,23 +205,19 @@ public final class DatabaseQueryEngine {
             );
         }
 
-        private DatabaseCategory category() {
-            return this.entry.category();
-        }
-
         private DatabasePageEntry toPageEntry() {
             return new DatabasePageEntry(
                     this.key,
-                    new VisibleDatabaseEntry(this.displayStack.copyWithCount(1), this.entry.amount(), this.entry.category(), this.key.registryName())
+                    new VisibleDatabaseEntry(this.displayStack.copyWithCount(1), this.entry.amount(), this.entry.tabId(), this.key.registryName())
             );
         }
     }
 
     private static final class DatabaseRuntimeIndex {
         private final long revision;
-        private final EnumMap<DatabaseCategory, List<DatabaseRuntimeEntryRecord>> categoryBuckets;
-        private final EnumMap<DatabaseCategory, Long> categoryTotals;
-        private final EnumMap<DatabaseCategory, EnumMap<DatabaseSortOption, CachedQueryResult>> noSearchSortedCache = new EnumMap<>(DatabaseCategory.class);
+        private final Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets;
+        private final Map<String, Long> tabTotals;
+        private final Map<String, java.util.EnumMap<DatabaseSortOption, CachedQueryResult>> noSearchSortedCache = new LinkedHashMap<>();
         private final LinkedHashMap<QueryFingerprint, CachedQueryResult> searchCache =
                 new LinkedHashMap<>(16, 0.75F, true) {
                     @Override
@@ -222,34 +228,34 @@ public final class DatabaseQueryEngine {
 
         private DatabaseRuntimeIndex(
                 long revision,
-                EnumMap<DatabaseCategory, List<DatabaseRuntimeEntryRecord>> categoryBuckets,
-                EnumMap<DatabaseCategory, Long> categoryTotals
+                Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets,
+                Map<String, Long> tabTotals
         ) {
             this.revision = Math.max(0L, revision);
-            this.categoryBuckets = categoryBuckets;
-            this.categoryTotals = categoryTotals;
+            this.tabBuckets = tabBuckets;
+            this.tabTotals = tabTotals;
         }
 
         private long revision() {
             return this.revision;
         }
 
-        private List<DatabaseRuntimeEntryRecord> recordsFor(DatabaseCategory category) {
-            return this.categoryBuckets.getOrDefault(normalizeCategory(category), List.of());
+        private List<DatabaseRuntimeEntryRecord> recordsFor(String tabId) {
+            return this.tabBuckets.getOrDefault(normalizeTabId(tabId, null), List.of());
         }
 
-        private long totalItemsFor(DatabaseCategory category) {
-            return this.categoryTotals.getOrDefault(normalizeCategory(category), 0L);
+        private long totalItemsFor(String tabId) {
+            return this.tabTotals.getOrDefault(normalizeTabId(tabId, null), 0L);
         }
 
         private CachedQueryResult noSearchResult(
-                DatabaseCategory category,
+                String tabId,
                 DatabaseSortOption sortOption,
                 Supplier<CachedQueryResult> builder
         ) {
-            EnumMap<DatabaseSortOption, CachedQueryResult> categoryCache =
-                    this.noSearchSortedCache.computeIfAbsent(normalizeCategory(category), ignored -> new EnumMap<>(DatabaseSortOption.class));
-            return categoryCache.computeIfAbsent(sortOption, ignored -> builder.get());
+            java.util.EnumMap<DatabaseSortOption, CachedQueryResult> tabCache =
+                    this.noSearchSortedCache.computeIfAbsent(normalizeTabId(tabId, null), ignored -> new java.util.EnumMap<>(DatabaseSortOption.class));
+            return tabCache.computeIfAbsent(sortOption, ignored -> builder.get());
         }
 
         private CachedQueryResult searchResult(QueryFingerprint fingerprint) {
@@ -261,27 +267,25 @@ public final class DatabaseQueryEngine {
         }
 
         private static DatabaseRuntimeIndex build(StoredItemDatabase database) {
-            EnumMap<DatabaseCategory, List<DatabaseRuntimeEntryRecord>> categoryBuckets = new EnumMap<>(DatabaseCategory.class);
-            EnumMap<DatabaseCategory, Long> categoryTotals = new EnumMap<>(DatabaseCategory.class);
-            for (DatabaseCategory category : DatabaseCategory.values()) {
-                categoryBuckets.put(category, new ArrayList<>());
-                categoryTotals.put(category, 0L);
-            }
+            Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets = new LinkedHashMap<>();
+            Map<String, Long> tabTotals = new LinkedHashMap<>();
+            tabBuckets.put(DatabaseTabs.ALL_TAB_ID, new ArrayList<>());
+            tabTotals.put(DatabaseTabs.ALL_TAB_ID, 0L);
 
             for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
                 DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue());
-                DatabaseCategory category = normalizeCategory(record.category());
-                categoryBuckets.get(DatabaseCategory.ALL).add(record);
-                categoryBuckets.get(category).add(record);
-                categoryTotals.put(DatabaseCategory.ALL, safeAdd(categoryTotals.get(DatabaseCategory.ALL), record.entry().amount()));
-                categoryTotals.put(category, safeAdd(categoryTotals.get(category), record.entry().amount()));
+                String tabId = DatabaseTabs.normalizeConcreteTarget(record.entry().tabId());
+                tabBuckets.computeIfAbsent(tabId, ignored -> new ArrayList<>()).add(record);
+                tabBuckets.get(DatabaseTabs.ALL_TAB_ID).add(record);
+                tabTotals.put(tabId, safeAdd(tabTotals.getOrDefault(tabId, 0L), record.entry().amount()));
+                tabTotals.put(DatabaseTabs.ALL_TAB_ID, safeAdd(tabTotals.get(DatabaseTabs.ALL_TAB_ID), record.entry().amount()));
             }
 
-            EnumMap<DatabaseCategory, List<DatabaseRuntimeEntryRecord>> immutableBuckets = new EnumMap<>(DatabaseCategory.class);
-            for (Map.Entry<DatabaseCategory, List<DatabaseRuntimeEntryRecord>> entry : categoryBuckets.entrySet()) {
+            Map<String, List<DatabaseRuntimeEntryRecord>> immutableBuckets = new LinkedHashMap<>();
+            for (Map.Entry<String, List<DatabaseRuntimeEntryRecord>> entry : tabBuckets.entrySet()) {
                 immutableBuckets.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
-            return new DatabaseRuntimeIndex(database.revision(), immutableBuckets, categoryTotals);
+            return new DatabaseRuntimeIndex(database.revision(), Map.copyOf(immutableBuckets), Map.copyOf(tabTotals));
         }
     }
 }

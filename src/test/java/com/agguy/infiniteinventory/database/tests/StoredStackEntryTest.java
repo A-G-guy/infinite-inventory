@@ -1,7 +1,7 @@
 package com.agguy.infiniteinventory.database.tests;
 
-import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StoredStackEntryTest {
     @Test
     void addAndRemoveShouldUpdateAmountAndSequence() {
-        StoredStackEntry entry = new StoredStackEntry(DatabaseCategory.MATERIALS, 10L, 2L);
+        StoredStackEntry entry = new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 10L, 2L);
 
         entry.add(5L, 4L);
         assertEquals(15L, entry.amount());
@@ -24,7 +24,7 @@ class StoredStackEntryTest {
 
     @Test
     void addShouldSaturateAtLongMaxValue() {
-        StoredStackEntry entry = new StoredStackEntry(DatabaseCategory.MATERIALS, Long.MAX_VALUE - 2L, 1L);
+        StoredStackEntry entry = new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, Long.MAX_VALUE - 2L, 1L);
 
         entry.add(10L, 3L);
 
@@ -34,7 +34,7 @@ class StoredStackEntryTest {
 
     @Test
     void removeShouldClampAndMarkEmpty() {
-        StoredStackEntry entry = new StoredStackEntry(DatabaseCategory.OTHER, 3L, 1L);
+        StoredStackEntry entry = new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 3L, 1L);
 
         long removed = entry.remove(99L, 5L);
 

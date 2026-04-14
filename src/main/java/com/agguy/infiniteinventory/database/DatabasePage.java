@@ -3,9 +3,19 @@ package com.agguy.infiniteinventory.database;
 import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
-public record DatabasePage(DatabaseQuery query, int totalEntries, int totalPages, long totalItems, List<DatabasePageEntry> entries) {
+public record DatabasePage(
+        DatabaseTab tab,
+        int pageIndex,
+        int pageSize,
+        int totalEntries,
+        int totalPages,
+        long totalItems,
+        List<DatabasePageEntry> entries
+) {
     public DatabasePage {
-        query = query == null ? DatabaseQuery.defaultQuery() : query;
+        tab = tab == null ? DatabaseTabs.allTab() : tab;
+        pageIndex = Math.max(0, pageIndex);
+        pageSize = Math.max(1, pageSize);
         totalEntries = Math.max(0, totalEntries);
         totalPages = Math.max(1, totalPages);
         totalItems = Math.max(0L, totalItems);
@@ -20,24 +30,11 @@ public record DatabasePage(DatabaseQuery query, int totalEntries, int totalPages
         return this.entries.get(slotIndex);
     }
 
-    public DatabaseViewState toViewState(int containerId, long sessionId, DatabaseQuery personalQuery, DatabaseQuery publicQuery) {
-        return this.toViewState(containerId, sessionId, personalQuery, publicQuery, DatabaseEnhancementConfig.defaultConfig());
-    }
-
-    public DatabaseViewState toViewState(
-            int containerId,
-            long sessionId,
-            DatabaseQuery personalQuery,
-            DatabaseQuery publicQuery,
-            DatabaseEnhancementConfig enhancementConfig
-    ) {
-        return new DatabaseViewState(
-                containerId,
-                sessionId,
-                this.query,
-                personalQuery,
-                publicQuery,
-                enhancementConfig,
+    public DatabasePanelView toPanelView() {
+        return new DatabasePanelView(
+                this.tab,
+                this.pageIndex,
+                this.pageSize,
                 this.totalEntries,
                 this.totalPages,
                 this.totalItems,

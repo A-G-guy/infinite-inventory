@@ -4,6 +4,7 @@ import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseItemClassifier;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
@@ -93,7 +94,7 @@ class DatabaseStorageSavedDataTest {
         DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(currentRoot, null);
 
         assertFalse(restored.publicDatabase().needsResave());
-        assertFalse(restored.hasPersonalDatabase(playerId));
+        assertTrue(restored.hasPersonalDatabase(playerId));
         assertTrue(restored.isDirty());
     }
 
@@ -103,9 +104,9 @@ class DatabaseStorageSavedDataTest {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
         var key = DatabaseTestReflectionHelper.fakeKey("test:material");
 
-        DatabaseTestReflectionHelper.forceEntry(storage.publicDatabase(), key, new StoredStackEntry(DatabaseCategory.MATERIALS, 12L, 4L));
-        storage.publicDatabase().mergeFrom(this.databaseWithEntry(key, new StoredStackEntry(DatabaseCategory.MATERIALS, 5L, 6L)));
-        DatabaseTestReflectionHelper.forceEntry(storage.personalDatabase(playerId), key, new StoredStackEntry(DatabaseCategory.MATERIALS, 3L, 8L));
+        DatabaseTestReflectionHelper.forceEntry(storage.publicDatabase(), key, new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 12L, 4L));
+        storage.publicDatabase().mergeFrom(this.databaseWithEntry(key, new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 5L, 6L)));
+        DatabaseTestReflectionHelper.forceEntry(storage.personalDatabase(playerId), key, new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 3L, 8L));
 
         assertEquals(17L, storage.publicDatabase().getAmount(key));
         assertEquals(3L, storage.personalDatabaseView(playerId).getAmount(key));
