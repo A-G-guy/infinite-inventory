@@ -67,27 +67,10 @@ final class PersonalDatabaseScreenManagementLogic {
     }
 
     static boolean canSaveSelectedTab(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
-        if (selectedTab == null) {
-            return false;
-        }
-        if (hasNameChange(screen, selectedTab)) {
-            return true;
-        }
-        return hasIconChange(screen, selectedTab);
+        return hasNameChange(screen, selectedTab);
     }
 
     static Component managementPrimaryActionLabel(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
-        if (selectedTab == null) {
-            return Component.translatable("screen.infiniteinventory.management.rename");
-        }
-        boolean nameChanged = hasNameChange(screen, selectedTab);
-        boolean iconChanged = hasIconChange(screen, selectedTab);
-        if (nameChanged && iconChanged) {
-            return Component.translatable("screen.infiniteinventory.management.save_changes");
-        }
-        if (iconChanged) {
-            return Component.translatable("screen.infiniteinventory.management.apply_icon");
-        }
         return Component.translatable("screen.infiniteinventory.management.rename");
     }
 
@@ -95,7 +78,6 @@ final class PersonalDatabaseScreenManagementLogic {
         if (selectedTab == null) {
             return false;
         }
-        boolean changed = false;
         String draftName = managementDraftName(screen);
         if (hasNameChange(screen, selectedTab)) {
             PersonalDatabaseScreenManagementHelper.sendTabMutation(
@@ -106,20 +88,24 @@ final class PersonalDatabaseScreenManagementLogic {
                     draftName,
                     ""
             );
-            changed = true;
+            return true;
         }
-        if (!Objects.equals(screen.pendingIconItemId, selectedTab.iconItemId())) {
-            PersonalDatabaseScreenManagementHelper.sendTabMutation(
-                    screen,
-                    DatabaseTabMutationAction.CHANGE_ICON,
-                    selectedTab.id(),
-                    "",
-                    "",
-                    screen.pendingIconItemId
-            );
-            changed = true;
+        return false;
+    }
+
+    static boolean applySelectedTabIcon(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        if (selectedTab == null || !hasIconChange(screen, selectedTab)) {
+            return false;
         }
-        return changed;
+        PersonalDatabaseScreenManagementHelper.sendTabMutation(
+                screen,
+                DatabaseTabMutationAction.CHANGE_ICON,
+                selectedTab.id(),
+                "",
+                "",
+                screen.pendingIconItemId
+        );
+        return true;
     }
 
     static void closeIconPicker(PersonalDatabaseScreen screen, boolean applySelection) {
@@ -134,13 +120,6 @@ final class PersonalDatabaseScreenManagementLogic {
 
     static String managementDraftName(PersonalDatabaseScreen screen) {
         return screen.managementNameBox == null ? "" : screen.managementNameBox.getValue().trim();
-    }
-
-    static String addTabDraftName(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
-        if (!hasNameChange(screen, selectedTab)) {
-            return "";
-        }
-        return managementDraftName(screen);
     }
 
     private static boolean hasNameChange(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {

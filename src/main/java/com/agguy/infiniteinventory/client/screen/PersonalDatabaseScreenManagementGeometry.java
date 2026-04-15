@@ -55,6 +55,17 @@ final class PersonalDatabaseScreenManagementGeometry {
         return new PersonalDatabaseLayout.Rect(nameFieldRect.x(), nameFieldRect.bottom() + 22, nameFieldRect.width(), 20);
     }
 
+    static PersonalDatabaseLayout.Rect managementTopLevelAddButtonRect(PersonalDatabaseScreen screen) {
+        PersonalDatabaseLayout.Rect panelRect = tabManagementPanelRect(screen);
+        PersonalDatabaseLayout.Rect closeRect = PersonalDatabaseScreenGeometry.overlayCloseButtonRect(panelRect);
+        return new PersonalDatabaseLayout.Rect(
+                closeRect.x() - PersonalDatabaseScreen.MANAGEMENT_BUTTON_WIDTH - 6,
+                closeRect.y(),
+                PersonalDatabaseScreen.MANAGEMENT_BUTTON_WIDTH,
+                closeRect.height()
+        );
+    }
+
     static PersonalDatabaseLayout.Rect managementActionButtonRect(PersonalDatabaseScreen screen, int row, int column) {
         PersonalDatabaseLayout.Rect iconFieldRect = managementIconFieldRect(screen);
         int x = iconFieldRect.x() + column * (PersonalDatabaseScreen.MANAGEMENT_BUTTON_WIDTH + 8);
