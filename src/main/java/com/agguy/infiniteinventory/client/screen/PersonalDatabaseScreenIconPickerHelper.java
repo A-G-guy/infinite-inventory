@@ -365,10 +365,6 @@ final class PersonalDatabaseScreenIconPickerHelper {
     }
 
     private static void applyAndClose(PersonalDatabaseScreen screen) {
-        screen.iconPickerOriginalItemId = screen.pendingIconItemId;
-        screen.iconPickerExpanded = false;
-        if (screen.iconSearchBox != null) {
-            screen.iconSearchBox.setFocused(false);
-        }
+        PersonalDatabaseScreenManagementHelper.applyIconPickerSelection(screen);
     }
 }

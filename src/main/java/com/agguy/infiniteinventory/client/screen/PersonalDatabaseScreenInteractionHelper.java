@@ -114,11 +114,7 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if (screen.iconPickerExpanded) {
-                if (screen.iconSearchBox != null) {
-                    screen.iconSearchBox.setFocused(false);
-                }
-                screen.iconPickerOriginalItemId = screen.pendingIconItemId;
-                screen.iconPickerExpanded = false;
+                PersonalDatabaseScreenManagementHelper.applyIconPickerSelection(screen);
                 return true;
             }
             if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleManagementEnter(screen)) {
