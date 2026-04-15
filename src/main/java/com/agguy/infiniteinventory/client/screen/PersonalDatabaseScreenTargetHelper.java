@@ -82,7 +82,13 @@ final class PersonalDatabaseScreenTargetHelper {
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                 false
         );
-        guiGraphics.fill(panelRect.x() + 8, panelRect.y() + 20, panelRect.right() - 8, panelRect.y() + 21, 0x70A89E8C);
+        guiGraphics.fill(
+                panelRect.x() + 8,
+                panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
+                panelRect.right() - 8,
+                panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
+                0x70A89E8C
+        );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
         List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);

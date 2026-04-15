@@ -44,14 +44,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int SEARCH_TEXT_LEFT_PADDING = 18;
     static final int ADVANCED_SEARCH_PANEL_WIDTH = 236;
     static final int ADVANCED_SEARCH_PANEL_PADDING = 6;
-    static final int ADVANCED_SEARCH_TITLE_HEIGHT = 12;
+    static final int ADVANCED_SEARCH_TITLE_HEIGHT = 22;
     static final int ADVANCED_SEARCH_ROW_HEIGHT = 20;
     static final int ADVANCED_SEARCH_ROW_GAP = 2;
     static final int ADVANCED_SEARCH_TOGGLE_WIDTH = 24;
     static final int ADVANCED_SEARCH_WEIGHT_WIDTH = 40;
     static final int ENHANCEMENT_PANEL_WIDTH = 236;
     static final int ENHANCEMENT_PANEL_PADDING = 6;
-    static final int ENHANCEMENT_TITLE_HEIGHT = 12;
+    static final int ENHANCEMENT_TITLE_HEIGHT = 22;
     static final int ENHANCEMENT_ROW_HEIGHT = 20;
     static final int ENHANCEMENT_ROW_GAP = 2;
     static final int ENHANCEMENT_TOGGLE_WIDTH = 24;
@@ -68,7 +68,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int ICON_PICKER_WIDTH = 900;
     static final int ICON_PICKER_HEIGHT = 620;
     static final int MANAGEMENT_PANEL_PADDING = 8;
-    static final int OVERLAY_SECTION_TITLE_HEIGHT = 12;
+    static final int OVERLAY_SECTION_TITLE_HEIGHT = 22;
     static final int INLINE_TAB_MIN_WIDTH = 88;
     static final int INLINE_TAB_MIN_WIDTH_WITH_MORE = 72;
     static final int INLINE_TAB_TIGHT_GAP = 2;

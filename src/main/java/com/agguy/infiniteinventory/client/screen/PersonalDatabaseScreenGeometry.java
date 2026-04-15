@@ -11,7 +11,7 @@ final class PersonalDatabaseScreenGeometry {
     private static final int PANEL_HEADER_TITLE_HEIGHT = 14;
     private static final int PANEL_HEADER_ROW_GAP = 4;
     private static final int PANEL_SORT_BUTTON_WIDTH = 108;
-    private static final int OVERLAY_CLOSE_BUTTON_SIZE = 16;
+    private static final int OVERLAY_CLOSE_BUTTON_SIZE = PersonalDatabaseLayout.CONTROL_HEIGHT;
     private static final int OVERLAY_CLOSE_BUTTON_MARGIN = 4;
 
     private PersonalDatabaseScreenGeometry() {
