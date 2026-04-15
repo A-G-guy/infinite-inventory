@@ -367,7 +367,7 @@ final class PersonalDatabaseScreenManagementHelper {
                     DatabaseTabMutationAction.ADD,
                     "",
                     "",
-                    PersonalDatabaseScreenManagementLogic.managementDraftName(screen),
+                    PersonalDatabaseScreenManagementLogic.addTabDraftName(screen, selectedTab),
                     screen.pendingIconItemId
             );
             return true;

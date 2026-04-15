@@ -10,6 +10,7 @@ public final class DatabaseTabs {
     public static final String DEFAULT_TAB_ID = "__default";
     public static final String ALL_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.all";
     public static final String DEFAULT_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.default";
+    public static final String NEW_CUSTOM_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.new_custom";
     public static final String DEFAULT_ALL_ICON_ITEM_ID = "minecraft:compass";
     public static final String DEFAULT_CONCRETE_ICON_ITEM_ID = "minecraft:writable_book";
     public static final int MAX_VISIBLE_TAB_COUNT = 4;

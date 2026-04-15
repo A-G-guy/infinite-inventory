@@ -97,18 +97,21 @@ public final class DatabaseTabDirectory {
     }
 
     public DatabaseTab addCustomTab(String name, String iconItemId) {
-        DatabaseTab newTab = new DatabaseTab(
-                DatabaseTabs.newCustomTabId(),
-                DatabaseTabs.normalizeTabName(name, ""),
-                "",
-                iconItemId,
-                false,
-                false
-        );
-        if (newTab.customName().isBlank()) {
+        String normalizedName = DatabaseTabs.normalizeTabName(name, "");
+        DatabaseTab newTab;
+        if (normalizedName.isBlank()) {
             newTab = new DatabaseTab(
-                    newTab.id(),
-                    "新建分类",
+                    DatabaseTabs.newCustomTabId(),
+                    "",
+                    DatabaseTabs.NEW_CUSTOM_TAB_TRANSLATION_KEY,
+                    iconItemId,
+                    false,
+                    false
+            );
+        } else {
+            newTab = new DatabaseTab(
+                    DatabaseTabs.newCustomTabId(),
+                    normalizedName,
                     "",
                     iconItemId,
                     false,
