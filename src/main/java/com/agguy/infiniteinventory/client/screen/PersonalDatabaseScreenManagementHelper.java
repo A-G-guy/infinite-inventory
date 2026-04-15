@@ -12,6 +12,9 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 final class PersonalDatabaseScreenManagementHelper {
+    private static final int MANAGEMENT_NAME_TEXT_LEFT_PADDING = 7;
+    private static final int MANAGEMENT_NAME_TEXT_RIGHT_PADDING = 6;
+
     private PersonalDatabaseScreenManagementHelper() {
     }
 
@@ -27,8 +30,8 @@ final class PersonalDatabaseScreenManagementHelper {
             ));
             screen.managementNameBox.setBordered(false);
             screen.managementNameBox.setMaxLength(DatabaseTabs.MAX_TAB_NAME_LENGTH);
-            screen.managementNameBox.setTextColor(0x303030);
-            screen.managementNameBox.setTextColorUneditable(0x606060);
+            screen.managementNameBox.setTextColor(PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR);
+            screen.managementNameBox.setTextColorUneditable(PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR);
             screen.managementNameBox.visible = false;
         }
         if (screen.iconSearchBox == null) {
@@ -67,9 +70,12 @@ final class PersonalDatabaseScreenManagementHelper {
         }
 
         PersonalDatabaseLayout.Rect nameFieldRect = PersonalDatabaseScreenManagementGeometry.managementNameFieldRect(screen);
-        screen.managementNameBox.setX(nameFieldRect.x() + 4);
+        screen.managementNameBox.setX(nameFieldRect.x() + MANAGEMENT_NAME_TEXT_LEFT_PADDING);
         screen.managementNameBox.setY(nameFieldRect.y() + 4);
-        screen.managementNameBox.setWidth(Math.max(1, nameFieldRect.width() - 8));
+        screen.managementNameBox.setWidth(Math.max(
+                1,
+                nameFieldRect.width() - MANAGEMENT_NAME_TEXT_LEFT_PADDING - MANAGEMENT_NAME_TEXT_RIGHT_PADDING
+        ));
         screen.managementNameBox.setHeight(12);
         screen.managementNameBox.visible = screen.tabManagementExpanded && !childOverlayExpanded;
         screen.managementNameBox.active = selectedTab.canRename() && !childOverlayExpanded;
