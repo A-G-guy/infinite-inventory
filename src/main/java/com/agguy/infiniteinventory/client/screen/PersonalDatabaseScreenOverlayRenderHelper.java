@@ -227,7 +227,6 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 250.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, dropdownRect);
-        renderOverlayCloseButton(screen, guiGraphics, dropdownRect, mouseX, mouseY);
         List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
         for (int index = 0; index < sortOptions.size(); index++) {
             DatabaseSortOption option = sortOptions.get(index);
@@ -268,7 +267,6 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 255.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, pickerRect);
-        renderOverlayCloseButton(screen, guiGraphics, pickerRect, mouseX, mouseY);
         for (int index = 0; index < options.size(); index++) {
             DatabasePagePickerModel.PageOption option = options.get(index);
             PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(

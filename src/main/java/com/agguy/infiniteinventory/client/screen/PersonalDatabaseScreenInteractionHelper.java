@@ -171,11 +171,6 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (dropdownRect == null) {
             return false;
         }
-        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(dropdownRect, mouseX, mouseY)) {
-            screen.sortDropdownExpanded = false;
-            screen.activeSortPanelIndex = -1;
-            return true;
-        }
         int panelIndex = PersonalDatabaseScreenCommonHelper.activeSortPanelIndex(screen);
         if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             screen.sortDropdownExpanded = false;
@@ -214,11 +209,6 @@ final class PersonalDatabaseScreenInteractionHelper {
             return false;
         }
         PersonalDatabaseLayout.Rect pickerRect = PersonalDatabaseScreenGeometry.pagePickerRect(screen);
-        if (pickerRect != null && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(pickerRect, mouseX, mouseY)) {
-            screen.pagePickerExpanded = false;
-            screen.activePagePickerPanelIndex = -1;
-            return true;
-        }
         int panelIndex = PersonalDatabaseScreenCommonHelper.activePagePickerPanelIndex(screen);
         if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             screen.pagePickerExpanded = false;

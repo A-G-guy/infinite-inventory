@@ -235,7 +235,6 @@ final class PersonalDatabaseScreenTabHelper {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 253.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
-        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
         List<DatabaseTab> tabs = hiddenTopTabs(screen);
         for (int index = 0; index < tabs.size(); index++) {
             DatabaseTab tab = tabs.get(index);
@@ -352,10 +351,6 @@ final class PersonalDatabaseScreenTabHelper {
             return true;
         }
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
-        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
-            screen.moreTabsExpanded = false;
-            return true;
-        }
         if (!panelRect.contains(mouseX, mouseY)) {
             screen.moreTabsExpanded = false;
             return true;
