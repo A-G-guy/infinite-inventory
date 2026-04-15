@@ -136,7 +136,17 @@ final class PersonalDatabaseScreenManagementLogic {
         return screen.managementNameBox == null ? "" : screen.managementNameBox.getValue().trim();
     }
 
+    static String addTabDraftName(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        if (!hasNameChange(screen, selectedTab)) {
+            return "";
+        }
+        return managementDraftName(screen);
+    }
+
     private static boolean hasNameChange(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        if (selectedTab == null) {
+            return false;
+        }
         return selectedTab.canRename()
                 && !managementDraftName(screen).equals(PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab));
     }
