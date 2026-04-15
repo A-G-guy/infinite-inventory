@@ -148,6 +148,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     String lastUiSignature = "";
     boolean pendingTargetStoresSingle;
     TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
+    int targetSelectorScrollIndex;
 
     enum TargetSelectorMode {
         NONE,
@@ -194,6 +195,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.targetSelectorExpanded = false;
         this.tabManagementExpanded = false;
         this.iconPickerExpanded = false;
+        this.targetSelectorScrollIndex = 0;
         PersonalDatabaseScreenContextHelper.closeContextMenu(this);
         PersonalDatabaseScreenWidgetHelper.buildWidgets(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);

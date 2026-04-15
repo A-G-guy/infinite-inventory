@@ -38,6 +38,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.pendingTargetPanelIndex = panelIndex;
         screen.pendingQuickDepositSlotIndex = slotIndex;
         screen.pendingTargetSourceTabId = sourceTabId == null ? "" : sourceTabId;
+        screen.targetSelectorScrollIndex = 0;
         screen.targetSelectorExpanded = true;
     }
 
@@ -48,6 +49,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.pendingQuickDepositSlotIndex = -1;
         screen.pendingTargetSourceTabId = "";
         screen.pendingTargetStoresSingle = false;
+        screen.targetSelectorScrollIndex = 0;
     }
 
     static void closeTransientOverlays(PersonalDatabaseScreen screen) {
@@ -83,6 +85,7 @@ final class PersonalDatabaseScreenTargetHelper {
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
         List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
+        List<DatabaseTab> visibleTabs = visibleTargetSelectorTabs(screen, candidateTabs);
         if (candidateTabs.isEmpty()) {
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
@@ -100,8 +103,8 @@ final class PersonalDatabaseScreenTargetHelper {
         String selectedTargetTabId = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
                 ? screen.databaseMenu.viewState().autoStoreTargetTabId()
                 : "";
-        for (int index = 0; index < candidateTabs.size(); index++) {
-            DatabaseTab tab = candidateTabs.get(index);
+        for (int index = 0; index < visibleTabs.size(); index++) {
+            DatabaseTab tab = visibleTabs.get(index);
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
                     panelRect,
                     index,
@@ -141,7 +144,8 @@ final class PersonalDatabaseScreenTargetHelper {
             return true;
         }
         List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
-        for (int index = 0; index < candidateTabs.size(); index++) {
+        List<DatabaseTab> visibleTabs = visibleTargetSelectorTabs(screen, candidateTabs);
+        for (int index = 0; index < visibleTabs.size(); index++) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
                     panelRect,
                     index,
@@ -150,9 +154,24 @@ final class PersonalDatabaseScreenTargetHelper {
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;
             }
-            applyTargetSelection(screen, candidateTabs.get(index).id());
+            applyTargetSelection(screen, visibleTabs.get(index).id());
             return true;
         }
+        return true;
+    }
+
+    static boolean scrollTargetSelector(PersonalDatabaseScreen screen, int deltaRows) {
+        if (!screen.targetSelectorExpanded || deltaRows == 0) {
+            return false;
+        }
+        List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
+        int maxVisibleRows = maxVisibleRows(screen);
+        int maxScrollIndex = Math.max(0, candidateTabs.size() - maxVisibleRows);
+        int nextScrollIndex = Math.max(0, Math.min(maxScrollIndex, screen.targetSelectorScrollIndex + deltaRows));
+        if (nextScrollIndex == screen.targetSelectorScrollIndex) {
+            return false;
+        }
+        screen.targetSelectorScrollIndex = nextScrollIndex;
         return true;
     }
 
@@ -285,5 +304,28 @@ final class PersonalDatabaseScreenTargetHelper {
     private static boolean isQuickDepositSlot(PersonalDatabaseScreen screen, int slotIndex, Slot slot) {
         return screen.databaseMenu.isAccessorySlotIndex(slotIndex)
                 || (slot.container instanceof Inventory && slot.getContainerSlot() >= 0 && slot.getContainerSlot() < 36);
+    }
+
+    private static List<DatabaseTab> visibleTargetSelectorTabs(PersonalDatabaseScreen screen, List<DatabaseTab> candidateTabs) {
+        if (candidateTabs.isEmpty()) {
+            return List.of();
+        }
+        int maxVisibleRows = maxVisibleRows(screen);
+        int maxScrollIndex = Math.max(0, candidateTabs.size() - maxVisibleRows);
+        screen.targetSelectorScrollIndex = Math.max(0, Math.min(maxScrollIndex, screen.targetSelectorScrollIndex));
+        int fromIndex = Math.min(candidateTabs.size(), screen.targetSelectorScrollIndex);
+        int toIndex = Math.min(candidateTabs.size(), fromIndex + maxVisibleRows);
+        return candidateTabs.subList(fromIndex, toIndex);
+    }
+
+    private static int maxVisibleRows(PersonalDatabaseScreen screen) {
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.targetSelectorRect(screen);
+        int contentTop = panelRect.y()
+                + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                + 8;
+        int contentBottom = panelRect.bottom() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING;
+        int availableHeight = Math.max(0, contentBottom - contentTop);
+        return Math.max(1, availableHeight / PersonalDatabaseScreen.TARGET_SELECTOR_ROW_HEIGHT);
     }
 }

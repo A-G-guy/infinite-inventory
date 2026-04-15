@@ -93,6 +93,11 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean mouseScrolled(PersonalDatabaseScreen screen, double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (screen.targetSelectorExpanded
+                && PersonalDatabaseScreenGeometry.targetSelectorRect(screen).contains(mouseX, mouseY)
+                && PersonalDatabaseScreenTargetHelper.scrollTargetSelector(screen, (int) -Math.signum(scrollY))) {
+            return true;
+        }
         if (screen.accessoriesExpanded
                 && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)
                 && PersonalDatabaseScreenLayoutHelper.scrollAccessories(screen, (int) -Math.signum(scrollY))) {
