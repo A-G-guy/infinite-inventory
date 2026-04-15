@@ -56,81 +56,38 @@ final class PersonalDatabaseLayoutFactory {
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         int toolbarY = titleRect.bottom() + PersonalDatabaseLayout.TITLE_GAP;
-        PersonalDatabaseLayout.Rect toolbarRect = new PersonalDatabaseLayout.Rect(
-                frameRect.x() + PersonalDatabaseLayout.INNER_PADDING,
-                toolbarY,
-                Math.max(1, frameRect.width() - PersonalDatabaseLayout.INNER_PADDING * 2),
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-
-        int toolbarLeft = toolbarRect.x();
-        int toolbarRight = toolbarRect.right();
-        PersonalDatabaseLayout.Rect previousPageButtonRect = new PersonalDatabaseLayout.Rect(
-                toolbarRight - PersonalDatabaseLayout.PAGE_CONTROLS_WIDTH,
-                toolbarY,
-                PersonalDatabaseLayout.PAGE_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect pageLabelRect = new PersonalDatabaseLayout.Rect(
-                previousPageButtonRect.right() + PersonalDatabaseLayout.PAGE_BUTTON_GAP,
-                toolbarY,
-                PersonalDatabaseLayout.PAGE_LABEL_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect nextPageButtonRect = new PersonalDatabaseLayout.Rect(
-                pageLabelRect.right() + PersonalDatabaseLayout.PAGE_BUTTON_GAP,
-                toolbarY,
-                PersonalDatabaseLayout.PAGE_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
-                previousPageButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH,
-                toolbarY,
-                PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect sortButtonRect = new PersonalDatabaseLayout.Rect(
-                depositButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.SORT_BUTTON_WIDTH,
-                toolbarY,
-                PersonalDatabaseLayout.SORT_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
+        PersonalDatabaseLayout.Rect toolbarRect = PersonalDatabaseLayout.Rect.empty();
+        PersonalDatabaseLayout.Rect searchFieldRect = PersonalDatabaseLayout.Rect.empty();
         PersonalDatabaseLayout.Rect tabManagementButtonRect = new PersonalDatabaseLayout.Rect(
-                sortButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
-                toolbarY,
+                personalScopeButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
+                titleRect.y(),
                 PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         PersonalDatabaseLayout.Rect viewSelectorButtonRect = new PersonalDatabaseLayout.Rect(
                 tabManagementButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH,
-                toolbarY,
+                titleRect.y(),
                 PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         PersonalDatabaseLayout.Rect enhancementButtonRect = new PersonalDatabaseLayout.Rect(
                 viewSelectorButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.ENHANCEMENT_BUTTON_WIDTH,
-                toolbarY,
+                titleRect.y(),
                 PersonalDatabaseLayout.ENHANCEMENT_BUTTON_WIDTH,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         PersonalDatabaseLayout.Rect advancedSearchButtonRect = new PersonalDatabaseLayout.Rect(
                 enhancementButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.ADVANCED_SEARCH_BUTTON_WIDTH,
-                toolbarY,
+                titleRect.y(),
                 PersonalDatabaseLayout.ADVANCED_SEARCH_BUTTON_WIDTH,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
-        int searchWidth = Math.max(
-                PersonalDatabaseLayout.SEARCH_MIN_WIDTH,
-                advancedSearchButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - toolbarLeft
-        );
-        PersonalDatabaseLayout.Rect searchFieldRect = new PersonalDatabaseLayout.Rect(
-                toolbarLeft,
-                toolbarY,
-                searchWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
+        PersonalDatabaseLayout.Rect sortButtonRect = PersonalDatabaseLayout.Rect.empty();
+        PersonalDatabaseLayout.Rect previousPageButtonRect = PersonalDatabaseLayout.Rect.empty();
+        PersonalDatabaseLayout.Rect pageLabelRect = PersonalDatabaseLayout.Rect.empty();
+        PersonalDatabaseLayout.Rect nextPageButtonRect = PersonalDatabaseLayout.Rect.empty();
 
-        int contentTop = toolbarRect.bottom() + PersonalDatabaseLayout.SECTION_GAP;
+        int contentTop = titleRect.bottom() + PersonalDatabaseLayout.SECTION_GAP;
         int playerColumnX = frameRect.x() + PersonalDatabaseLayout.INNER_PADDING;
         int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         PersonalDatabaseLayout.Rect equipmentPanelRect = new PersonalDatabaseLayout.Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
@@ -170,6 +127,12 @@ final class PersonalDatabaseLayoutFactory {
                 frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING - PersonalDatabaseLayout.FOOTER_HEIGHT,
                 databasePanelWidth,
                 PersonalDatabaseLayout.FOOTER_HEIGHT
+        );
+        PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
+                databaseFooterRect.right() - PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH,
+                databaseFooterRect.y(),
+                PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH,
+                PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         int databasePanelHeight = Math.max(1, databaseFooterRect.y() - PersonalDatabaseLayout.SECTION_GAP - contentTop);
         PersonalDatabaseLayout.Rect databasePanelRect = new PersonalDatabaseLayout.Rect(

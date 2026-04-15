@@ -53,7 +53,9 @@ final class PersonalDatabaseScreenTargetHelper {
     static void closeTransientOverlays(PersonalDatabaseScreen screen) {
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
         screen.sortDropdownExpanded = false;
+        screen.activeSortPanelIndex = -1;
         screen.pagePickerExpanded = false;
+        screen.activePagePickerPanelIndex = -1;
         screen.enhancementPanelExpanded = false;
         screen.viewSelectorExpanded = false;
         screen.moreTabsExpanded = false;
@@ -75,9 +77,10 @@ final class PersonalDatabaseScreenTargetHelper {
                 panelRect.x() + 8,
                 panelRect.y() + 8,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(panelRect.x() + 8, panelRect.y() + 20, panelRect.right() - 8, panelRect.y() + 21, 0x70A89E8C);
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
         List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
         if (candidateTabs.isEmpty()) {
@@ -118,7 +121,7 @@ final class PersonalDatabaseScreenTargetHelper {
                     rowRect.x() + 24,
                     rowRect.y() + 6,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
         guiGraphics.pose().popPose();
@@ -129,6 +132,10 @@ final class PersonalDatabaseScreenTargetHelper {
             return false;
         }
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.targetSelectorRect(screen);
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
+            closeTargetSelector(screen);
+            return true;
+        }
         if (!panelRect.contains(mouseX, mouseY)) {
             closeTargetSelector(screen);
             return true;

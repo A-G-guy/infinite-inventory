@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.database;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.nbt.CompoundTag;
@@ -12,22 +13,13 @@ public record DatabaseQuery(
         DatabaseScope scope,
         String focusedTabId,
         List<String> visibleTabIds,
-        Map<String, Integer> pageIndexes,
-        Map<String, Integer> pageSizes,
-        DatabaseSortOption sortOption,
-        String searchText,
-        DatabaseSearchConfig searchConfig
+        Map<String, DatabaseTabQueryState> tabStates
 ) {
     private static final String SCOPE_KEY = "scope";
     private static final String FOCUSED_TAB_ID_KEY = "focused_tab_id";
     private static final String VISIBLE_TABS_KEY = "visible_tabs";
-    private static final String PAGE_INDEXES_KEY = "page_indexes";
-    private static final String PAGE_SIZES_KEY = "page_sizes";
-    private static final String SORT_OPTION_KEY = "sort_option";
-    private static final String SEARCH_TEXT_KEY = "search_text";
-    private static final String SEARCH_CONFIG_KEY = "search_config";
+    private static final String TAB_STATES_KEY = "tab_states";
     private static final String VISIBLE_TAB_ID_KEY = "tab_id";
-    private static final String PAGE_VALUE_KEY = "value";
 
     public static final int MAX_SEARCH_LENGTH = 64;
     public static final int DEFAULT_PAGE_SIZE = 54;
@@ -38,11 +30,28 @@ public record DatabaseQuery(
         scope = DatabaseScope.normalize(scope);
         focusedTabId = normalizeTabId(focusedTabId, DatabaseTabs.ALL_TAB_ID);
         visibleTabIds = normalizeVisibleTabIds(visibleTabIds, focusedTabId);
-        pageIndexes = normalizePageValues(pageIndexes, 0);
-        pageSizes = normalizePageValues(pageSizes, DEFAULT_PAGE_SIZE);
-        sortOption = sortOption == null ? DatabaseSortOption.RECENTLY_CHANGED : sortOption;
-        searchText = normalize(searchText);
-        searchConfig = searchConfig == null ? DatabaseSearchConfig.defaultConfig() : searchConfig;
+        if (!visibleTabIds.contains(focusedTabId)) {
+            focusedTabId = visibleTabIds.getFirst();
+        }
+        tabStates = normalizeTabStates(tabStates, visibleTabIds, focusedTabId);
+    }
+
+    public DatabaseQuery(
+            DatabaseScope scope,
+            String focusedTabId,
+            List<String> visibleTabIds,
+            Map<String, Integer> pageIndexes,
+            Map<String, Integer> pageSizes,
+            DatabaseSortOption sortOption,
+            String searchText,
+            DatabaseSearchConfig searchConfig
+    ) {
+        this(
+                scope,
+                focusedTabId,
+                visibleTabIds,
+                buildLegacyTabStates(focusedTabId, visibleTabIds, pageIndexes, pageSizes, sortOption, searchText, searchConfig)
+        );
     }
 
     public static DatabaseQuery defaultQuery() {
@@ -54,11 +63,7 @@ public record DatabaseQuery(
                 scope,
                 DatabaseTabs.ALL_TAB_ID,
                 List.of(DatabaseTabs.ALL_TAB_ID),
-                Map.of(DatabaseTabs.ALL_TAB_ID, 0),
-                Map.of(DatabaseTabs.ALL_TAB_ID, DEFAULT_PAGE_SIZE),
-                DatabaseSortOption.RECENTLY_CHANGED,
-                "",
-                DatabaseSearchConfig.defaultConfig()
+                Map.of(DatabaseTabs.ALL_TAB_ID, DatabaseTabQueryState.defaultState())
         );
     }
 
@@ -70,12 +75,41 @@ public record DatabaseQuery(
         return query.scope() == normalizedScope ? query : query.withScope(normalizedScope);
     }
 
+    public DatabaseTabQueryState tabStateFor(String tabId) {
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.tabStates.getOrDefault(normalizedTabId, DatabaseTabQueryState.defaultState());
+    }
+
+    public DatabaseSortOption sortOptionFor(String tabId) {
+        return this.tabStateFor(tabId).sortOption();
+    }
+
+    public String searchTextFor(String tabId) {
+        return this.tabStateFor(tabId).searchText();
+    }
+
+    public DatabaseSearchConfig searchConfigFor(String tabId) {
+        return this.tabStateFor(tabId).searchConfig();
+    }
+
     public int pageIndexFor(String tabId) {
-        return this.pageIndexes.getOrDefault(normalizeTabId(tabId, this.focusedTabId), 0);
+        return this.tabStateFor(tabId).pageIndex();
     }
 
     public int pageSizeFor(String tabId) {
-        return this.pageSizes.getOrDefault(normalizeTabId(tabId, this.focusedTabId), DEFAULT_PAGE_SIZE);
+        return this.tabStateFor(tabId).pageSize();
+    }
+
+    public DatabaseSortOption sortOption() {
+        return this.sortOptionFor(this.focusedTabId);
+    }
+
+    public String searchText() {
+        return this.searchTextFor(this.focusedTabId);
+    }
+
+    public DatabaseSearchConfig searchConfig() {
+        return this.searchConfigFor(this.focusedTabId);
     }
 
     public int pageIndex() {
@@ -97,30 +131,12 @@ public record DatabaseQuery(
             nextVisibleTabs.clear();
             nextVisibleTabs.add(normalizedFocusedTabId);
         }
-        return new DatabaseQuery(
-                this.scope,
-                normalizedFocusedTabId,
-                nextVisibleTabs,
-                this.pageIndexes,
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        return new DatabaseQuery(this.scope, normalizedFocusedTabId, nextVisibleTabs, this.tabStates);
     }
 
     public DatabaseQuery withSingleVisibleTab(String tabId) {
         String normalizedTabId = normalizeTabId(tabId, DatabaseTabs.ALL_TAB_ID);
-        return new DatabaseQuery(
-                this.scope,
-                normalizedTabId,
-                List.of(normalizedTabId),
-                this.pageIndexes,
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        return new DatabaseQuery(this.scope, normalizedTabId, List.of(normalizedTabId), this.tabStates);
     }
 
     public DatabaseQuery withVisibleTabIds(List<String> newVisibleTabIds) {
@@ -128,85 +144,45 @@ public record DatabaseQuery(
         String normalizedFocusedTabId = normalizedVisibleTabIds.contains(this.focusedTabId)
                 ? this.focusedTabId
                 : normalizedVisibleTabIds.getFirst();
-        return new DatabaseQuery(
-                this.scope,
-                normalizedFocusedTabId,
-                normalizedVisibleTabIds,
-                this.pageIndexes,
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        return new DatabaseQuery(this.scope, normalizedFocusedTabId, normalizedVisibleTabIds, this.tabStates);
+    }
+
+    public DatabaseQuery withTabState(String tabId, DatabaseTabQueryState newState) {
+        LinkedHashMap<String, DatabaseTabQueryState> nextTabStates = new LinkedHashMap<>(this.tabStates);
+        nextTabStates.put(normalizeTabId(tabId, this.focusedTabId), newState == null ? DatabaseTabQueryState.defaultState() : newState);
+        return new DatabaseQuery(this.scope, this.focusedTabId, this.visibleTabIds, nextTabStates);
+    }
+
+    public DatabaseQuery withSortOption(String tabId, DatabaseSortOption newSortOption) {
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.withTabState(normalizedTabId, this.tabStateFor(normalizedTabId).withSortOption(newSortOption));
     }
 
     public DatabaseQuery withSortOption(DatabaseSortOption newSortOption) {
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                this.pageIndexes,
-                this.pageSizes,
-                newSortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        return this.withSortOption(this.focusedTabId, newSortOption);
+    }
+
+    public DatabaseQuery withSearchText(String tabId, String newSearchText) {
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.withTabState(normalizedTabId, this.tabStateFor(normalizedTabId).withSearchText(newSearchText));
     }
 
     public DatabaseQuery withSearchText(String newSearchText) {
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                resetPageIndexes(this.pageIndexes),
-                this.pageSizes,
-                this.sortOption,
-                newSearchText,
-                this.searchConfig
-        );
+        return this.withSearchText(this.focusedTabId, newSearchText);
+    }
+
+    public DatabaseQuery withSearchConfig(String tabId, DatabaseSearchConfig newSearchConfig) {
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.withTabState(normalizedTabId, this.tabStateFor(normalizedTabId).withSearchConfig(newSearchConfig));
     }
 
     public DatabaseQuery withSearchConfig(DatabaseSearchConfig newSearchConfig) {
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                resetPageIndexes(this.pageIndexes),
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                newSearchConfig,
-                true
-        );
-    }
-
-    private DatabaseQuery(
-            DatabaseScope scope,
-            String focusedTabId,
-            List<String> visibleTabIds,
-            Map<String, Integer> pageIndexes,
-            Map<String, Integer> pageSizes,
-            DatabaseSortOption sortOption,
-            String searchText,
-            DatabaseSearchConfig searchConfig,
-            boolean ignored
-    ) {
-        this(scope, focusedTabId, visibleTabIds, pageIndexes, pageSizes, sortOption, searchText, searchConfig);
+        return this.withSearchConfig(this.focusedTabId, newSearchConfig);
     }
 
     public DatabaseQuery withPageIndex(String tabId, int newPageIndex) {
-        LinkedHashMap<String, Integer> nextPageIndexes = new LinkedHashMap<>(this.pageIndexes);
-        nextPageIndexes.put(normalizeTabId(tabId, this.focusedTabId), Math.max(0, newPageIndex));
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                nextPageIndexes,
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.withTabState(normalizedTabId, this.tabStateFor(normalizedTabId).withPageIndex(newPageIndex));
     }
 
     public DatabaseQuery withPageIndex(int newPageIndex) {
@@ -214,18 +190,8 @@ public record DatabaseQuery(
     }
 
     public DatabaseQuery withPageSize(String tabId, int newPageSize) {
-        LinkedHashMap<String, Integer> nextPageSizes = new LinkedHashMap<>(this.pageSizes);
-        nextPageSizes.put(normalizeTabId(tabId, this.focusedTabId), normalizePageSize(newPageSize));
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                this.pageIndexes,
-                nextPageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+        return this.withTabState(normalizedTabId, this.tabStateFor(normalizedTabId).withPageSize(newPageSize));
     }
 
     public DatabaseQuery withPageSize(int newPageSize) {
@@ -233,29 +199,33 @@ public record DatabaseQuery(
     }
 
     public DatabaseQuery withPanelLayout(Map<String, Integer> nextPageIndexes, Map<String, Integer> nextPageSizes) {
-        return new DatabaseQuery(
-                this.scope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                nextPageIndexes,
-                nextPageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        LinkedHashMap<String, DatabaseTabQueryState> nextTabStates = new LinkedHashMap<>(this.tabStates);
+        LinkedHashSet<String> targetTabIds = new LinkedHashSet<>();
+        if (nextPageIndexes != null) {
+            targetTabIds.addAll(nextPageIndexes.keySet());
+        }
+        if (nextPageSizes != null) {
+            targetTabIds.addAll(nextPageSizes.keySet());
+        }
+        for (String tabId : targetTabIds) {
+            String normalizedTabId = normalizeTabId(tabId, this.focusedTabId);
+            DatabaseTabQueryState currentState = this.tabStateFor(normalizedTabId);
+            int nextPageIndex = nextPageIndexes != null && nextPageIndexes.containsKey(tabId)
+                    ? nextPageIndexes.get(tabId)
+                    : currentState.pageIndex();
+            int nextPageSize = nextPageSizes != null && nextPageSizes.containsKey(tabId)
+                    ? nextPageSizes.get(tabId)
+                    : currentState.pageSize();
+            nextTabStates.put(
+                    normalizedTabId,
+                    currentState.withPageIndex(nextPageIndex).withPageSize(nextPageSize)
+            );
+        }
+        return new DatabaseQuery(this.scope, this.focusedTabId, this.visibleTabIds, nextTabStates);
     }
 
     public DatabaseQuery withScope(DatabaseScope newScope) {
-        return new DatabaseQuery(
-                newScope,
-                this.focusedTabId,
-                this.visibleTabIds,
-                this.pageIndexes,
-                this.pageSizes,
-                this.sortOption,
-                this.searchText,
-                this.searchConfig
-        );
+        return new DatabaseQuery(newScope, this.focusedTabId, this.visibleTabIds, this.tabStates);
     }
 
     public static DatabaseQuery read(FriendlyByteBuf buffer) {
@@ -266,12 +236,15 @@ public record DatabaseQuery(
         for (int index = 0; index < visibleTabCount; index++) {
             visibleTabIds.add(buffer.readUtf(MAX_TAB_ID_LENGTH));
         }
-        Map<String, Integer> pageIndexes = readPageValueMap(buffer);
-        Map<String, Integer> pageSizes = readPageValueMap(buffer);
-        DatabaseSortOption sortOption = buffer.readEnum(DatabaseSortOption.class);
-        String searchText = buffer.readUtf(MAX_SEARCH_LENGTH);
-        DatabaseSearchConfig searchConfig = DatabaseSearchConfig.read(buffer);
-        return new DatabaseQuery(scope, focusedTabId, visibleTabIds, pageIndexes, pageSizes, sortOption, searchText, searchConfig);
+        int tabStateCount = buffer.readVarInt();
+        LinkedHashMap<String, DatabaseTabQueryState> tabStates = new LinkedHashMap<>(tabStateCount);
+        for (int index = 0; index < tabStateCount; index++) {
+            tabStates.put(
+                    normalizeTabId(buffer.readUtf(MAX_TAB_ID_LENGTH), focusedTabId),
+                    DatabaseTabQueryState.read(buffer)
+            );
+        }
+        return new DatabaseQuery(scope, focusedTabId, visibleTabIds, tabStates);
     }
 
     public static void write(FriendlyByteBuf buffer, DatabaseQuery query) {
@@ -281,11 +254,11 @@ public record DatabaseQuery(
         for (String visibleTabId : query.visibleTabIds()) {
             buffer.writeUtf(visibleTabId, MAX_TAB_ID_LENGTH);
         }
-        writePageValueMap(buffer, query.pageIndexes());
-        writePageValueMap(buffer, query.pageSizes());
-        buffer.writeEnum(query.sortOption());
-        buffer.writeUtf(query.searchText(), MAX_SEARCH_LENGTH);
-        DatabaseSearchConfig.write(buffer, query.searchConfig());
+        buffer.writeVarInt(query.tabStates().size());
+        for (Map.Entry<String, DatabaseTabQueryState> entry : query.tabStates().entrySet()) {
+            buffer.writeUtf(entry.getKey(), MAX_TAB_ID_LENGTH);
+            entry.getValue().write(buffer);
+        }
     }
 
     public CompoundTag toTag() {
@@ -299,11 +272,11 @@ public record DatabaseQuery(
             visibleTabs.add(visibleTabTag);
         }
         tag.put(VISIBLE_TABS_KEY, visibleTabs);
-        tag.put(PAGE_INDEXES_KEY, toPageValueTag(this.pageIndexes));
-        tag.put(PAGE_SIZES_KEY, toPageValueTag(this.pageSizes));
-        tag.putString(SORT_OPTION_KEY, this.sortOption.name());
-        tag.putString(SEARCH_TEXT_KEY, this.searchText);
-        tag.put(SEARCH_CONFIG_KEY, this.searchConfig.toTag());
+        CompoundTag tabStatesTag = new CompoundTag();
+        for (Map.Entry<String, DatabaseTabQueryState> entry : this.tabStates.entrySet()) {
+            tabStatesTag.put(entry.getKey(), entry.getValue().toTag());
+        }
+        tag.put(TAB_STATES_KEY, tabStatesTag);
         return tag;
     }
 
@@ -311,69 +284,130 @@ public record DatabaseQuery(
         if (tag == null || tag.isEmpty()) {
             return defaultQuery(fallbackScope);
         }
-        if (tag.contains(FOCUSED_TAB_ID_KEY) || tag.contains(VISIBLE_TABS_KEY)) {
+        DatabaseScope scope = readEnum(tag.getString(SCOPE_KEY), DatabaseScope.class, DatabaseScope.normalize(fallbackScope));
+        if (tag.contains(TAB_STATES_KEY, Tag.TAG_COMPOUND)) {
             return new DatabaseQuery(
-                    readEnum(tag.getString(SCOPE_KEY), DatabaseScope.class, DatabaseScope.normalize(fallbackScope)),
+                    scope,
                     tag.getString(FOCUSED_TAB_ID_KEY),
                     fromVisibleTabsTag(tag.getList(VISIBLE_TABS_KEY, Tag.TAG_COMPOUND)),
-                    fromPageValueTag(tag.getCompound(PAGE_INDEXES_KEY), 0),
-                    fromPageValueTag(tag.getCompound(PAGE_SIZES_KEY), DEFAULT_PAGE_SIZE),
-                    readEnum(tag.getString(SORT_OPTION_KEY), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED),
-                    tag.getString(SEARCH_TEXT_KEY),
-                    DatabaseSearchConfig.fromTag(tag.getCompound(SEARCH_CONFIG_KEY))
+                    fromTabStatesTag(tag.getCompound(TAB_STATES_KEY), tag.getString(FOCUSED_TAB_ID_KEY))
+            );
+        }
+        if (tag.contains(FOCUSED_TAB_ID_KEY) || tag.contains(VISIBLE_TABS_KEY)) {
+            return new DatabaseQuery(
+                    scope,
+                    tag.getString(FOCUSED_TAB_ID_KEY),
+                    fromVisibleTabsTag(tag.getList(VISIBLE_TABS_KEY, Tag.TAG_COMPOUND)),
+                    buildLegacyTabStates(
+                            tag.getString(FOCUSED_TAB_ID_KEY),
+                            fromVisibleTabsTag(tag.getList(VISIBLE_TABS_KEY, Tag.TAG_COMPOUND)),
+                            fromPageValueTag(tag.getCompound("page_indexes"), 0),
+                            fromPageValueTag(tag.getCompound("page_sizes"), DEFAULT_PAGE_SIZE),
+                            readEnum(tag.getString("sort_option"), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED),
+                            tag.getString("search_text"),
+                            DatabaseSearchConfig.fromTag(tag.getCompound("search_config"))
+                    )
             );
         }
 
-        DatabaseScope scope = readEnum(tag.getString(SCOPE_KEY), DatabaseScope.class, DatabaseScope.normalize(fallbackScope));
         DatabaseCategory legacyCategory = readEnum(tag.getString("category"), DatabaseCategory.class, DatabaseCategory.ALL);
         String focusedTabId = legacyCategory == DatabaseCategory.ALL ? DatabaseTabs.ALL_TAB_ID : DatabaseTabs.DEFAULT_TAB_ID;
         return new DatabaseQuery(
                 scope,
                 focusedTabId,
                 List.of(focusedTabId),
-                Map.of(focusedTabId, Math.max(0, tag.getInt("page_index"))),
-                Map.of(focusedTabId, normalizePageSize(tag.getInt("page_size"))),
-                readEnum(tag.getString(SORT_OPTION_KEY), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED),
-                tag.getString(SEARCH_TEXT_KEY),
-                DatabaseSearchConfig.fromTag(tag.getCompound(SEARCH_CONFIG_KEY))
+                Map.of(
+                        focusedTabId,
+                        new DatabaseTabQueryState(
+                                readEnum(tag.getString("sort_option"), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED),
+                                tag.getString("search_text"),
+                                DatabaseSearchConfig.fromTag(tag.getCompound("search_config")),
+                                Math.max(0, tag.getInt("page_index")),
+                                normalizePageSize(tag.getInt("page_size"))
+                        )
+                )
         );
     }
 
-    private static Map<String, Integer> readPageValueMap(FriendlyByteBuf buffer) {
-        int size = buffer.readVarInt();
-        LinkedHashMap<String, Integer> values = new LinkedHashMap<>();
-        for (int index = 0; index < size; index++) {
-            values.put(buffer.readUtf(MAX_TAB_ID_LENGTH), buffer.readVarInt());
+    private static Map<String, DatabaseTabQueryState> buildLegacyTabStates(
+            String focusedTabId,
+            List<String> visibleTabIds,
+            Map<String, Integer> pageIndexes,
+            Map<String, Integer> pageSizes,
+            DatabaseSortOption sortOption,
+            String searchText,
+            DatabaseSearchConfig searchConfig
+    ) {
+        String normalizedFocusedTabId = normalizeTabId(focusedTabId, DatabaseTabs.ALL_TAB_ID);
+        List<String> normalizedVisibleTabIds = normalizeVisibleTabIds(visibleTabIds, normalizedFocusedTabId);
+        LinkedHashMap<String, DatabaseTabQueryState> legacyTabStates = new LinkedHashMap<>();
+        LinkedHashSet<String> tabIds = new LinkedHashSet<>();
+        tabIds.add(normalizedFocusedTabId);
+        tabIds.addAll(normalizedVisibleTabIds);
+        if (pageIndexes != null) {
+            tabIds.addAll(pageIndexes.keySet());
         }
-        return values;
+        if (pageSizes != null) {
+            tabIds.addAll(pageSizes.keySet());
+        }
+        for (String tabId : tabIds) {
+            String normalizedTabId = normalizeTabId(tabId, normalizedFocusedTabId);
+            int pageIndex = pageIndexes == null ? 0 : Math.max(0, pageIndexes.getOrDefault(tabId, pageIndexes.getOrDefault(normalizedTabId, 0)));
+            int pageSize = pageSizes == null
+                    ? DEFAULT_PAGE_SIZE
+                    : normalizePageSize(pageSizes.getOrDefault(tabId, pageSizes.getOrDefault(normalizedTabId, DEFAULT_PAGE_SIZE)));
+            legacyTabStates.put(
+                    normalizedTabId,
+                    new DatabaseTabQueryState(sortOption, searchText, searchConfig, pageIndex, pageSize)
+            );
+        }
+        if (legacyTabStates.isEmpty()) {
+            legacyTabStates.put(normalizedFocusedTabId, DatabaseTabQueryState.defaultState());
+        }
+        return legacyTabStates;
     }
 
-    private static void writePageValueMap(FriendlyByteBuf buffer, Map<String, Integer> values) {
-        buffer.writeVarInt(values.size());
-        for (Map.Entry<String, Integer> entry : values.entrySet()) {
-            buffer.writeUtf(entry.getKey(), MAX_TAB_ID_LENGTH);
-            buffer.writeVarInt(entry.getValue());
+    private static Map<String, DatabaseTabQueryState> normalizeTabStates(
+            Map<String, DatabaseTabQueryState> tabStates,
+            List<String> visibleTabIds,
+            String focusedTabId
+    ) {
+        LinkedHashMap<String, DatabaseTabQueryState> normalizedTabStates = new LinkedHashMap<>();
+        if (tabStates != null) {
+            for (Map.Entry<String, DatabaseTabQueryState> entry : tabStates.entrySet()) {
+                normalizedTabStates.put(
+                        normalizeTabId(entry.getKey(), focusedTabId),
+                        entry.getValue() == null ? DatabaseTabQueryState.defaultState() : entry.getValue()
+                );
+            }
         }
+        normalizedTabStates.putIfAbsent(focusedTabId, DatabaseTabQueryState.defaultState());
+        for (String visibleTabId : visibleTabIds) {
+            normalizedTabStates.putIfAbsent(visibleTabId, DatabaseTabQueryState.defaultState());
+        }
+        return Map.copyOf(normalizedTabStates);
     }
 
-    private static CompoundTag toPageValueTag(Map<String, Integer> values) {
-        CompoundTag tag = new CompoundTag();
-        for (Map.Entry<String, Integer> entry : values.entrySet()) {
-            tag.putInt(entry.getKey(), entry.getValue());
+    private static Map<String, DatabaseTabQueryState> fromTabStatesTag(CompoundTag tag, String focusedTabId) {
+        LinkedHashMap<String, DatabaseTabQueryState> tabStates = new LinkedHashMap<>();
+        if (tag == null) {
+            return tabStates;
         }
-        return tag;
+        for (String key : tag.getAllKeys()) {
+            tabStates.put(normalizeTabId(key, focusedTabId), DatabaseTabQueryState.fromTag(tag.getCompound(key)));
+        }
+        return tabStates;
     }
 
     private static Map<String, Integer> fromPageValueTag(CompoundTag tag, int fallbackValue) {
         LinkedHashMap<String, Integer> values = new LinkedHashMap<>();
-        if (tag == null) {
-            return values;
-        }
-        for (String key : tag.getAllKeys()) {
-            values.put(normalizeTabId(key, DatabaseTabs.ALL_TAB_ID), Math.max(0, tag.getInt(key)));
+        if (tag != null) {
+            for (String key : tag.getAllKeys()) {
+                values.put(normalizeTabId(key, DatabaseTabs.ALL_TAB_ID), Math.max(0, tag.getInt(key)));
+            }
         }
         if (values.isEmpty() && fallbackValue >= 0) {
-            values.put(DatabaseTabs.ALL_TAB_ID, fallbackValue);
+            values.put(DatabaseTabs.ALL_TAB_ID, fallbackValue == DEFAULT_PAGE_SIZE ? DEFAULT_PAGE_SIZE : 0);
         }
         return values;
     }
@@ -388,25 +422,6 @@ public record DatabaseQuery(
         return visibleTabIds;
     }
 
-    private static Map<String, Integer> resetPageIndexes(Map<String, Integer> currentPageIndexes) {
-        LinkedHashMap<String, Integer> resetPageIndexes = new LinkedHashMap<>();
-        for (String tabId : currentPageIndexes.keySet()) {
-            resetPageIndexes.put(tabId, 0);
-        }
-        return resetPageIndexes;
-    }
-
-    private static String normalize(String text) {
-        if (text == null) {
-            return "";
-        }
-        String trimmed = text.trim();
-        if (trimmed.length() <= MAX_SEARCH_LENGTH) {
-            return trimmed;
-        }
-        return trimmed.substring(0, MAX_SEARCH_LENGTH);
-    }
-
     private static String normalizeTabId(String tabId, String fallback) {
         if (tabId == null || tabId.isBlank()) {
             return fallback;
@@ -419,7 +434,7 @@ public record DatabaseQuery(
     }
 
     private static List<String> normalizeVisibleTabIds(List<String> visibleTabIds, String fallbackFocusedTabId) {
-        java.util.LinkedHashSet<String> normalizedVisibleTabs = new java.util.LinkedHashSet<>();
+        LinkedHashSet<String> normalizedVisibleTabs = new LinkedHashSet<>();
         if (visibleTabIds != null) {
             for (String visibleTabId : visibleTabIds) {
                 normalizedVisibleTabs.add(normalizeTabId(visibleTabId, fallbackFocusedTabId));
@@ -434,28 +449,14 @@ public record DatabaseQuery(
         return List.copyOf(normalizedVisibleTabs);
     }
 
-    private static Map<String, Integer> normalizePageValues(Map<String, Integer> pageValues, int fallbackValue) {
-        LinkedHashMap<String, Integer> normalizedPageValues = new LinkedHashMap<>();
-        if (pageValues != null) {
-            for (Map.Entry<String, Integer> entry : pageValues.entrySet()) {
-                String normalizedTabId = normalizeTabId(entry.getKey(), DatabaseTabs.ALL_TAB_ID);
-                int value = fallbackValue == DEFAULT_PAGE_SIZE
-                        ? normalizePageSize(entry.getValue())
-                        : Math.max(0, entry.getValue());
-                normalizedPageValues.put(normalizedTabId, value);
-            }
-        }
-        if (normalizedPageValues.isEmpty()) {
-            normalizedPageValues.put(DatabaseTabs.ALL_TAB_ID, fallbackValue == DEFAULT_PAGE_SIZE ? DEFAULT_PAGE_SIZE : 0);
-        }
-        return normalizedPageValues;
-    }
-
     private static int normalizePageSize(int pageSize) {
         return Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize));
     }
 
     private static <T extends Enum<T>> T readEnum(String serializedName, Class<T> enumType, T fallbackValue) {
+        if (serializedName == null || serializedName.isBlank()) {
+            return fallbackValue;
+        }
         try {
             return Enum.valueOf(enumType, serializedName);
         } catch (IllegalArgumentException exception) {

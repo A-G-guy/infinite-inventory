@@ -6,7 +6,6 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationPayload;
 import java.util.List;
-import java.util.Objects;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -45,11 +44,13 @@ final class PersonalDatabaseScreenManagementHelper {
             screen.iconSearchBox.setMaxLength(64);
             screen.iconSearchBox.setTextColor(0x303030);
             screen.iconSearchBox.setTextColorUneditable(0x606060);
+            screen.iconSearchBox.setResponder(value -> screen.iconPickerPageIndex = 0);
             screen.iconSearchBox.visible = false;
         }
     }
 
     static void syncManagementWidgets(PersonalDatabaseScreen screen) {
+        ensureManagementWidgets(screen);
         if (screen.managementNameBox == null || screen.iconSearchBox == null) {
             return;
         }
@@ -60,14 +61,14 @@ final class PersonalDatabaseScreenManagementHelper {
                 : preferredManagementTab(screen);
         if (!selectedTabPresent) {
             loadManagementDrafts(screen, selectedTab);
-        } else if (shouldReloadManagementDrafts(screen, selectedTab)) {
+        } else if (PersonalDatabaseScreenManagementLogic.shouldReloadManagementDrafts(screen, selectedTab)) {
             loadManagementDrafts(screen, selectedTab);
         }
 
-        PersonalDatabaseLayout.Rect managementFieldRect = PersonalDatabaseScreenGeometry.managementNameFieldRect(screen);
-        screen.managementNameBox.setX(managementFieldRect.x() + 4);
-        screen.managementNameBox.setY(managementFieldRect.y() + 4);
-        screen.managementNameBox.setWidth(Math.max(1, managementFieldRect.width() - 8));
+        PersonalDatabaseLayout.Rect nameFieldRect = PersonalDatabaseScreenManagementGeometry.managementNameFieldRect(screen);
+        screen.managementNameBox.setX(nameFieldRect.x() + 4);
+        screen.managementNameBox.setY(nameFieldRect.y() + 4);
+        screen.managementNameBox.setWidth(Math.max(1, nameFieldRect.width() - 8));
         screen.managementNameBox.setHeight(12);
         screen.managementNameBox.visible = screen.tabManagementExpanded;
         screen.managementNameBox.active = selectedTab.canRename();
@@ -75,7 +76,7 @@ final class PersonalDatabaseScreenManagementHelper {
             screen.managementNameBox.setFocused(false);
         }
 
-        PersonalDatabaseLayout.Rect iconSearchRect = PersonalDatabaseScreenGeometry.iconPickerSearchFieldRect(screen);
+        PersonalDatabaseLayout.Rect iconSearchRect = PersonalDatabaseScreenIconPickerGeometry.iconPickerSearchFieldRect(screen);
         screen.iconSearchBox.setX(iconSearchRect.x() + 4);
         screen.iconSearchBox.setY(iconSearchRect.y() + 4);
         screen.iconSearchBox.setWidth(Math.max(1, iconSearchRect.width() - 8));
@@ -111,8 +112,20 @@ final class PersonalDatabaseScreenManagementHelper {
         return PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).getFirst();
     }
 
+    static void openIconPicker(PersonalDatabaseScreen screen) {
+        ensureManagementWidgets(screen);
+        screen.iconPickerExpanded = true;
+        screen.iconPickerCategory = com.agguy.infiniteinventory.database.DatabaseCategory.ALL;
+        screen.iconPickerPageIndex = 0;
+        screen.iconPickerOriginalItemId = screen.pendingIconItemId;
+        if (screen.iconSearchBox != null) {
+            screen.iconSearchBox.setValue("");
+            screen.iconSearchBox.setFocused(true);
+        }
+    }
+
     static void closeIconPicker(PersonalDatabaseScreen screen) {
-        PersonalDatabaseScreenIconPickerHelper.closeIconPicker(screen);
+        PersonalDatabaseScreenManagementLogic.closeIconPicker(screen, false);
     }
 
     static void closeTabManagementOverlays(PersonalDatabaseScreen screen) {
@@ -144,7 +157,7 @@ final class PersonalDatabaseScreenManagementHelper {
     }
 
     static void renderTabManagementPanel(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.tabManagementPanelRect(screen);
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenManagementGeometry.tabManagementPanelRect(screen);
         if (panelRect.width() <= 0 || panelRect.height() <= 0) {
             return;
         }
@@ -159,7 +172,7 @@ final class PersonalDatabaseScreenManagementHelper {
                 panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
                 panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(
                 panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
@@ -168,10 +181,11 @@ final class PersonalDatabaseScreenManagementHelper {
                 panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 1,
                 0x70A89E8C
         );
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
         for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.managementListRowRect(screen, index);
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenManagementGeometry.managementListRowRect(screen, index);
             if (rowRect.bottom() > panelRect.bottom() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING) {
                 break;
             }
@@ -190,18 +204,18 @@ final class PersonalDatabaseScreenManagementHelper {
                     rowRect.x() + 24,
                     rowRect.y() + 6,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
 
-        PersonalDatabaseLayout.Rect nameFieldRect = PersonalDatabaseScreenGeometry.managementNameFieldRect(screen);
+        PersonalDatabaseLayout.Rect nameFieldRect = PersonalDatabaseScreenManagementGeometry.managementNameFieldRect(screen);
         guiGraphics.drawString(
                 screen.screenFont(),
                 Component.translatable("screen.infiniteinventory.management.name"),
                 nameFieldRect.x(),
                 nameFieldRect.y() - 12,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         VanillaWidgetRenderer.renderTextField(
                 guiGraphics,
@@ -212,14 +226,14 @@ final class PersonalDatabaseScreenManagementHelper {
             screen.managementNameBox.render(guiGraphics, mouseX, mouseY, 0.0F);
         }
 
-        PersonalDatabaseLayout.Rect iconFieldRect = PersonalDatabaseScreenGeometry.managementIconFieldRect(screen);
+        PersonalDatabaseLayout.Rect iconFieldRect = PersonalDatabaseScreenManagementGeometry.managementIconFieldRect(screen);
         guiGraphics.drawString(
                 screen.screenFont(),
                 Component.translatable("screen.infiniteinventory.management.icon"),
                 iconFieldRect.x(),
                 iconFieldRect.y() - 12,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         VanillaWidgetRenderer.renderOverlayRow(guiGraphics, iconFieldRect, iconFieldRect.contains(mouseX, mouseY), false);
         guiGraphics.renderItem(
@@ -231,82 +245,73 @@ final class PersonalDatabaseScreenManagementHelper {
                 screen.screenFont(),
                 PersonalDatabaseScreenGeometry.truncateToWidth(
                         screen,
-                        screen.pendingIconItemId,
+                        Component.translatable("screen.infiniteinventory.management.pick_icon").getString() + " / " + screen.pendingIconItemId,
                         Math.max(0, iconFieldRect.width() - 26)
                 ),
                 iconFieldRect.x() + 24,
                 iconFieldRect.y() + 6,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
 
-        renderManagementActionButton(
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 0, 0),
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 0),
                 mouseX,
                 mouseY,
                 Component.translatable("screen.infiniteinventory.management.add"),
                 true
         );
-        renderManagementActionButton(
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 0, 1),
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1),
                 mouseX,
                 mouseY,
                 Component.translatable("screen.infiniteinventory.management.rename"),
-                selectedTab.canRename()
+                PersonalDatabaseScreenManagementLogic.canSaveSelectedTab(screen, selectedTab)
         );
-        renderManagementActionButton(
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 1, 0),
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 0),
                 mouseX,
                 mouseY,
                 Component.translatable("screen.infiniteinventory.management.pick_icon"),
                 true
         );
-        renderManagementActionButton(
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 1, 1),
-                mouseX,
-                mouseY,
-                Component.translatable("screen.infiniteinventory.management.apply_icon"),
-                selectedTab.isConcreteTab()
-        );
-        renderManagementActionButton(
-                screen,
-                guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 2, 0),
-                mouseX,
-                mouseY,
-                Component.translatable("screen.infiniteinventory.management.move_left"),
-                canMoveManagementTab(screen, selectedTab, -1)
-        );
-        renderManagementActionButton(
-                screen,
-                guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 2, 1),
-                mouseX,
-                mouseY,
-                Component.translatable("screen.infiniteinventory.management.move_right"),
-                canMoveManagementTab(screen, selectedTab, 1)
-        );
-        renderManagementActionButton(
-                screen,
-                guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 3, 0),
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 1),
                 mouseX,
                 mouseY,
                 Component.translatable("screen.infiniteinventory.management.transfer"),
                 PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).size() > 1 && selectedTab.isConcreteTab()
         );
-        renderManagementActionButton(
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
-                PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 3, 1),
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 0),
+                mouseX,
+                mouseY,
+                Component.translatable("screen.infiniteinventory.management.move_left"),
+                PersonalDatabaseScreenManagementLogic.canMoveManagementTab(screen, selectedTab, -1)
+        );
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
+                screen,
+                guiGraphics,
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 1),
+                mouseX,
+                mouseY,
+                Component.translatable("screen.infiniteinventory.management.move_right"),
+                PersonalDatabaseScreenManagementLogic.canMoveManagementTab(screen, selectedTab, 1)
+        );
+        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
+                screen,
+                guiGraphics,
+                PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 3, 0),
                 mouseX,
                 mouseY,
                 Component.translatable("screen.infiniteinventory.management.delete"),
@@ -320,21 +325,29 @@ final class PersonalDatabaseScreenManagementHelper {
             return false;
         }
         ensureManagementWidgets(screen);
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.tabManagementPanelRect(screen);
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenManagementGeometry.tabManagementPanelRect(screen);
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
+            closeTabManagementOverlays(screen);
+            return true;
+        }
         if (!panelRect.contains(mouseX, mouseY)) {
             closeTabManagementOverlays(screen);
             return true;
         }
 
         if (screen.managementNameBox != null
-                && PersonalDatabaseScreenGeometry.managementNameFieldRect(screen).contains(mouseX, mouseY)) {
+                && PersonalDatabaseScreenManagementGeometry.managementNameFieldRect(screen).contains(mouseX, mouseY)) {
             screen.managementNameBox.mouseClicked(mouseX, mouseY, 0);
+            return true;
+        }
+        if (PersonalDatabaseScreenManagementGeometry.managementIconFieldRect(screen).contains(mouseX, mouseY)) {
+            openIconPicker(screen);
             return true;
         }
 
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
         for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.managementListRowRect(screen, index);
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenManagementGeometry.managementListRowRect(screen, index);
             if (rowRect.bottom() > panelRect.bottom() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING) {
                 break;
             }
@@ -345,60 +358,25 @@ final class PersonalDatabaseScreenManagementHelper {
         }
 
         DatabaseTab selectedTab = PersonalDatabaseScreenCommonHelper.findTab(screen, screen.managementSelectedTabId);
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 0, 0).contains(mouseX, mouseY)) {
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 0).contains(mouseX, mouseY)) {
             sendTabMutation(
                     screen,
                     DatabaseTabMutationAction.ADD,
                     "",
                     "",
-                    managementDraftName(screen),
+                    PersonalDatabaseScreenManagementLogic.managementDraftName(screen),
                     screen.pendingIconItemId
             );
             return true;
         }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 0, 1).contains(mouseX, mouseY)
-                && selectedTab.canRename()) {
-            sendTabMutation(
-                    screen,
-                    DatabaseTabMutationAction.RENAME,
-                    selectedTab.id(),
-                    "",
-                    managementDraftName(screen),
-                    ""
-            );
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1).contains(mouseX, mouseY)) {
+            return PersonalDatabaseScreenManagementLogic.saveSelectedTab(screen, selectedTab);
+        }
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 0).contains(mouseX, mouseY)) {
+            openIconPicker(screen);
             return true;
         }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 1, 0).contains(mouseX, mouseY)) {
-            screen.iconPickerExpanded = true;
-            if (screen.iconSearchBox != null) {
-                screen.iconSearchBox.setValue("");
-                screen.iconSearchBox.setFocused(true);
-            }
-            return true;
-        }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 1, 1).contains(mouseX, mouseY)
-                && selectedTab.isConcreteTab()) {
-            sendTabMutation(
-                    screen,
-                    DatabaseTabMutationAction.CHANGE_ICON,
-                    selectedTab.id(),
-                    "",
-                    "",
-                    screen.pendingIconItemId
-            );
-            return true;
-        }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 2, 0).contains(mouseX, mouseY)
-                && canMoveManagementTab(screen, selectedTab, -1)) {
-            sendTabMutation(screen, DatabaseTabMutationAction.MOVE_LEFT, selectedTab.id(), "", "", "");
-            return true;
-        }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 2, 1).contains(mouseX, mouseY)
-                && canMoveManagementTab(screen, selectedTab, 1)) {
-            sendTabMutation(screen, DatabaseTabMutationAction.MOVE_RIGHT, selectedTab.id(), "", "", "");
-            return true;
-        }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 3, 0).contains(mouseX, mouseY)
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 1).contains(mouseX, mouseY)
                 && PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).size() > 1
                 && selectedTab.isConcreteTab()) {
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
@@ -410,7 +388,17 @@ final class PersonalDatabaseScreenManagementHelper {
             );
             return true;
         }
-        if (PersonalDatabaseScreenGeometry.managementActionButtonRect(screen, 3, 1).contains(mouseX, mouseY)
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 0).contains(mouseX, mouseY)
+                && PersonalDatabaseScreenManagementLogic.canMoveManagementTab(screen, selectedTab, -1)) {
+            sendTabMutation(screen, DatabaseTabMutationAction.MOVE_LEFT, selectedTab.id(), "", "", "");
+            return true;
+        }
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 1).contains(mouseX, mouseY)
+                && PersonalDatabaseScreenManagementLogic.canMoveManagementTab(screen, selectedTab, 1)) {
+            sendTabMutation(screen, DatabaseTabMutationAction.MOVE_RIGHT, selectedTab.id(), "", "", "");
+            return true;
+        }
+        if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 3, 0).contains(mouseX, mouseY)
                 && PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).size() > 1
                 && selectedTab.canDelete()) {
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
@@ -433,64 +421,13 @@ final class PersonalDatabaseScreenManagementHelper {
         return PersonalDatabaseScreenIconPickerHelper.handleIconPickerClick(screen, mouseX, mouseY);
     }
 
-    private static boolean shouldReloadManagementDrafts(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
-        if (selectedTab == null) {
+    static boolean handleManagementEnter(PersonalDatabaseScreen screen) {
+        if (!screen.tabManagementExpanded) {
             return false;
         }
-        boolean snapshotChanged = screen.managementSnapshotScope != screen.databaseMenu.viewState().query().scope()
-                || !Objects.equals(screen.managementSnapshotTabId, selectedTab.id())
-                || !Objects.equals(
-                        screen.managementSnapshotName,
-                        PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab)
-                )
-                || !Objects.equals(screen.managementSnapshotIconItemId, selectedTab.iconItemId());
-        if (!snapshotChanged) {
-            return false;
-        }
-        return (screen.managementNameBox == null || !screen.managementNameBox.isFocused()) && !screen.iconPickerExpanded;
-    }
-
-    private static void renderManagementActionButton(
-            PersonalDatabaseScreen screen,
-            GuiGraphics guiGraphics,
-            PersonalDatabaseLayout.Rect rect,
-            int mouseX,
-            int mouseY,
-            Component label,
-            boolean enabled
-    ) {
-        VanillaWidgetRenderer.renderOverlayChip(guiGraphics, rect, rect.contains(mouseX, mouseY), false, enabled);
-        PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
+        return PersonalDatabaseScreenManagementLogic.saveSelectedTab(
                 screen,
-                guiGraphics,
-                label,
-                rect.x() + 2,
-                rect.right() - 2,
-                rect.y() + 6,
-                enabled ? PersonalDatabaseScreen.OVERLAY_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR
+                PersonalDatabaseScreenCommonHelper.findTab(screen, screen.managementSelectedTabId)
         );
-    }
-
-    private static boolean canMoveManagementTab(PersonalDatabaseScreen screen, DatabaseTab selectedTab, int direction) {
-        if (selectedTab == null || !selectedTab.isConcreteTab()) {
-            return false;
-        }
-        List<DatabaseTab> concreteTabs = PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen);
-        int selectedIndex = -1;
-        for (int index = 0; index < concreteTabs.size(); index++) {
-            if (concreteTabs.get(index).id().equals(selectedTab.id())) {
-                selectedIndex = index;
-                break;
-            }
-        }
-        if (selectedIndex < 0) {
-            return false;
-        }
-        int nextIndex = selectedIndex + direction;
-        return nextIndex >= 0 && nextIndex < concreteTabs.size();
-    }
-
-    private static String managementDraftName(PersonalDatabaseScreen screen) {
-        return screen.managementNameBox == null ? "" : screen.managementNameBox.getValue().trim();
     }
 }

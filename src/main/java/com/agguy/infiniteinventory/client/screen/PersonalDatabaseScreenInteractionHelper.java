@@ -13,8 +13,26 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean mouseClicked(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
+        if (screen.advancedSearchExpanded
+                && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
+                        PersonalDatabaseScreenGeometry.advancedSearchPanelRect(screen),
+                        mouseX,
+                        mouseY
+                )) {
+            screen.advancedSearchExpanded = false;
+            return true;
+        }
         if (screen.advancedSearchExpanded && !PersonalDatabaseScreenGeometry.isWithinAdvancedSearchPanel(screen, mouseX, mouseY)) {
             screen.advancedSearchExpanded = false;
+        }
+        if (screen.enhancementPanelExpanded
+                && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
+                        PersonalDatabaseScreenGeometry.enhancementPanelRect(screen),
+                        mouseX,
+                        mouseY
+                )) {
+            screen.enhancementPanelExpanded = false;
+            return true;
         }
         if (screen.enhancementPanelExpanded && !PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
             screen.enhancementPanelExpanded = false;
@@ -22,10 +40,10 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (screen.iconPickerExpanded && PersonalDatabaseScreenManagementHelper.handleIconPickerClick(screen, mouseX, mouseY)) {
             return true;
         }
-        if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleTabManagementClick(screen, mouseX, mouseY)) {
+        if (screen.targetSelectorExpanded && PersonalDatabaseScreenTargetHelper.handleTargetSelectorClick(screen, mouseX, mouseY)) {
             return true;
         }
-        if (screen.targetSelectorExpanded && PersonalDatabaseScreenTargetHelper.handleTargetSelectorClick(screen, mouseX, mouseY)) {
+        if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleTabManagementClick(screen, mouseX, mouseY)) {
             return true;
         }
         if (screen.moreTabsExpanded && PersonalDatabaseScreenTabHelper.handleMoreTabsClick(screen, mouseX, mouseY)) {
@@ -52,9 +70,6 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (screen.sortDropdownExpanded && handleSortDropdownClick(screen, mouseX, mouseY)) {
-            return true;
-        }
-        if (handlePageLabelClick(screen, mouseX, mouseY)) {
             return true;
         }
         if (screen.accessoriesExpanded && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)) {
@@ -87,10 +102,29 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean keyPressed(PersonalDatabaseScreen screen, int keyCode, int scanCode, int modifiers) {
-        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_F && screen.searchBox != null) {
-            screen.focusScreen(screen.searchBox);
-            screen.searchBox.setFocused(true);
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && closeTopOverlay(screen)) {
             return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (screen.iconPickerExpanded) {
+                if (screen.iconSearchBox != null) {
+                    screen.iconSearchBox.setFocused(false);
+                }
+                screen.iconPickerOriginalItemId = screen.pendingIconItemId;
+                screen.iconPickerExpanded = false;
+                return true;
+            }
+            if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleManagementEnter(screen)) {
+                return true;
+            }
+        }
+        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_F) {
+            int panelIndex = PersonalDatabaseScreenCommonHelper.focusedPanelIndex(screen);
+            if (panelIndex >= 0 && panelIndex < screen.panelSearchBoxes.size()) {
+                screen.focusScreen(screen.panelSearchBoxes.get(panelIndex));
+                screen.panelSearchBoxes.get(panelIndex).setFocused(true);
+                return true;
+            }
         }
         if (screen.iconPickerExpanded
                 && screen.iconSearchBox != null
@@ -102,8 +136,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && screen.managementNameBox.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
-        if (screen.searchBox != null && screen.searchBox.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
+        for (var searchBox : screen.panelSearchBoxes) {
+            if (searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
         }
         return screen.invokeSuperKeyPressed(keyCode, scanCode, modifiers);
     }
@@ -119,8 +155,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && screen.managementNameBox.charTyped(codePoint, modifiers)) {
             return true;
         }
-        if (screen.searchBox != null && screen.searchBox.charTyped(codePoint, modifiers)) {
-            return true;
+        for (var searchBox : screen.panelSearchBoxes) {
+            if (searchBox.charTyped(codePoint, modifiers)) {
+                return true;
+            }
         }
         return screen.invokeSuperCharTyped(codePoint, modifiers);
     }
@@ -130,6 +168,18 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (dropdownRect == null) {
             return false;
         }
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(dropdownRect, mouseX, mouseY)) {
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
+            return true;
+        }
+        int panelIndex = PersonalDatabaseScreenCommonHelper.activeSortPanelIndex(screen);
+        if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
+            return false;
+        }
+        DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
         java.util.List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
         for (int index = 0; index < sortOptions.size(); index++) {
             int rowY = dropdownRect.y() + index * PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT;
@@ -141,42 +191,46 @@ final class PersonalDatabaseScreenInteractionHelper {
             }
             PersonalDatabaseScreenLayoutHelper.sendQuery(
                     screen,
-                    screen.databaseMenu.viewState().query().withSortOption(sortOptions.get(index))
+                    screen.databaseMenu.viewState().query()
+                            .withSortOption(panel.tab().id(), sortOptions.get(index))
+                            .withFocusedTabId(panel.tab().id())
             );
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
             return true;
         }
-        if (!screen.layout.sortButtonRect().contains(mouseX, mouseY)) {
+        if (!PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex).contains(mouseX, mouseY)) {
             screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
         }
         return false;
-    }
-
-    private static boolean handlePageLabelClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        if (screen.layout == null || !screen.layout.pageLabelRect().contains(mouseX, mouseY)) {
-            return false;
-        }
-        if (screen.databaseMenu.viewState().totalPages() <= 1) {
-            return true;
-        }
-        PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-        screen.sortDropdownExpanded = false;
-        screen.advancedSearchExpanded = false;
-        screen.enhancementPanelExpanded = false;
-        screen.pagePickerExpanded = !screen.pagePickerExpanded;
-        return true;
     }
 
     private static boolean handlePagePickerClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         if (!screen.pagePickerExpanded) {
             return false;
         }
-        if (screen.layout != null && screen.layout.pageLabelRect().contains(mouseX, mouseY)) {
+        PersonalDatabaseLayout.Rect pickerRect = PersonalDatabaseScreenGeometry.pagePickerRect(screen);
+        if (pickerRect != null && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(pickerRect, mouseX, mouseY)) {
             screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
             return true;
         }
-        PersonalDatabaseLayout.Rect pickerRect = PersonalDatabaseScreenGeometry.pagePickerRect(screen);
+        int panelIndex = PersonalDatabaseScreenCommonHelper.activePagePickerPanelIndex(screen);
+        if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+            screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
+            return true;
+        }
+        DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+        if (PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex).contains(mouseX, mouseY)) {
+            screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
+            return true;
+        }
         if (pickerRect == null) {
             screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
             return false;
         }
         var options = PersonalDatabaseScreenCommonHelper.pagePickerOptions(screen);
@@ -190,10 +244,13 @@ final class PersonalDatabaseScreenInteractionHelper {
             }
             var option = options.get(index);
             screen.pagePickerExpanded = false;
-            if (option.pageIndex() != screen.databaseMenu.viewState().query().pageIndex()) {
+            screen.activePagePickerPanelIndex = -1;
+            if (option.pageIndex() != panel.pageIndex()) {
                 PersonalDatabaseScreenLayoutHelper.sendQuery(
                         screen,
-                        screen.databaseMenu.viewState().query().withPageIndex(option.pageIndex())
+                        screen.databaseMenu.viewState().query()
+                                .withPageIndex(panel.tab().id(), option.pageIndex())
+                                .withFocusedTabId(panel.tab().id())
                 );
             }
             return true;
@@ -202,6 +259,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         screen.pagePickerExpanded = false;
+        screen.activePagePickerPanelIndex = -1;
         return false;
     }
 
@@ -316,6 +374,52 @@ final class PersonalDatabaseScreenInteractionHelper {
             screen.pagePickerExpanded = false;
             screen.enhancementPanelExpanded = false;
             PersonalDatabaseScreenContextHelper.openContextMenu(screen, panelIndex, hitResult.slotIndex());
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean closeTopOverlay(PersonalDatabaseScreen screen) {
+        if (screen.contextMenuExpanded) {
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            return true;
+        }
+        if (screen.iconPickerExpanded) {
+            PersonalDatabaseScreenManagementHelper.closeIconPicker(screen);
+            return true;
+        }
+        if (screen.tabManagementExpanded) {
+            PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
+            return true;
+        }
+        if (screen.targetSelectorExpanded) {
+            PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
+            return true;
+        }
+        if (screen.moreTabsExpanded) {
+            screen.moreTabsExpanded = false;
+            return true;
+        }
+        if (screen.viewSelectorExpanded) {
+            screen.viewSelectorExpanded = false;
+            return true;
+        }
+        if (screen.pagePickerExpanded) {
+            screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
+            return true;
+        }
+        if (screen.sortDropdownExpanded) {
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
+            return true;
+        }
+        if (screen.enhancementPanelExpanded) {
+            screen.enhancementPanelExpanded = false;
+            return true;
+        }
+        if (screen.advancedSearchExpanded) {
+            screen.advancedSearchExpanded = false;
             return true;
         }
         return false;

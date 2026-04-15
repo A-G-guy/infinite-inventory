@@ -34,6 +34,30 @@ final class PersonalDatabaseScreenCommonHelper {
         return currentTabs(screen).stream().filter(DatabaseTab::isConcreteTab).toList();
     }
 
+    static int focusedPanelIndex(PersonalDatabaseScreen screen) {
+        String focusedTabId = screen.databaseMenu.viewState().query().focusedTabId();
+        for (int index = 0; index < currentPanels(screen).size(); index++) {
+            if (currentPanels(screen).get(index).tab().id().equals(focusedTabId)) {
+                return index;
+            }
+        }
+        return currentPanels(screen).isEmpty() ? -1 : 0;
+    }
+
+    static int activePagePickerPanelIndex(PersonalDatabaseScreen screen) {
+        if (screen.activePagePickerPanelIndex >= 0 && screen.activePagePickerPanelIndex < currentPanels(screen).size()) {
+            return screen.activePagePickerPanelIndex;
+        }
+        return focusedPanelIndex(screen);
+    }
+
+    static int activeSortPanelIndex(PersonalDatabaseScreen screen) {
+        if (screen.activeSortPanelIndex >= 0 && screen.activeSortPanelIndex < currentPanels(screen).size()) {
+            return screen.activeSortPanelIndex;
+        }
+        return focusedPanelIndex(screen);
+    }
+
     static DatabaseTab findTab(PersonalDatabaseScreen screen, String tabId) {
         for (DatabaseTab tab : currentTabs(screen)) {
             if (tab.id().equals(tabId)) {
@@ -86,7 +110,7 @@ final class PersonalDatabaseScreenCommonHelper {
         if (fallbackId != null && BuiltInRegistries.ITEM.containsKey(fallbackId)) {
             return new ItemStack(BuiltInRegistries.ITEM.get(fallbackId));
         }
-        return new ItemStack(allTab ? Items.COMPASS : Items.CHEST);
+        return new ItemStack(allTab ? Items.COMPASS : Items.WRITABLE_BOOK);
     }
 
     @Nullable
@@ -102,14 +126,23 @@ final class PersonalDatabaseScreenCommonHelper {
     }
 
     static List<DatabasePagePickerModel.PageOption> pagePickerOptions(PersonalDatabaseScreen screen) {
-        var viewState = screen.databaseMenu.viewState();
-        return DatabasePagePickerModel.build(viewState.totalPages(), viewState.query().pageIndex());
+        int panelIndex = activePagePickerPanelIndex(screen);
+        if (panelIndex < 0 || panelIndex >= currentPanels(screen).size()) {
+            return DatabasePagePickerModel.build(1, 0);
+        }
+        DatabasePanelView panel = currentPanels(screen).get(panelIndex);
+        return DatabasePagePickerModel.build(panel.totalPages(), panel.pageIndex());
     }
 
     static Component pagePickerLabel(PersonalDatabaseScreen screen, DatabasePagePickerModel.PageOption option) {
+        int panelIndex = activePagePickerPanelIndex(screen);
+        int totalPages = 1;
+        if (panelIndex >= 0 && panelIndex < currentPanels(screen).size()) {
+            totalPages = currentPanels(screen).get(panelIndex).totalPages();
+        }
         return switch (option.shortcutType()) {
             case FIRST -> Component.translatable("screen.infiniteinventory.page_picker.first", 1);
-            case LAST -> Component.translatable("screen.infiniteinventory.page_picker.last", screen.databaseMenu.viewState().totalPages());
+            case LAST -> Component.translatable("screen.infiniteinventory.page_picker.last", totalPages);
             case PAGE -> Component.literal(Integer.toString(option.pageIndex() + 1));
         };
     }
@@ -145,7 +178,7 @@ final class PersonalDatabaseScreenCommonHelper {
         int availableWidth = Math.max(0, right - left);
         int textWidth = screen.screenFont().width(text);
         int x = left + Math.max(0, (availableWidth - textWidth) / 2);
-        guiGraphics.drawString(screen.screenFont(), text, x, y, color, true);
+        guiGraphics.drawString(screen.screenFont(), text, x, y, color, false);
     }
 
     static boolean isAdvancedToggleClickable(DatabaseSearchField field, DatabaseSearchConfig searchConfig) {

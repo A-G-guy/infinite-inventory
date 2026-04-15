@@ -89,22 +89,11 @@ public final class DatabaseTabDirectory {
             focusedTabId = visibleTabIds.getFirst();
         }
 
-        Map<String, Integer> pageIndexes = new LinkedHashMap<>();
-        Map<String, Integer> pageSizes = new LinkedHashMap<>();
+        Map<String, DatabaseTabQueryState> tabStates = new LinkedHashMap<>();
         for (DatabaseTab tab : this.orderedTabs()) {
-            pageIndexes.put(tab.id(), Math.max(0, normalizedQuery.pageIndexFor(tab.id())));
-            pageSizes.put(tab.id(), Math.max(1, normalizedQuery.pageSizeFor(tab.id())));
+            tabStates.put(tab.id(), normalizedQuery.tabStateFor(tab.id()));
         }
-        return new DatabaseQuery(
-                normalizedQuery.scope(),
-                focusedTabId,
-                visibleTabIds,
-                pageIndexes,
-                pageSizes,
-                normalizedQuery.sortOption(),
-                normalizedQuery.searchText(),
-                normalizedQuery.searchConfig()
-        );
+        return new DatabaseQuery(normalizedQuery.scope(), focusedTabId, visibleTabIds, tabStates);
     }
 
     public DatabaseTab addCustomTab(String name, String iconItemId) {
@@ -119,7 +108,7 @@ public final class DatabaseTabDirectory {
         if (newTab.customName().isBlank()) {
             newTab = new DatabaseTab(
                     newTab.id(),
-                    "New Tab",
+                    "新建分类",
                     "",
                     iconItemId,
                     false,

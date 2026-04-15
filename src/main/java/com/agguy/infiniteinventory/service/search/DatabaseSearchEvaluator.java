@@ -4,6 +4,7 @@ import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
+import com.agguy.infiniteinventory.database.DatabaseTabQueryState;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -20,12 +21,18 @@ public final class DatabaseSearchEvaluator {
     private static final SequentialFuzzyScore FUZZY_SCORE = new SequentialFuzzyScore(Locale.ROOT);
 
     public DatabaseSearchRanking evaluate(DatabaseQuery query, DatabaseSearchIndex index, long amount) {
-        List<String> terms = SearchTextNormalizer.splitTerms(query.searchText());
+        DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
+        return this.evaluate(normalizedQuery.tabStateFor(normalizedQuery.focusedTabId()), index, amount);
+    }
+
+    public DatabaseSearchRanking evaluate(DatabaseTabQueryState tabQueryState, DatabaseSearchIndex index, long amount) {
+        DatabaseTabQueryState normalizedState = tabQueryState == null ? DatabaseTabQueryState.defaultState() : tabQueryState;
+        List<String> terms = SearchTextNormalizer.splitTerms(normalizedState.searchText());
         if (terms.isEmpty()) {
             return DatabaseSearchRanking.unfiltered();
         }
 
-        DatabaseSearchConfig config = query.searchConfig();
+        DatabaseSearchConfig config = normalizedState.searchConfig();
         EnumSet<DatabaseSearchField> matchedFields = EnumSet.noneOf(DatabaseSearchField.class);
         int exactMatches = 0;
         int prefixMatches = 0;
@@ -54,7 +61,7 @@ public final class DatabaseSearchEvaluator {
         }
 
         textScore += this.fieldCoverageBonus(matchedFields);
-        textScore += this.phraseBonus(query, index, config, terms);
+        textScore += this.phraseBonus(normalizedState, index, config, terms);
         double countBoostScore = this.countBoostScore(config.weightFor(DatabaseSearchField.COUNT_BOOST), amount);
         return new DatabaseSearchRanking(true, true, exactMatches, prefixMatches, containsMatches, fuzzyMatches, textScore, countBoostScore);
     }
@@ -230,13 +237,13 @@ public final class DatabaseSearchEvaluator {
         return new TokenMatch(null, MatchLevel.FUZZY, score(FUZZY_BASE_SCORE + fuzzyScore, weight, 0, candidatePenalty + spanPenalty));
     }
 
-    private double phraseBonus(DatabaseQuery query, DatabaseSearchIndex index, DatabaseSearchConfig config, List<String> terms) {
+    private double phraseBonus(DatabaseTabQueryState tabQueryState, DatabaseSearchIndex index, DatabaseSearchConfig config, List<String> terms) {
         if (terms.size() < 2) {
             return 0.0D;
         }
         double bestBonus = 0.0D;
-        String normalizedPhrase = SearchTextNormalizer.normalizeQueryText(query.searchText());
-        String compactPhrase = SearchTextNormalizer.compactIdentifierText(query.searchText());
+        String normalizedPhrase = SearchTextNormalizer.normalizeQueryText(tabQueryState.searchText());
+        String compactPhrase = SearchTextNormalizer.compactIdentifierText(tabQueryState.searchText());
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             if (!field.isTextField()) {
                 continue;

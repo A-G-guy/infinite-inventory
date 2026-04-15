@@ -148,7 +148,7 @@ final class PersonalDatabaseScreenTabHelper {
                     labelX,
                     tabRect.y() + 8,
                     color,
-                    true
+                    false
             );
         }
         if (!hiddenTopTabs(screen).isEmpty()) {
@@ -181,9 +181,10 @@ final class PersonalDatabaseScreenTabHelper {
                 panelRect.x() + 8,
                 panelRect.y() + 8,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(panelRect.x() + 8, panelRect.y() + 20, panelRect.right() - 8, panelRect.y() + 21, 0x70A89E8C);
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
         DatabaseQuery query = screen.databaseMenu.viewState().query();
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
@@ -211,7 +212,7 @@ final class PersonalDatabaseScreenTabHelper {
                     query.focusedTabId().equals(tab.id())
                             ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
                             : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
@@ -234,6 +235,7 @@ final class PersonalDatabaseScreenTabHelper {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 253.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
         List<DatabaseTab> tabs = hiddenTopTabs(screen);
         for (int index = 0; index < tabs.size(); index++) {
             DatabaseTab tab = tabs.get(index);
@@ -257,7 +259,7 @@ final class PersonalDatabaseScreenTabHelper {
                     rowRect.x() + 24,
                     rowRect.y() + 6,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
         guiGraphics.pose().popPose();
@@ -297,9 +299,13 @@ final class PersonalDatabaseScreenTabHelper {
             return true;
         }
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.viewSelectorRect(screen);
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
+            screen.viewSelectorExpanded = false;
+            return true;
+        }
         if (!panelRect.contains(mouseX, mouseY)) {
             screen.viewSelectorExpanded = false;
-            return false;
+            return true;
         }
         DatabaseQuery query = screen.databaseMenu.viewState().query();
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
@@ -346,9 +352,13 @@ final class PersonalDatabaseScreenTabHelper {
             return true;
         }
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
+            screen.moreTabsExpanded = false;
+            return true;
+        }
         if (!panelRect.contains(mouseX, mouseY)) {
             screen.moreTabsExpanded = false;
-            return false;
+            return true;
         }
         List<DatabaseTab> tabs = hiddenTopTabs(screen);
         for (int index = 0; index < tabs.size(); index++) {

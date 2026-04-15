@@ -24,12 +24,8 @@ final class PersonalDatabaseScreenRenderHelper {
         }
         VanillaWidgetRenderer.renderPanel(guiGraphics, screen.layout.frameRect());
         PersonalDatabaseScreenTabHelper.renderTabs(screen, guiGraphics, mouseX, mouseY);
-        VanillaWidgetRenderer.renderTextField(
-                guiGraphics,
-                screen.layout.searchFieldRect(),
-                screen.searchBox != null && screen.searchBox.isFocused()
-        );
         renderDatabaseScaffold(screen, guiGraphics);
+        renderPanelTextFields(screen, guiGraphics);
 
         if (screen.minecraftClient() != null && screen.minecraftClient().player != null) {
             screen.inventoryPaneProvider.renderEquipmentPanel(
@@ -64,6 +60,10 @@ final class PersonalDatabaseScreenRenderHelper {
         if (accessorySlotLayout != null && accessorySlotLayout.visible()) {
             PersonalDatabaseLayout.Rect slotRect = accessorySlotLayout.slotRect();
             VanillaWidgetRenderer.renderMenuSlot(guiGraphics, slotRect.x(), slotRect.y());
+            guiGraphics.fill(slotRect.x() - 1, slotRect.y() - 1, slotRect.right() + 1, slotRect.y(), 0xB08A7A60);
+            guiGraphics.fill(slotRect.x() - 1, slotRect.bottom(), slotRect.right() + 1, slotRect.bottom() + 1, 0x90382E24);
+            guiGraphics.fill(slotRect.x() - 1, slotRect.y(), slotRect.x(), slotRect.bottom(), 0xB08A7A60);
+            guiGraphics.fill(slotRect.right(), slotRect.y(), slotRect.right() + 1, slotRect.bottom(), 0x90382E24);
         }
     }
 
@@ -85,7 +85,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(
                 panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
@@ -162,7 +162,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 continue;
             }
             var query = screen.databaseMenu.viewState().query();
-            Component message = Component.translatable(query.searchText().isEmpty()
+            Component message = Component.translatable(query.searchTextFor(panel.tab().id()).isEmpty()
                     ? query.scope().emptyTranslationKey()
                     : "screen.infiniteinventory.no_results");
             PersonalDatabaseLayout.Rect gridRect = screen.layout.databaseViewportLayout(panelIndex).gridRect();
@@ -190,24 +190,31 @@ final class PersonalDatabaseScreenRenderHelper {
                 screen.layout.titleRect().x(),
                 screen.layout.titleRect().y() + 6,
                 0x404040,
-                true
+                false
         );
 
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
+            PersonalDatabaseLayout.Rect titleRect = viewportLayout.headerRect();
+            int titleMaxWidth = Math.max(0, titleRect.width() - 4);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenCommonHelper.tabLabel(screen, panel.tab()),
-                    viewportLayout.headerRect().x(),
-                    viewportLayout.headerRect().y() + 4,
+                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                            screen,
+                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, panel.tab()).getString(),
+                            titleMaxWidth
+                    ),
+                    titleRect.x(),
+                    titleRect.y(),
                     viewState.query().focusedTabId().equals(panel.tab().id())
                             ? 0x404040
                             : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
 
+        int footerMaxWidth = Math.max(0, screen.layout.depositButtonRect().x() - screen.layout.databaseFooterRect().x() - 8);
         Component footerStats = Component.translatable(
                 "screen.infiniteinventory.footer_stats",
                 Component.translatable(viewState.query().scope().translationKey()),
@@ -216,44 +223,36 @@ final class PersonalDatabaseScreenRenderHelper {
         );
         guiGraphics.drawString(
                 screen.screenFont(),
-                footerStats,
+                PersonalDatabaseScreenGeometry.truncateToWidth(screen, footerStats.getString(), footerMaxWidth),
                 screen.layout.databaseFooterRect().x(),
                 screen.layout.databaseFooterRect().y() + 6,
                 0x404040,
-                true
-        );
-
-        Component pageLabel = Component.translatable(
-                "screen.infiniteinventory.page_compact",
-                viewState.query().pageIndex() + 1,
-                viewState.totalPages()
-        );
-        PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
-                screen,
-                guiGraphics,
-                pageLabel,
-                screen.layout.pageLabelRect().x(),
-                screen.layout.pageLabelRect().right(),
-                screen.layout.pageLabelRect().y() + 6,
-                0x404040
+                false
         );
     }
 
     static void renderSearchHint(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
-        if (screen.layout == null
-                || screen.searchBox == null
-                || screen.searchBox.isFocused()
-                || !screen.searchBox.getValue().isEmpty()) {
+        if (screen.layout == null) {
             return;
         }
-        guiGraphics.drawString(
-                screen.screenFont(),
-                Component.translatable("screen.infiniteinventory.search_hint"),
-                screen.layout.searchFieldRect().x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
-                screen.layout.searchFieldRect().y() + 6,
-                0x777777,
-                false
-        );
+        for (int panelIndex = 0; panelIndex < screen.panelSearchBoxes.size(); panelIndex++) {
+            if (panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+                break;
+            }
+            var searchBox = screen.panelSearchBoxes.get(panelIndex);
+            if (searchBox.isFocused() || !searchBox.getValue().isEmpty()) {
+                continue;
+            }
+            PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    Component.translatable("screen.infiniteinventory.search_hint"),
+                    searchRect.x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
+                    searchRect.y() + 6,
+                    0x777777,
+                    false
+            );
+        }
     }
 
     static void renderScreenTooltips(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -333,26 +332,28 @@ final class PersonalDatabaseScreenRenderHelper {
         if (screen.layout == null) {
             return;
         }
-        PersonalDatabaseLayout.Rect searchRect = screen.layout.searchFieldRect();
-        int iconX = searchRect.x() + 6;
-        int iconY = searchRect.y() + (searchRect.height() - PersonalDatabaseScreen.SEARCH_ICON_SIZE) / 2;
-        VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFF6D6D6D);
+        for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
+            PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
+            int iconX = searchRect.x() + 6;
+            int iconY = searchRect.y() + (searchRect.height() - PersonalDatabaseScreen.SEARCH_ICON_SIZE) / 2;
+            VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFF6D6D6D);
 
-        PersonalDatabaseLayout.Rect sortRect = screen.layout.sortButtonRect();
-        VanillaWidgetRenderer.renderDropdownIndicator(
-                guiGraphics,
-                sortRect.right() - 10,
-                sortRect.y() + sortRect.height() / 2,
-                0xFF3F3F3F
-        );
+            PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
+            VanillaWidgetRenderer.renderDropdownIndicator(
+                    guiGraphics,
+                    sortRect.right() - 10,
+                    sortRect.y() + sortRect.height() / 2,
+                    0xFF3F3F3F
+            );
 
-        PersonalDatabaseLayout.Rect pageRect = screen.layout.pageLabelRect();
-        VanillaWidgetRenderer.renderDropdownIndicator(
-                guiGraphics,
-                pageRect.right() - 10,
-                pageRect.y() + pageRect.height() / 2,
-                0xFF3F3F3F
-        );
+            PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
+            VanillaWidgetRenderer.renderDropdownIndicator(
+                    guiGraphics,
+                    pageRect.right() - 10,
+                    pageRect.y() + pageRect.height() / 2,
+                    0xFF3F3F3F
+            );
+        }
 
         if (screen.advancedSearchButton != null && screen.layout.advancedSearchButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect advancedRect = screen.layout.advancedSearchButtonRect();
@@ -405,7 +406,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 screen.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
                 screen.layout.databasePanelRect().y() - 12,
                 0x404040,
-                true
+                false
         );
     }
 
@@ -435,5 +436,13 @@ final class PersonalDatabaseScreenRenderHelper {
             }
         }
         return null;
+    }
+
+    private static void renderPanelTextFields(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
+        for (int panelIndex = 0; panelIndex < screen.panelSearchBoxes.size(); panelIndex++) {
+            PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
+            boolean focused = screen.panelSearchBoxes.get(panelIndex).isFocused();
+            VanillaWidgetRenderer.renderTextField(guiGraphics, searchRect, focused);
+        }
     }
 }

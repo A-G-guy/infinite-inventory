@@ -54,7 +54,7 @@ public record PersonalDatabaseLayout(
     public static final int ACCESSORY_DRAWER_PADDING = 8;
     public static final int ACCESSORY_DRAWER_TITLE_HEIGHT = 12;
     public static final int ACCESSORY_DRAWER_TITLE_GAP = 8;
-    public static final int VIEWPORT_HEADER_HEIGHT = 20;
+    public static final int VIEWPORT_HEADER_HEIGHT = 64;
     public static final int VIEWPORT_GAP = 8;
     static final int TITLE_HEIGHT = CONTROL_HEIGHT;
     static final int TITLE_GAP = 6;
