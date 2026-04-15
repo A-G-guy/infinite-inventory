@@ -208,6 +208,44 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
+def javaFileLineLimit = 500
+def javaLineLimitSources = [
+        fileTree('src/main/java') {
+            include '**/*.java'
+        },
+        fileTree('src/test/java') {
+            include '**/*.java'
+        }
+]
+
+tasks.register('checkJavaFileLineLimit') {
+    group = 'verification'
+    description = "Fails when any Java source file exceeds ${javaFileLineLimit} lines."
+    inputs.files(javaLineLimitSources)
+
+    doLast {
+        List<String> violations = []
+        javaLineLimitSources.each { sourceTree ->
+            sourceTree.files.sort { left, right -> left.path <=> right.path }.each { sourceFile ->
+                int lineCount = sourceFile.readLines('UTF-8').size()
+                if (lineCount > javaFileLineLimit) {
+                    violations.add("${project.relativePath(sourceFile)} (${lineCount} lines)")
+                }
+            }
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException(
+                    "Java file line limit (${javaFileLineLimit}) exceeded:\n - "
+                            + violations.join('\n - ')
+            )
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn(tasks.named('checkJavaFileLineLimit'))
+}
+
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
 idea {
     module {

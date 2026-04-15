@@ -1,0 +1,457 @@
+package com.agguy.infiniteinventory.menu;
+
+import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabasePage;
+import com.agguy.infiniteinventory.database.DatabasePageEntry;
+import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
+import com.agguy.infiniteinventory.database.DatabaseViewState;
+import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.registry.ModMenus;
+import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.mojang.datafixers.util.Pair;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.RecipeBookMenu;
+import net.minecraft.world.inventory.ResultContainer;
+import net.minecraft.world.inventory.ResultSlot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import org.jetbrains.annotations.Nullable;
+
+abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput, CraftingRecipe> {
+    protected static final AtomicLong NEXT_SESSION_ID = new AtomicLong(1L);
+    protected static final EquipmentSlot[] ARMOR_ORDER = {
+            EquipmentSlot.FEET,
+            EquipmentSlot.LEGS,
+            EquipmentSlot.CHEST,
+            EquipmentSlot.HEAD
+    };
+    protected static final int TOP_SECTION_RESULT_X = 154;
+    protected static final int TOP_SECTION_RESULT_Y = 28;
+    protected static final int TOP_SECTION_CRAFT_X = 98;
+    protected static final int TOP_SECTION_CRAFT_Y = 18;
+    protected static final int TOP_SECTION_ARMOR_X = 8;
+    protected static final int TOP_SECTION_ARMOR_Y = 8;
+    protected static final int TOP_SECTION_OFFHAND_X = 77;
+    protected static final int TOP_SECTION_OFFHAND_Y = 62;
+    protected static final int BOTTOM_SECTION_INVENTORY_X = 8;
+    protected static final int BOTTOM_SECTION_INVENTORY_Y = 1;
+    protected static final int BOTTOM_SECTION_HOTBAR_Y = 59;
+    protected static final Field SLOT_X_FIELD = findSlotField("x");
+    protected static final Field SLOT_Y_FIELD = findSlotField("y");
+
+    protected final CraftingContainer craftSlots = new TransientCraftingContainer(this, 2, 2);
+    protected final ResultContainer resultSlots = new ResultContainer();
+    protected final Player owner;
+    protected final int resultSlotIndex;
+    protected final MenuSlotRange craftingSlotRange;
+    protected final MenuSlotRange armorSlotRange;
+    protected final MenuSlotRange mainInventorySlotRange;
+    protected final MenuSlotRange hotbarSlotRange;
+    protected final MenuSlotRange playerStorageSlotRange;
+    protected final int offhandSlotIndex;
+    protected final List<AccessorySlotGroup> accessorySlotGroups;
+    protected final MenuSlotRange accessorySlotRange;
+    protected long sessionId;
+    protected DatabaseScope activeScope = DatabaseScope.defaultScope();
+    protected DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
+    protected DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
+    protected DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
+    protected String autoStoreTargetTabId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
+    protected DatabaseViewState viewState;
+    protected List<DatabasePage> currentPages = List.of();
+
+    protected PersonalDatabaseMenuSupport(int containerId, Inventory playerInventory, Player owner, long sessionId) {
+        super(ModMenus.PERSONAL_DATABASE_MENU.get(), containerId);
+        this.owner = owner;
+        this.sessionId = Math.max(0L, sessionId);
+        this.viewState = DatabaseViewState.empty(containerId, this.sessionId, this.currentQuery());
+        this.resultSlotIndex = this.addTrackedSlot(new ResultSlot(owner, this.craftSlots, this.resultSlots, 0, TOP_SECTION_RESULT_X, TOP_SECTION_RESULT_Y));
+        this.craftingSlotRange = this.addCraftingSlots();
+        this.armorSlotRange = this.addArmorSlots(playerInventory, owner);
+        this.mainInventorySlotRange = this.addMainInventorySlots(playerInventory);
+        this.hotbarSlotRange = this.addHotbarSlots(playerInventory);
+        this.playerStorageSlotRange = MenuSlotRange.span(this.mainInventorySlotRange, this.hotbarSlotRange);
+        this.offhandSlotIndex = this.addTrackedSlot(new OffhandDisplaySlot(playerInventory, owner, 40, TOP_SECTION_OFFHAND_X, TOP_SECTION_OFFHAND_Y));
+        this.accessorySlotGroups = List.copyOf(AccessoriesCompat.appendAccessorySlots(owner, this::addTrackedSlot));
+        this.accessorySlotRange = MenuSlotRange.fromGroups(this.accessorySlotGroups);
+    }
+
+    protected MenuSlotRange addCraftingSlots() {
+        int start = this.slots.size();
+        for (int row = 0; row < 2; row++) {
+            for (int column = 0; column < 2; column++) {
+                this.addTrackedSlot(new Slot(
+                        this.craftSlots,
+                        column + row * 2,
+                        TOP_SECTION_CRAFT_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                        TOP_SECTION_CRAFT_Y + row * PersonalDatabaseLayout.SLOT_SIZE
+                ));
+            }
+        }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    protected MenuSlotRange addArmorSlots(Inventory playerInventory, Player owner) {
+        int start = this.slots.size();
+        for (int index = 0; index < ARMOR_ORDER.length; index++) {
+            EquipmentSlot equipmentSlot = ARMOR_ORDER[index];
+            int inventoryIndex = 39 - index;
+            int x = TOP_SECTION_ARMOR_X;
+            int y = TOP_SECTION_ARMOR_Y + index * PersonalDatabaseLayout.SLOT_SIZE;
+            ResourceLocation icon = switch (equipmentSlot) {
+                case HEAD -> InventoryMenu.EMPTY_ARMOR_SLOT_HELMET;
+                case CHEST -> InventoryMenu.EMPTY_ARMOR_SLOT_CHESTPLATE;
+                case LEGS -> InventoryMenu.EMPTY_ARMOR_SLOT_LEGGINGS;
+                case FEET -> InventoryMenu.EMPTY_ARMOR_SLOT_BOOTS;
+                default -> null;
+            };
+            this.addTrackedSlot(new EquipmentDisplaySlot(playerInventory, owner, equipmentSlot, inventoryIndex, x, y, icon));
+        }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    protected MenuSlotRange addMainInventorySlots(Inventory playerInventory) {
+        int start = this.slots.size();
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                int slotIndex = column + (row + 1) * 9;
+                this.addTrackedSlot(new Slot(
+                        playerInventory,
+                        slotIndex,
+                        BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                        BOTTOM_SECTION_INVENTORY_Y + row * PersonalDatabaseLayout.SLOT_SIZE
+                ));
+            }
+        }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    protected MenuSlotRange addHotbarSlots(Inventory playerInventory) {
+        int start = this.slots.size();
+        for (int column = 0; column < 9; column++) {
+            this.addTrackedSlot(new Slot(
+                    playerInventory,
+                    column,
+                    BOTTOM_SECTION_INVENTORY_X + column * PersonalDatabaseLayout.SLOT_SIZE,
+                    BOTTOM_SECTION_HOTBAR_Y
+            ));
+        }
+        return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    protected int addTrackedSlot(Slot slot) {
+        int index = this.slots.size();
+        this.addSlot(slot);
+        return index;
+    }
+
+    protected void moveAccessorySlots(PersonalDatabaseLayout layout) {
+        for (PersonalDatabaseLayout.AccessorySlotLayout slotLayout : layout.accessorySlotLayouts()) {
+            this.moveSlot(slotLayout.slotIndex(), slotLayout.slotRect().x(), slotLayout.slotRect().y());
+        }
+    }
+
+    protected boolean shouldDepositQuickMovedSlot(int slotIndex) {
+        return this.mainInventorySlotRange.contains(slotIndex)
+                || this.hotbarSlotRange.contains(slotIndex)
+                || this.accessorySlotRange.contains(slotIndex);
+    }
+
+    protected boolean moveToPlayerStorage(ItemStack stack, boolean reverse) {
+        if (this.playerStorageSlotRange.isEmpty()) {
+            return false;
+        }
+        return this.moveItemStackTo(
+                stack,
+                this.playerStorageSlotRange.firstIndex(),
+                this.playerStorageSlotRange.lastIndexExclusive(),
+                reverse
+        );
+    }
+
+    protected boolean tryMoveToAccessorySlots(ItemStack stack) {
+        if (this.accessorySlotRange.isEmpty()) {
+            return false;
+        }
+        return this.moveItemStackTo(
+                stack,
+                this.accessorySlotRange.firstIndex(),
+                this.accessorySlotRange.lastIndexExclusive(),
+                false
+        );
+    }
+
+    protected boolean storeCarriedStack(ServerPlayer player, boolean singleItem, String targetTabId) {
+        ItemStack carried = this.getCarried();
+        if (!PersonalDatabaseService.INSTANCE.canStore(carried)) {
+            return false;
+        }
+        ItemStack storedStack = singleItem ? carried.split(1) : carried.copyAndClear();
+        if (storedStack.isEmpty()) {
+            return false;
+        }
+        if (!PersonalDatabaseService.INSTANCE.storeStack(player, this.activeScope, targetTabId, storedStack)) {
+            this.setCarried(singleItem ? carried.copyWithCount(carried.getCount() + storedStack.getCount()) : storedStack);
+            return false;
+        }
+        this.setCarried(carried);
+        return true;
+    }
+
+    protected boolean withdrawToCarried(ServerPlayer player, StoredStackKey key, int requestedAmount) {
+        ItemStack carried = this.getCarried();
+        if (!carried.isEmpty() && !ItemStack.isSameItemSameComponents(carried, key.displayStack())) {
+            return false;
+        }
+        int room = carried.isEmpty() ? key.maxStackSize() : carried.getMaxStackSize() - carried.getCount();
+        if (room <= 0) {
+            return false;
+        }
+        ItemStack extracted = PersonalDatabaseService.INSTANCE.extractToCarried(
+                player,
+                this.activeScope,
+                key,
+                Math.min(room, requestedAmount)
+        );
+        if (extracted.isEmpty()) {
+            return false;
+        }
+        if (carried.isEmpty()) {
+            this.setCarried(extracted);
+        } else {
+            carried.grow(extracted.getCount());
+            this.setCarried(carried);
+        }
+        return true;
+    }
+
+    @Nullable
+    protected DatabasePageEntry getPageEntry(int panelIndex, int pageSlotIndex) {
+        if (panelIndex < 0 || panelIndex >= this.currentPages.size() || pageSlotIndex < 0) {
+            return null;
+        }
+        return this.currentPages.get(panelIndex).entryAt(pageSlotIndex);
+    }
+
+    protected void moveSlot(int slotIndex, int x, int y) {
+        Slot slot = this.slots.get(slotIndex);
+        try {
+            SLOT_X_FIELD.setInt(slot, x);
+            SLOT_Y_FIELD.setInt(slot, y);
+        } catch (IllegalAccessException exception) {
+            throw new IllegalStateException("Failed to reposition slot " + slotIndex, exception);
+        }
+    }
+
+    private static Field findSlotField(String fieldName) {
+        try {
+            Field field = Slot.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field;
+        } catch (ReflectiveOperationException exception) {
+            throw new ExceptionInInitializerError(exception);
+        }
+    }
+
+    protected DatabaseQuery currentQuery() {
+        return this.activeScope == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
+    }
+
+    protected void applyOpenState(PersonalDatabaseOpenState openState) {
+        PersonalDatabaseOpenState normalizedState = openState == null ? PersonalDatabaseOpenState.defaultState() : openState;
+        this.personalQuery = normalizedState.queryForScope(DatabaseScope.PERSONAL);
+        this.publicQuery = normalizedState.queryForScope(DatabaseScope.PUBLIC);
+        this.activeScope = DatabaseScope.normalize(normalizedState.activeScope());
+        this.viewState = new DatabaseViewState(
+                this.containerId,
+                normalizedState.sessionId(),
+                this.currentQuery(),
+                this.personalQuery,
+                this.publicQuery,
+                normalizedState.enhancementConfig(),
+                normalizedState.autoStoreTargetTabId(),
+                List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
+                List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
+                List.of()
+        );
+        this.enhancementConfig = normalizedState.enhancementConfig();
+        this.autoStoreTargetTabId = normalizedState.autoStoreTargetTabId();
+    }
+
+    protected void setActiveQuery(DatabaseQuery query) {
+        DatabaseQuery normalizedQuery = query == null
+                ? DatabaseQuery.defaultQuery(this.activeScope)
+                : query;
+        this.activeScope = normalizedQuery.scope();
+        if (this.activeScope == DatabaseScope.PUBLIC) {
+            this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, normalizedQuery);
+        } else {
+            this.personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, normalizedQuery);
+        }
+    }
+
+    protected void persistPreferences(ServerPlayer player) {
+        DatabaseViewPreferencesAttachment preferences = PersonalDatabaseService.INSTANCE.getViewPreferences(player);
+        preferences.setQuery(DatabaseScope.PERSONAL, this.personalQuery);
+        preferences.setQuery(DatabaseScope.PUBLIC, this.publicQuery);
+        preferences.setLastScope(this.activeScope);
+        preferences.setEnhancementConfig(this.enhancementConfig);
+        preferences.setAutoStoreTargetTabId(this.autoStoreTargetTabId);
+    }
+
+    protected void syncAfterDatabaseMutation(ServerPlayer player) {
+        if (this.activeScope == DatabaseScope.PUBLIC) {
+            PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+            return;
+        }
+        this.syncViewToClient();
+    }
+
+    @Nullable
+    protected String resolveSingleStoreTargetTab() {
+        DatabaseQuery query = this.currentQuery();
+        if (query.visibleTabIds().size() != 1) {
+            return null;
+        }
+        String onlyVisibleTabId = query.visibleTabIds().getFirst();
+        if (com.agguy.infiniteinventory.database.DatabaseTabs.isAllTabId(onlyVisibleTabId)) {
+            return null;
+        }
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
+            return null;
+        }
+        return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, onlyVisibleTabId);
+    }
+
+    protected String resolveStoreTargetTab(int panelIndex, @Nullable String explicitTargetTabId) {
+        if (this.owner instanceof ServerPlayer serverPlayer && explicitTargetTabId != null && !explicitTargetTabId.isBlank()) {
+            return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, explicitTargetTabId);
+        }
+        if (panelIndex >= 0 && panelIndex < this.currentPages.size()) {
+            DatabasePage page = this.currentPages.get(panelIndex);
+            if (!page.tab().isAllTab()) {
+                return page.tab().id();
+            }
+        }
+        String singleStoreTargetTab = this.resolveSingleStoreTargetTab();
+        if (singleStoreTargetTab != null) {
+            return singleStoreTargetTab;
+        }
+        if (this.owner instanceof ServerPlayer serverPlayer) {
+            return PersonalDatabaseService.INSTANCE.resolveConcreteTargetTabId(serverPlayer, this.activeScope, this.currentQuery().focusedTabId());
+        }
+        return com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
+    }
+
+    protected abstract void syncViewToClient();
+
+    protected static final class CraftingMenuAccess extends CraftingMenu {
+        private CraftingMenuAccess(int containerId, Inventory playerInventory) {
+            super(containerId, playerInventory);
+        }
+
+        static void updateResult(
+                AbstractContainerMenu menu,
+                net.minecraft.world.level.Level level,
+                Player player,
+                CraftingContainer craftingSlots,
+                ResultContainer resultSlots,
+                @Nullable RecipeHolder<CraftingRecipe> recipe
+        ) {
+            slotChangedCraftingGrid(menu, level, player, craftingSlots, resultSlots, recipe);
+        }
+    }
+
+    protected static final class EquipmentDisplaySlot extends Slot {
+        private final LivingEntity owner;
+        private final EquipmentSlot slotType;
+        @Nullable
+        private final ResourceLocation emptyIcon;
+
+        private EquipmentDisplaySlot(
+                Container container,
+                LivingEntity owner,
+                EquipmentSlot slotType,
+                int slotIndex,
+                int x,
+                int y,
+                @Nullable ResourceLocation emptyIcon
+        ) {
+            super(container, slotIndex, x, y);
+            this.owner = owner;
+            this.slotType = slotType;
+            this.emptyIcon = emptyIcon;
+        }
+
+        @Override
+        public void setByPlayer(ItemStack newStack, ItemStack oldStack) {
+            this.owner.onEquipItem(this.slotType, oldStack, newStack);
+            super.setByPlayer(newStack, oldStack);
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 1;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return stack.canEquip(this.slotType, this.owner);
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return super.mayPickup(player);
+        }
+
+        @Override
+        public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+            if (this.emptyIcon == null) {
+                return super.getNoItemIcon();
+            }
+            return Pair.of(InventoryMenu.BLOCK_ATLAS, this.emptyIcon);
+        }
+    }
+
+    protected static final class OffhandDisplaySlot extends Slot {
+        private final Player owner;
+
+        private OffhandDisplaySlot(Container container, Player owner, int slotIndex, int x, int y) {
+            super(container, slotIndex, x, y);
+            this.owner = owner;
+        }
+
+        @Override
+        public void setByPlayer(ItemStack newStack, ItemStack oldStack) {
+            this.owner.onEquipItem(EquipmentSlot.OFFHAND, oldStack, newStack);
+            super.setByPlayer(newStack, oldStack);
+        }
+
+        @Override
+        public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+            return Pair.of(InventoryMenu.BLOCK_ATLAS, InventoryMenu.EMPTY_ARMOR_SLOT_SHIELD);
+        }
+    }
+}
