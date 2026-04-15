@@ -115,9 +115,7 @@ final class PersonalDatabaseScreenGeometry {
         int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         int x = Mth.clamp(anchorRect.right() - width, minX, maxX);
-        int minY = anchorRect.bottom() + 2;
-        int maxY = Math.max(minY, screen.layout.frameRect().bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int y = Mth.clamp(minY, minY, maxY);
+        int y = anchoredPopupY(screen.layout.frameRect(), anchorRect, height, 2);
         return new PersonalDatabaseLayout.Rect(x, y, width, height);
     }
 
@@ -310,9 +308,7 @@ final class PersonalDatabaseScreenGeometry {
         int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         int x = Mth.clamp(sortButtonRect.x(), minX, maxX);
-        int minY = sortButtonRect.bottom() + 2;
-        int maxY = Math.max(minY, screen.layout.frameRect().bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int y = Mth.clamp(minY, minY, maxY);
+        int y = anchoredPopupY(screen.layout.frameRect(), sortButtonRect, height, 2);
         return new PersonalDatabaseLayout.Rect(x, y, width, height);
     }
 
@@ -328,9 +324,7 @@ final class PersonalDatabaseScreenGeometry {
         int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         PersonalDatabaseLayout.Rect pageRect = panelPageButtonRect(screen, screen.activePagePickerPanelIndex);
         int x = Mth.clamp(pageRect.centerX() - width / 2, minX, maxX);
-        int minY = pageRect.bottom() + 2;
-        int maxY = Math.max(minY, screen.layout.frameRect().bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int y = Mth.clamp(minY, minY, maxY);
+        int y = anchoredPopupY(screen.layout.frameRect(), pageRect, height, 2);
         return new PersonalDatabaseLayout.Rect(x, y, width, height);
     }
 
@@ -340,6 +334,25 @@ final class PersonalDatabaseScreenGeometry {
             width = Math.max(width, screen.screenFont().width(PersonalDatabaseScreenCommonHelper.pagePickerLabel(screen, option)) + 16);
         }
         return width;
+    }
+
+    private static int anchoredPopupY(
+            PersonalDatabaseLayout.Rect frameRect,
+            PersonalDatabaseLayout.Rect anchorRect,
+            int height,
+            int gap
+    ) {
+        int minY = frameRect.y() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
+        int maxY = Math.max(minY, frameRect.bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
+        int belowY = anchorRect.bottom() + gap;
+        if (belowY + height <= frameRect.bottom() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN) {
+            return belowY;
+        }
+        int aboveY = anchorRect.y() - gap - height;
+        if (aboveY >= minY) {
+            return aboveY;
+        }
+        return Mth.clamp(belowY, minY, maxY);
     }
 
     private static PanelHeaderLayout panelHeaderLayout(PersonalDatabaseScreen screen, int panelIndex) {
