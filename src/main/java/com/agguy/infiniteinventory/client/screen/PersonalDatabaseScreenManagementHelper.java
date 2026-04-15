@@ -54,6 +54,7 @@ final class PersonalDatabaseScreenManagementHelper {
         if (screen.managementNameBox == null || screen.iconSearchBox == null) {
             return;
         }
+        boolean childOverlayExpanded = screen.iconPickerExpanded || screen.targetSelectorExpanded;
         boolean selectedTabPresent = PersonalDatabaseScreenCommonHelper.currentTabs(screen).stream()
                 .anyMatch(tab -> tab.id().equals(screen.managementSelectedTabId));
         DatabaseTab selectedTab = selectedTabPresent
@@ -70,9 +71,9 @@ final class PersonalDatabaseScreenManagementHelper {
         screen.managementNameBox.setY(nameFieldRect.y() + 4);
         screen.managementNameBox.setWidth(Math.max(1, nameFieldRect.width() - 8));
         screen.managementNameBox.setHeight(12);
-        screen.managementNameBox.visible = screen.tabManagementExpanded;
-        screen.managementNameBox.active = selectedTab.canRename();
-        if (!screen.tabManagementExpanded) {
+        screen.managementNameBox.visible = screen.tabManagementExpanded && !childOverlayExpanded;
+        screen.managementNameBox.active = selectedTab.canRename() && !childOverlayExpanded;
+        if (!screen.tabManagementExpanded || childOverlayExpanded) {
             screen.managementNameBox.setFocused(false);
         }
 

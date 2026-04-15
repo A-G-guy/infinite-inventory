@@ -237,7 +237,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.moreTabsExpanded) {
             PersonalDatabaseScreenTabHelper.renderMoreTabsDropdown(this, guiGraphics, mouseX, mouseY);
         }
-        if (this.tabManagementExpanded) {
+        if (this.tabManagementExpanded && !this.iconPickerExpanded && !this.targetSelectorExpanded) {
             PersonalDatabaseScreenManagementHelper.renderTabManagementPanel(this, guiGraphics, mouseX, mouseY);
         }
         if (this.iconPickerExpanded) {
