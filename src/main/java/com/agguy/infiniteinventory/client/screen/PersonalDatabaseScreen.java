@@ -32,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -159,6 +160,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     private int pendingQuickDepositSlotIndex = -1;
     private String managementSelectedTabId = DatabaseTabs.DEFAULT_TAB_ID;
     private String pendingIconItemId = DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
+    private DatabaseScope managementSnapshotScope = DatabaseScope.PERSONAL;
+    private String managementSnapshotTabId = "";
+    private String managementSnapshotName = "";
+    private String managementSnapshotIconItemId = "";
     private boolean pendingTargetStoresSingle;
     private TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
 
@@ -389,13 +394,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         if (!handled) {
-            this.sortDropdownExpanded = false;
-            this.pagePickerExpanded = false;
-            this.enhancementPanelExpanded = false;
-            this.viewSelectorExpanded = false;
-            this.moreTabsExpanded = false;
-            this.targetSelectorExpanded = false;
-            this.closeContextMenu();
+            this.closeTransientOverlays();
         }
         return handled;
     }
@@ -542,9 +541,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                     this.moreTabsExpanded = false;
                     this.targetSelectorExpanded = false;
                     this.viewSelectorExpanded = false;
-                    this.tabManagementExpanded = !this.tabManagementExpanded;
-                    this.iconPickerExpanded = false;
+                    boolean nextExpanded = !this.tabManagementExpanded;
+                    this.closeTabManagementOverlays();
+                    this.tabManagementExpanded = nextExpanded;
                     this.ensureManagementWidgets();
+                    if (this.tabManagementExpanded) {
+                        this.loadManagementDrafts(this.preferredManagementTab());
+                    }
                 })
                 .bounds(tabManagementRect.x(), tabManagementRect.y(), tabManagementRect.width(), tabManagementRect.height())
                 .build());
@@ -798,9 +801,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.syncEnhancementButtons(viewState.enhancementConfig());
         this.syncManagementWidgets();
         if (!this.menu.getCarried().isEmpty()) {
-            this.pagePickerExpanded = false;
-            this.enhancementPanelExpanded = false;
-            this.closeContextMenu();
+            this.closeTransientOverlays();
             return;
         }
         this.validateContextMenu(viewState);
@@ -895,13 +896,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     private void prepareForServerQuery() {
-        this.closeContextMenu();
-        this.sortDropdownExpanded = false;
-        this.pagePickerExpanded = false;
-        this.enhancementPanelExpanded = false;
-        this.viewSelectorExpanded = false;
-        this.moreTabsExpanded = false;
-        this.targetSelectorExpanded = false;
+        this.closeTransientOverlays();
     }
 
     private void switchScope(DatabaseScope scope) {
@@ -920,10 +915,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (!this.accessoriesExpanded) {
             this.accessoryScrollRow = 0;
         }
-        this.closeContextMenu();
-        this.sortDropdownExpanded = false;
-        this.pagePickerExpanded = false;
-        this.enhancementPanelExpanded = false;
+        this.closeTransientOverlays();
         this.rebuildLayout();
     }
 
@@ -1779,16 +1771,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.managementNameBox == null || this.iconSearchBox == null) {
             return;
         }
-        DatabaseTab selectedTab = this.findTab(this.managementSelectedTabId);
-        String selectedTabId = selectedTab.id();
-        boolean selectedTabPresent = this.currentTabs().stream().anyMatch(tab -> tab.id().equals(selectedTabId));
+        boolean selectedTabPresent = this.currentTabs().stream().anyMatch(tab -> tab.id().equals(this.managementSelectedTabId));
+        DatabaseTab selectedTab = selectedTabPresent ? this.findTab(this.managementSelectedTabId) : this.preferredManagementTab();
         if (!selectedTabPresent) {
-            DatabaseTab fallbackTab = this.findTab(this.menu.viewState().query().focusedTabId());
-            if (!fallbackTab.isConcreteTab() && !this.currentConcreteTabs().isEmpty()) {
-                fallbackTab = this.currentConcreteTabs().getFirst();
-            }
-            this.loadManagementDrafts(fallbackTab);
-            selectedTab = fallbackTab;
+            this.loadManagementDrafts(selectedTab);
+        } else if (this.shouldReloadManagementDrafts(selectedTab)) {
+            this.loadManagementDrafts(selectedTab);
         }
 
         PersonalDatabaseLayout.Rect managementFieldRect = this.managementNameFieldRect();
@@ -1818,9 +1806,61 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         DatabaseTab resolvedTab = tab == null ? DatabaseTabs.defaultConcreteTab() : tab;
         this.managementSelectedTabId = resolvedTab.id();
         this.pendingIconItemId = resolvedTab.iconItemId();
+        this.managementSnapshotScope = this.menu.viewState().query().scope();
+        this.managementSnapshotTabId = resolvedTab.id();
+        this.managementSnapshotName = this.tabEditableName(resolvedTab);
+        this.managementSnapshotIconItemId = resolvedTab.iconItemId();
         if (this.managementNameBox != null) {
-            this.managementNameBox.setValue(this.tabEditableName(resolvedTab));
+            this.managementNameBox.setValue(this.managementSnapshotName);
         }
+    }
+
+    private boolean shouldReloadManagementDrafts(DatabaseTab selectedTab) {
+        if (selectedTab == null) {
+            return false;
+        }
+        boolean snapshotChanged = this.managementSnapshotScope != this.menu.viewState().query().scope()
+                || !Objects.equals(this.managementSnapshotTabId, selectedTab.id())
+                || !Objects.equals(this.managementSnapshotName, this.tabEditableName(selectedTab))
+                || !Objects.equals(this.managementSnapshotIconItemId, selectedTab.iconItemId());
+        if (!snapshotChanged) {
+            return false;
+        }
+        return (this.managementNameBox == null || !this.managementNameBox.isFocused()) && !this.iconPickerExpanded;
+    }
+
+    private DatabaseTab preferredManagementTab() {
+        DatabaseTab focusedTab = this.findTab(this.menu.viewState().query().focusedTabId());
+        if (focusedTab.isConcreteTab() || this.currentConcreteTabs().isEmpty()) {
+            return focusedTab;
+        }
+        return this.currentConcreteTabs().getFirst();
+    }
+
+    private void closeIconPicker() {
+        this.iconPickerExpanded = false;
+        if (this.iconSearchBox != null) {
+            this.iconSearchBox.setFocused(false);
+        }
+    }
+
+    private void closeTabManagementOverlays() {
+        this.tabManagementExpanded = false;
+        if (this.managementNameBox != null) {
+            this.managementNameBox.setFocused(false);
+        }
+        this.closeIconPicker();
+    }
+
+    private void closeTransientOverlays() {
+        this.closeContextMenu();
+        this.sortDropdownExpanded = false;
+        this.pagePickerExpanded = false;
+        this.enhancementPanelExpanded = false;
+        this.viewSelectorExpanded = false;
+        this.moreTabsExpanded = false;
+        this.closeTargetSelector();
+        this.closeTabManagementOverlays();
     }
 
     private List<DatabaseTab> visibleTopTabs() {
@@ -2343,8 +2383,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.ensureManagementWidgets();
         PersonalDatabaseLayout.Rect panelRect = this.tabManagementPanelRect();
         if (!panelRect.contains(mouseX, mouseY)) {
-            this.tabManagementExpanded = false;
-            this.iconPickerExpanded = false;
+            this.closeTabManagementOverlays();
             return true;
         }
 
@@ -2503,17 +2542,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
                 continue;
             }
             this.pendingIconItemId = choices.get(index).itemId();
-            this.iconPickerExpanded = false;
-            if (this.iconSearchBox != null) {
-                this.iconSearchBox.setFocused(false);
-            }
+            this.closeIconPicker();
             return true;
         }
         if (!this.iconPickerRect().contains(mouseX, mouseY)) {
-            this.iconPickerExpanded = false;
-            if (this.iconSearchBox != null) {
-                this.iconSearchBox.setFocused(false);
-            }
+            this.closeIconPicker();
             return true;
         }
         return true;
