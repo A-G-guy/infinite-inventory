@@ -61,6 +61,14 @@ final class VanillaWidgetRenderer {
         guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0x48000000);
     }
 
+    static void renderSlotSelection(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0x40E3D0A4);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.y() + 2, 0xFFD6B86E);
+        guiGraphics.fill(rect.x() + 1, rect.bottom() - 2, rect.right() - 1, rect.bottom() - 1, 0xFF8D6F28);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.x() + 2, rect.bottom() - 1, 0xFFD6B86E);
+        guiGraphics.fill(rect.right() - 2, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0xFF8D6F28);
+    }
+
     static void renderOverlayPanel(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
         guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() + 2, rect.bottom() + 2, OVERLAY_SHADOW_COLOR);
         guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), OVERLAY_OUTLINE_COLOR);

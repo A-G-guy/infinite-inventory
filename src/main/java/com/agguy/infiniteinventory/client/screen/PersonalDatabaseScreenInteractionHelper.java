@@ -2,8 +2,10 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.inventory.Slot;
 import org.lwjgl.glfw.GLFW;
@@ -281,14 +283,18 @@ final class PersonalDatabaseScreenInteractionHelper {
                     || mouseY >= rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT) {
                 continue;
             }
-            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
-                    screen,
-                    screen.contextMenuPanelIndex,
-                    screen.contextMenuSlotIndex,
-                    PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS[index],
-                    ""
-            );
-            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            DatabaseSelectionAction action = PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS[index];
+            if (action.requiresTargetTab()) {
+                PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                        screen,
+                        PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
+                        -1,
+                        -1,
+                        ""
+                );
+            } else {
+                PersonalDatabaseScreenSelectionHelper.sendSelectionAction(screen, action, "");
+            }
             return true;
         }
         if (PersonalDatabaseScreenContextHelper.isWithinContextMenu(screen, mouseX, mouseY)) {
@@ -352,32 +358,49 @@ final class PersonalDatabaseScreenInteractionHelper {
                 );
                 return true;
             }
+            if ((button == 0 || button == 1) && PersonalDatabaseScreenSelectionHelper.hasSelection(screen)) {
+                PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+                screen.sortDropdownExpanded = false;
+                screen.pagePickerExpanded = false;
+                screen.enhancementPanelExpanded = false;
+                return true;
+            }
             return false;
         }
         if (hitResult.slotIndex() >= panel.entries().size()) {
+            if (button == 0 || button == 1) {
+                PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+                screen.sortDropdownExpanded = false;
+                screen.pagePickerExpanded = false;
+                screen.enhancementPanelExpanded = false;
+                return true;
+            }
             return false;
         }
+        DatabaseSelectionEntry selectionEntry = PersonalDatabaseScreenSelectionHelper.selectionEntryAt(
+                screen,
+                panelIndex,
+                hitResult.slotIndex()
+        );
         if (button == 0) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             screen.sortDropdownExpanded = false;
             screen.pagePickerExpanded = false;
             screen.enhancementPanelExpanded = false;
-            DatabaseClickAction action = Screen.hasShiftDown()
-                    ? DatabaseClickAction.TAKE_STACK_TO_INVENTORY
-                    : DatabaseClickAction.TAKE_SINGLE;
-            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
-                    screen,
-                    panelIndex,
-                    hitResult.slotIndex(),
-                    action,
-                    ""
-            );
+            if (Screen.hasControlDown()) {
+                PersonalDatabaseScreenSelectionHelper.toggleSelection(screen, selectionEntry);
+            } else {
+                PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
+            }
             return true;
         }
         if (button == 1) {
             screen.sortDropdownExpanded = false;
             screen.pagePickerExpanded = false;
             screen.enhancementPanelExpanded = false;
+            if (selectionEntry != null && !screen.selectedDatabaseEntries.contains(selectionEntry)) {
+                PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
+            }
             PersonalDatabaseScreenContextHelper.openContextMenu(screen, panelIndex, hitResult.slotIndex());
             return true;
         }

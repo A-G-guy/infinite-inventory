@@ -131,11 +131,14 @@ final class PersonalDatabaseScreenRenderHelper {
             }
             for (int slotIndex = 0; slotIndex < screen.layout.visibleDatabaseSlotCount(panelIndex); slotIndex++) {
                 PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
-                if (slotRect.contains(mouseX, mouseY)) {
-                    VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
-                }
                 if (slotIndex < panel.entries().size()) {
                     VisibleDatabaseEntry entry = panel.entries().get(slotIndex);
+                    if (PersonalDatabaseScreenSelectionHelper.isSelected(screen, entry)) {
+                        VanillaWidgetRenderer.renderSlotSelection(guiGraphics, slotRect);
+                    }
+                    if (slotRect.contains(mouseX, mouseY)) {
+                        VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
+                    }
                     ItemStack stack = entry.stack();
                     int itemX = slotRect.x() + (PersonalDatabaseLayout.DATABASE_SLOT_SIZE - 16) / 2;
                     int itemY = slotRect.y() + (PersonalDatabaseLayout.DATABASE_SLOT_SIZE - 16) / 2;
@@ -147,6 +150,8 @@ final class PersonalDatabaseScreenRenderHelper {
                             itemY,
                             CompactNumberFormatter.format(entry.amount())
                     );
+                } else if (slotRect.contains(mouseX, mouseY)) {
+                    VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
                 }
             }
         }

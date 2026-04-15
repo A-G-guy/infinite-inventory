@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.DatabaseTab;
@@ -8,6 +9,8 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseClickPayload;
 import com.agguy.infiniteinventory.network.DatabaseQueryPayload;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionPayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +139,7 @@ final class PersonalDatabaseScreenLayoutHelper {
             return;
         }
         screen.pendingLayoutQuery = null;
+        PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
         prepareForServerQuery(screen);
         dispatchQuery(screen, query);
     }
@@ -162,6 +166,21 @@ final class PersonalDatabaseScreenLayoutHelper {
                 slotIndex,
                 action,
                 targetTabId == null ? "" : targetTabId
+        ));
+    }
+
+    static void sendDatabaseSelection(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionAction action,
+            String targetTabId,
+            List<DatabaseSelectionEntry> selectedEntries
+    ) {
+        PacketDistributor.sendToServer(new DatabaseSelectionPayload(
+                screen.databaseMenu.containerId,
+                screen.databaseMenu.viewState().sessionId(),
+                action,
+                targetTabId == null ? "" : targetTabId,
+                selectedEntries
         ));
     }
 

@@ -3,13 +3,16 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.compat.PlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.compat.VanillaPlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.database.DatabaseCategory;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
-import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -77,12 +80,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TAB_ICON_SIZE = 16;
     static final int TAB_ICON_LEFT_PADDING = 4;
     static final int TAB_TEXT_GAP = 3;
-    static final DatabaseClickAction[] CONTEXT_MENU_ACTIONS = {
-            DatabaseClickAction.TAKE_SINGLE,
-            DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY,
-            DatabaseClickAction.TAKE_STACK,
-            DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY,
-            DatabaseClickAction.TAKE_ALL
+    static final DatabaseSelectionAction[] CONTEXT_MENU_ACTIONS = {
+            DatabaseSelectionAction.EXTRACT_ONE_TO_INVENTORY,
+            DatabaseSelectionAction.EXTRACT_HALF_STACK_TO_INVENTORY,
+            DatabaseSelectionAction.EXTRACT_STACK_TO_INVENTORY,
+            DatabaseSelectionAction.EXTRACT_ALL_TO_INVENTORY,
+            DatabaseSelectionAction.TRANSFER_TO_TAB
     };
 
     final PlayerInventoryPaneProvider inventoryPaneProvider = new VanillaPlayerInventoryPaneProvider();
@@ -133,6 +136,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     int contextMenuX;
     int contextMenuY;
     ItemStack contextMenuEntryStack = ItemStack.EMPTY;
+    final LinkedHashSet<DatabaseSelectionEntry> selectedDatabaseEntries = new LinkedHashSet<>();
+    @Nullable
+    DatabaseViewState selectionTrackedViewState;
     String pendingTargetSourceTabId = "";
     int pendingTargetPanelIndex = -1;
     int pendingQuickDepositSlotIndex = -1;
@@ -156,6 +162,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         CARRIED_STORE,
         QUICK_DEPOSIT,
         TRANSFER_TAB,
+        TRANSFER_SELECTION,
         DELETE_TAB,
         AUTO_STORE_TARGET
     }

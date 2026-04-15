@@ -170,6 +170,26 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return changed;
     }
 
+    public boolean moveEntryToTab(StoredStackKey key, String sourceTabId, String targetTabId) {
+        if (key == null) {
+            return false;
+        }
+        StoredStackEntry entry = this.entries.get(key);
+        if (entry == null) {
+            return false;
+        }
+        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
+        if (!entry.tabId().equals(normalizedSourceTabId)) {
+            return false;
+        }
+        long sequence = this.nextSequence();
+        boolean changed = entry.moveToTab(targetTabId, sequence);
+        if (changed) {
+            this.markRuntimeStateDirty();
+        }
+        return changed;
+    }
+
     public boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
         if (tabDirectory == null) {
             return false;
