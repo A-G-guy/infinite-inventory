@@ -200,7 +200,12 @@ final class PersonalDatabaseLayoutFactory {
         for (PersonalDatabaseLayout.Rect panelRect : panelRects) {
             int headerHeight = Math.min(
                     PersonalDatabaseLayout.VIEWPORT_HEADER_HEIGHT,
-                    Math.max(PersonalDatabaseLayout.CONTROL_HEIGHT, panelRect.height() / 5)
+                    Math.max(
+                            PersonalDatabaseLayout.CONTROL_HEIGHT,
+                            panelRect.height()
+                                    - PersonalDatabaseLayout.GRID_PADDING * 2
+                                    - PersonalDatabaseLayout.DATABASE_SLOT_SIZE
+                    )
             );
             PersonalDatabaseLayout.Rect headerRect = new PersonalDatabaseLayout.Rect(
                     panelRect.x() + PersonalDatabaseLayout.GRID_PADDING,
