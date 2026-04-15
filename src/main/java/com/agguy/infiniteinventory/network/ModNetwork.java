@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "10";
+    private static final String NETWORK_VERSION = "11";
 
     private ModNetwork() {
     }

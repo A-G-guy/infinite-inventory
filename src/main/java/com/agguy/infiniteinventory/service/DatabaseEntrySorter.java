@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.service;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.database.DatabaseTabQueryState;
 import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.Comparator;
 
@@ -13,8 +14,13 @@ public final class DatabaseEntrySorter {
 
     public Comparator<DatabaseSortSnapshot> comparatorFor(DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        Comparator<DatabaseSortSnapshot> manualComparator = this.manualComparatorFor(normalizedQuery.sortOption());
-        if (SearchTextNormalizer.splitTerms(normalizedQuery.searchText()).isEmpty()) {
+        return this.comparatorFor(normalizedQuery.tabStateFor(normalizedQuery.focusedTabId()));
+    }
+
+    public Comparator<DatabaseSortSnapshot> comparatorFor(DatabaseTabQueryState tabQueryState) {
+        DatabaseTabQueryState normalizedState = tabQueryState == null ? DatabaseTabQueryState.defaultState() : tabQueryState;
+        Comparator<DatabaseSortSnapshot> manualComparator = this.manualComparatorFor(normalizedState.sortOption());
+        if (SearchTextNormalizer.splitTerms(normalizedState.searchText()).isEmpty()) {
             return manualComparator;
         }
         return Comparator.comparingInt((DatabaseSortSnapshot snapshot) -> snapshot.searchRanking().exactMatches()).reversed()

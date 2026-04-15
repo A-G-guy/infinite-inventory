@@ -2,12 +2,12 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
+import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
@@ -25,24 +25,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.layout == null) {
             return;
         }
-        DatabaseQuery query = screen.databaseMenu.viewState().query();
-        PersonalDatabaseLayout.Rect searchRect = screen.layout.searchFieldRect();
-        screen.searchBox = screen.addScreenEditBox(new EditBox(
-                screen.screenFont(),
-                searchRect.x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
-                searchRect.y() + 4,
-                Math.max(1, searchRect.width() - PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING - 4),
-                12,
-                Component.translatable("screen.infiniteinventory.search")
-        ));
-        screen.searchBox.setMaxLength(DatabaseQuery.MAX_SEARCH_LENGTH);
-        screen.searchBox.setBordered(false);
-        screen.searchBox.setTextColor(0x303030);
-        screen.searchBox.setTextColorUneditable(0x606060);
-        screen.syncingSearchBox = true;
-        screen.searchBox.setValue(query.searchText());
-        screen.syncingSearchBox = false;
-        screen.searchBox.setResponder(value -> PersonalDatabaseScreenLayoutHelper.onSearchChanged(screen, value));
+        buildPanelWidgets(screen);
 
         PersonalDatabaseLayout.Rect advancedSearchRect = screen.layout.advancedSearchButtonRect();
         screen.advancedSearchButton = screen.addScreenButton(Button.builder(
@@ -128,24 +111,6 @@ final class PersonalDatabaseScreenWidgetHelper {
                 .bounds(tabManagementRect.x(), tabManagementRect.y(), tabManagementRect.width(), tabManagementRect.height())
                 .build());
 
-        PersonalDatabaseLayout.Rect sortRect = screen.layout.sortButtonRect();
-        screen.sortButton = screen.addScreenButton(Button.builder(
-                        Component.empty(),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.advancedSearchExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            screen.viewSelectorExpanded = false;
-                            screen.moreTabsExpanded = false;
-                            screen.targetSelectorExpanded = false;
-                            screen.tabManagementExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.sortDropdownExpanded = !screen.sortDropdownExpanded;
-                        }
-                )
-                .bounds(sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height())
-                .build());
-
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
                         Component.translatable(DatabaseScope.PERSONAL.translationKey()),
@@ -194,22 +159,6 @@ final class PersonalDatabaseScreenWidgetHelper {
                         }
                 )
                 .bounds(depositRect.x(), depositRect.y(), depositRect.width(), depositRect.height())
-                .build());
-
-        PersonalDatabaseLayout.Rect previousRect = screen.layout.previousPageButtonRect();
-        screen.previousPageButton = screen.addScreenButton(Button.builder(
-                        Component.literal("<"),
-                        button -> PersonalDatabaseScreenLayoutHelper.changePage(screen, -1)
-                )
-                .bounds(previousRect.x(), previousRect.y(), previousRect.width(), previousRect.height())
-                .build());
-
-        PersonalDatabaseLayout.Rect nextRect = screen.layout.nextPageButtonRect();
-        screen.nextPageButton = screen.addScreenButton(Button.builder(
-                        Component.literal(">"),
-                        button -> PersonalDatabaseScreenLayoutHelper.changePage(screen, 1)
-                )
-                .bounds(nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height())
                 .build());
 
         screen.accessoriesToggleButton = null;
@@ -334,11 +283,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         DatabaseViewState viewState = screen.databaseMenu.viewState();
         DatabaseQuery query = viewState.query();
         DatabaseScope activeScope = query.scope();
-        if (screen.searchBox != null && !screen.searchBox.isFocused() && !screen.searchBox.getValue().equals(query.searchText())) {
-            screen.syncingSearchBox = true;
-            screen.searchBox.setValue(query.searchText());
-            screen.syncingSearchBox = false;
-        }
+        syncPanelWidgets(screen, viewState, query);
         if (screen.advancedSearchButton != null) {
             screen.advancedSearchButton.setMessage(Component.translatable("screen.infiniteinventory.search_advanced_button"));
         }
@@ -350,15 +295,6 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         if (screen.tabManagementButton != null) {
             screen.tabManagementButton.setMessage(Component.translatable("screen.infiniteinventory.tab_management_button"));
-        }
-        if (screen.sortButton != null) {
-            screen.sortButton.setMessage(Component.translatable(query.sortOption().translationKey()));
-        }
-        if (screen.previousPageButton != null) {
-            screen.previousPageButton.active = query.pageIndex() > 0;
-        }
-        if (screen.nextPageButton != null) {
-            screen.nextPageButton.active = query.pageIndex() + 1 < viewState.totalPages();
         }
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
@@ -390,6 +326,116 @@ final class PersonalDatabaseScreenWidgetHelper {
         PersonalDatabaseScreenContextHelper.validateContextMenu(screen, viewState);
     }
 
+    private static void buildPanelWidgets(PersonalDatabaseScreen screen) {
+        screen.panelSearchBoxes.clear();
+        screen.panelSortButtons.clear();
+        screen.panelPreviousPageButtons.clear();
+        screen.panelPageButtons.clear();
+        screen.panelNextPageButtons.clear();
+        if (screen.layout == null) {
+            return;
+        }
+        for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
+            DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+            String tabId = panel.tab().id();
+            PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
+            EditBox searchBox = screen.addScreenEditBox(new EditBox(
+                    screen.screenFont(),
+                    searchRect.x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
+                    searchRect.y() + 4,
+                    Math.max(1, searchRect.width() - PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING - 4),
+                    12,
+                    Component.translatable("screen.infiniteinventory.search")
+            ));
+            searchBox.setMaxLength(DatabaseQuery.MAX_SEARCH_LENGTH);
+            searchBox.setBordered(false);
+            searchBox.setTextColor(0x303030);
+            searchBox.setTextColorUneditable(0x606060);
+            searchBox.setValue(screen.databaseMenu.viewState().query().searchTextFor(tabId));
+            final int resolvedPanelIndex = panelIndex;
+            searchBox.setResponder(value -> PersonalDatabaseScreenLayoutHelper.onPanelSearchChanged(screen, resolvedPanelIndex, value));
+            screen.panelSearchBoxes.add(searchBox);
+            PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
+            screen.panelSortButtons.add(screen.addScreenButton(Button.builder(Component.empty(), button -> {
+                        PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+                        screen.pagePickerExpanded = false;
+                        screen.activePagePickerPanelIndex = -1;
+                        boolean samePanel = screen.sortDropdownExpanded && screen.activeSortPanelIndex == resolvedPanelIndex;
+                        screen.activeSortPanelIndex = resolvedPanelIndex;
+                        screen.sortDropdownExpanded = !samePanel;
+                    })
+                    .bounds(sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height())
+                    .build()));
+            PersonalDatabaseLayout.Rect previousRect = PersonalDatabaseScreenGeometry.panelPreviousPageButtonRect(screen, panelIndex);
+            screen.panelPreviousPageButtons.add(screen.addScreenButton(Button.builder(
+                            Component.literal("<"),
+                            button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, -1)
+                    )
+                    .bounds(previousRect.x(), previousRect.y(), previousRect.width(), previousRect.height())
+                    .build()));
+            PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
+            screen.panelPageButtons.add(screen.addScreenButton(Button.builder(Component.empty(), button -> {
+                        PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+                        screen.sortDropdownExpanded = false;
+                        screen.activeSortPanelIndex = -1;
+                        boolean samePanel = screen.pagePickerExpanded && screen.activePagePickerPanelIndex == resolvedPanelIndex;
+                        screen.activePagePickerPanelIndex = resolvedPanelIndex;
+                        screen.pagePickerExpanded = !samePanel;
+                    })
+                    .bounds(pageRect.x(), pageRect.y(), pageRect.width(), pageRect.height())
+                    .build()));
+            PersonalDatabaseLayout.Rect nextRect = PersonalDatabaseScreenGeometry.panelNextPageButtonRect(screen, panelIndex);
+            screen.panelNextPageButtons.add(screen.addScreenButton(Button.builder(
+                            Component.literal(">"),
+                            button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, 1)
+                    )
+                    .bounds(nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height())
+                    .build()));
+        }
+    }
+
+    private static void syncPanelWidgets(PersonalDatabaseScreen screen, DatabaseViewState viewState, DatabaseQuery query) {
+        if (screen.activeSortPanelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+            screen.activeSortPanelIndex = -1;
+            screen.sortDropdownExpanded = false;
+        }
+        if (screen.activePagePickerPanelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+            screen.activePagePickerPanelIndex = -1;
+            screen.pagePickerExpanded = false;
+        }
+        for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
+            DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+            String tabId = panel.tab().id();
+            EditBox searchBox = panelIndex < screen.panelSearchBoxes.size() ? screen.panelSearchBoxes.get(panelIndex) : null;
+            if (searchBox != null && !searchBox.isFocused() && !searchBox.getValue().equals(query.searchTextFor(tabId))) {
+                screen.syncingSearchBox = true;
+                searchBox.setValue(query.searchTextFor(tabId));
+                screen.syncingSearchBox = false;
+            }
+            Button sortButton = panelIndex < screen.panelSortButtons.size() ? screen.panelSortButtons.get(panelIndex) : null;
+            if (sortButton != null) {
+                sortButton.setMessage(Component.translatable(query.sortOptionFor(tabId).translationKey()));
+            }
+            Button previousButton = panelIndex < screen.panelPreviousPageButtons.size()
+                    ? screen.panelPreviousPageButtons.get(panelIndex)
+                    : null;
+            if (previousButton != null) {
+                previousButton.active = panel.pageIndex() > 0;
+            }
+            Button pageButton = panelIndex < screen.panelPageButtons.size() ? screen.panelPageButtons.get(panelIndex) : null;
+            if (pageButton != null) {
+                pageButton.setMessage(Component.translatable(
+                        "screen.infiniteinventory.page_compact",
+                        panel.pageIndex() + 1,
+                        panel.totalPages()
+                ));
+            }
+            Button nextButton = panelIndex < screen.panelNextPageButtons.size() ? screen.panelNextPageButtons.get(panelIndex) : null;
+            if (nextButton != null) {
+                nextButton.active = panel.pageIndex() + 1 < panel.totalPages();
+            }
+        }
+    }
     private static void toggleAdvancedSearchField(PersonalDatabaseScreen screen, DatabaseSearchField field) {
         DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
         DatabaseSearchConfig searchConfig = currentQuery.searchConfig();
@@ -442,7 +488,6 @@ final class PersonalDatabaseScreenWidgetHelper {
                 autoStoreTargetTabId
         ));
     }
-
     private static DatabaseSearchWeight nextWeight(DatabaseSearchWeight currentWeight) {
         return switch (currentWeight) {
             case OFF -> DatabaseSearchWeight.LOW;

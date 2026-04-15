@@ -30,7 +30,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 panelRect.x() + PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_PADDING,
                 panelRect.y() + PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_PADDING,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(
                 panelRect.x() + PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_PADDING,
@@ -43,6 +43,8 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                         - 1,
                 0x70A89E8C
         );
+        renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+
         DatabaseSearchConfig searchConfig = screen.databaseMenu.viewState().query().searchConfig();
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.advancedSearchRowRect(screen, field);
@@ -101,7 +103,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                     labelX,
                     rowRect.y() + 6,
                     enabled ? PersonalDatabaseScreen.OVERLAY_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                    true
+                    false
             );
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
@@ -130,7 +132,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 panelRect.x() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
                 panelRect.y() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         guiGraphics.fill(
                 panelRect.x() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
@@ -143,6 +145,8 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                         - 1,
                 0x70A89E8C
         );
+        renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+
         DatabaseEnhancementConfig config = screen.databaseMenu.viewState().enhancementConfig();
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
@@ -176,7 +180,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                     labelX,
                     rowRect.y() + 6,
                     enabled ? PersonalDatabaseScreen.OVERLAY_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                    true
+                    false
             );
         }
         PersonalDatabaseLayout.Rect autoStoreRowRect = PersonalDatabaseScreenGeometry.enhancementAutoStoreRowRect(screen);
@@ -192,7 +196,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 autoStoreRowRect.x() + 6,
                 autoStoreRowRect.y() + 6,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                true
+                false
         );
         PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                 screen,
@@ -214,10 +218,16 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         if (dropdownRect == null) {
             return;
         }
+        int panelIndex = PersonalDatabaseScreenCommonHelper.activeSortPanelIndex(screen);
+        DatabaseSortOption currentSort = panelIndex >= 0 && panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()
+                ? screen.databaseMenu.viewState().query().sortOptionFor(
+                        PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).tab().id()
+                )
+                : screen.databaseMenu.viewState().query().sortOption();
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 250.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, dropdownRect);
-        DatabaseSortOption currentSort = screen.databaseMenu.viewState().query().sortOption();
+        renderOverlayCloseButton(screen, guiGraphics, dropdownRect, mouseX, mouseY);
         List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
         for (int index = 0; index < sortOptions.size(); index++) {
             DatabaseSortOption option = sortOptions.get(index);
@@ -239,7 +249,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                     rowRect.x() + 6,
                     rowRect.y() + 5,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
         guiGraphics.pose().popPose();
@@ -251,10 +261,14 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             return;
         }
         List<DatabasePagePickerModel.PageOption> options = PersonalDatabaseScreenCommonHelper.pagePickerOptions(screen);
-        int currentPageIndex = screen.databaseMenu.viewState().query().pageIndex();
+        int panelIndex = PersonalDatabaseScreenCommonHelper.activePagePickerPanelIndex(screen);
+        int currentPageIndex = panelIndex >= 0 && panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()
+                ? PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).pageIndex()
+                : 0;
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 255.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, pickerRect);
+        renderOverlayCloseButton(screen, guiGraphics, pickerRect, mouseX, mouseY);
         for (int index = 0; index < options.size(); index++) {
             DatabasePagePickerModel.PageOption option = options.get(index);
             PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
@@ -275,7 +289,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                     rowRect.x() + 6,
                     rowRect.y() + 5,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
         guiGraphics.pose().popPose();
@@ -310,9 +324,34 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                     rowRect.x() + 6,
                     rowRect.y() + 5,
                     PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    true
+                    false
             );
         }
         guiGraphics.pose().popPose();
+    }
+
+    static void renderOverlayCloseButton(
+            PersonalDatabaseScreen screen,
+            GuiGraphics guiGraphics,
+            PersonalDatabaseLayout.Rect panelRect,
+            int mouseX,
+            int mouseY
+    ) {
+        PersonalDatabaseLayout.Rect closeRect = PersonalDatabaseScreenGeometry.overlayCloseButtonRect(panelRect);
+        boolean hovered = closeRect.contains(mouseX, mouseY);
+        VanillaWidgetRenderer.renderOverlayChip(guiGraphics, closeRect, hovered, false, true);
+        PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
+                screen,
+                guiGraphics,
+                Component.literal("X"),
+                closeRect.x() + 1,
+                closeRect.right() - 1,
+                closeRect.y() + 4,
+                hovered ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR
+        );
+    }
+
+    static boolean isOverlayCloseClicked(PersonalDatabaseLayout.Rect panelRect, double mouseX, double mouseY) {
+        return PersonalDatabaseScreenGeometry.overlayCloseButtonRect(panelRect).contains(mouseX, mouseY);
     }
 }

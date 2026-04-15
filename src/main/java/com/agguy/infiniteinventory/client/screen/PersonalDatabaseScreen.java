@@ -2,13 +2,16 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.compat.PlayerInventoryPaneProvider;
 import com.agguy.infiniteinventory.compat.VanillaPlayerInventoryPaneProvider;
+import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -59,8 +62,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int MANAGEMENT_ROW_HEIGHT = 20;
     static final int MANAGEMENT_LIST_WIDTH = 124;
     static final int MANAGEMENT_BUTTON_WIDTH = 76;
-    static final int ICON_PICKER_WIDTH = 280;
-    static final int ICON_PICKER_HEIGHT = 220;
+    static final int ICON_PICKER_WIDTH = 900;
+    static final int ICON_PICKER_HEIGHT = 620;
     static final int MANAGEMENT_PANEL_PADDING = 8;
     static final int OVERLAY_SECTION_TITLE_HEIGHT = 12;
     static final int INLINE_TAB_MIN_WIDTH = 88;
@@ -89,11 +92,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     PersonalDatabaseLayout layout;
     @Nullable
     DatabaseQuery pendingLayoutQuery;
-    EditBox searchBox;
     Button depositButton;
-    Button previousPageButton;
-    Button nextPageButton;
-    Button sortButton;
     Button advancedSearchButton;
     Button enhancementButton;
     Button viewSelectorButton;
@@ -101,6 +100,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     Button personalScopeButton;
     Button publicScopeButton;
     Button accessoriesToggleButton;
+    final List<EditBox> panelSearchBoxes = new ArrayList<>();
+    final List<Button> panelSortButtons = new ArrayList<>();
+    final List<Button> panelPreviousPageButtons = new ArrayList<>();
+    final List<Button> panelPageButtons = new ArrayList<>();
+    final List<Button> panelNextPageButtons = new ArrayList<>();
     @Nullable
     EditBox managementNameBox;
     @Nullable
@@ -111,6 +115,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean syncingSearchBox;
     boolean sortDropdownExpanded;
     boolean pagePickerExpanded;
+    int activeSortPanelIndex = -1;
+    int activePagePickerPanelIndex = -1;
     boolean advancedSearchExpanded;
     boolean enhancementPanelExpanded;
     boolean viewSelectorExpanded;
@@ -136,6 +142,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     String managementSnapshotTabId = "";
     String managementSnapshotName = "";
     String managementSnapshotIconItemId = "";
+    DatabaseCategory iconPickerCategory = DatabaseCategory.ALL;
+    int iconPickerPageIndex;
+    String iconPickerOriginalItemId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
+    String lastUiSignature = "";
     boolean pendingTargetStoresSingle;
     TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
 
@@ -152,7 +162,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     record DatabaseHitResult(int panelIndex, int slotIndex) {
     }
 
-    record IconChoice(String itemId, ItemStack previewStack, String searchableText) {
+    record IconChoice(String itemId, ItemStack previewStack, String searchableText, DatabaseCategory category) {
     }
 
     public PersonalDatabaseScreen(PersonalDatabaseMenu menu, Inventory playerInventory, Component title) {
@@ -193,6 +203,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     @Override
     public void containerTick() {
         super.containerTick();
+        PersonalDatabaseScreenLayoutHelper.refreshUiStructureIfNeeded(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
@@ -214,7 +225,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.enhancementPanelExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderEnhancementPanel(this, guiGraphics, mouseX, mouseY);
         }
-        PersonalDatabaseScreenRenderHelper.renderSearchHint(this, guiGraphics);
         if (this.sortDropdownExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderSortDropdown(this, guiGraphics, mouseX, mouseY);
         }
@@ -227,14 +237,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         if (this.moreTabsExpanded) {
             PersonalDatabaseScreenTabHelper.renderMoreTabsDropdown(this, guiGraphics, mouseX, mouseY);
         }
-        if (this.targetSelectorExpanded) {
-            PersonalDatabaseScreenTargetHelper.renderTargetSelector(this, guiGraphics, mouseX, mouseY);
-        }
         if (this.tabManagementExpanded) {
             PersonalDatabaseScreenManagementHelper.renderTabManagementPanel(this, guiGraphics, mouseX, mouseY);
         }
         if (this.iconPickerExpanded) {
             PersonalDatabaseScreenManagementHelper.renderIconPicker(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.targetSelectorExpanded) {
+            PersonalDatabaseScreenTargetHelper.renderTargetSelector(this, guiGraphics, mouseX, mouseY);
         }
         if (this.contextMenuExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderContextMenu(this, guiGraphics, mouseX, mouseY);
@@ -321,6 +331,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     EditBox addScreenEditBox(EditBox editBox) {
         return super.addRenderableWidget(editBox);
+    }
+
+    void clearScreenWidgets() {
+        super.clearWidgets();
     }
 
     boolean invokeSuperMouseClicked(double mouseX, double mouseY, int button) {

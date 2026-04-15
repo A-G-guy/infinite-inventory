@@ -3,10 +3,13 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
+import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseClickPayload;
 import com.agguy.infiniteinventory.network.DatabaseQueryPayload;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -40,6 +43,16 @@ final class PersonalDatabaseScreenLayoutHelper {
         screen.databaseMenu.applySlotLayout(screen.layout);
     }
 
+    static void refreshUiStructureIfNeeded(PersonalDatabaseScreen screen) {
+        String nextSignature = uiSignature(screen);
+        if (nextSignature.equals(screen.lastUiSignature)) {
+            return;
+        }
+        screen.lastUiSignature = nextSignature;
+        rebuildLayout(screen);
+        rebuildWidgets(screen);
+    }
+
     static void ensureLayoutQuerySynced(PersonalDatabaseScreen screen) {
         if (screen.layout == null) {
             return;
@@ -59,8 +72,12 @@ final class PersonalDatabaseScreenLayoutHelper {
                 return;
             }
         }
-        Map<String, Integer> nextPageIndexes = new java.util.LinkedHashMap<>(currentQuery.pageIndexes());
-        Map<String, Integer> nextPageSizes = new java.util.LinkedHashMap<>(currentQuery.pageSizes());
+        Map<String, Integer> nextPageIndexes = new java.util.LinkedHashMap<>();
+        Map<String, Integer> nextPageSizes = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, com.agguy.infiniteinventory.database.DatabaseTabQueryState> entry : currentQuery.tabStates().entrySet()) {
+            nextPageIndexes.put(entry.getKey(), entry.getValue().pageIndex());
+            nextPageSizes.put(entry.getKey(), entry.getValue().pageSize());
+        }
         boolean changed = false;
         for (int panelIndex = 0; panelIndex < currentQuery.visibleTabIds().size(); panelIndex++) {
             String visibleTabId = currentQuery.visibleTabIds().get(panelIndex);
@@ -84,24 +101,34 @@ final class PersonalDatabaseScreenLayoutHelper {
         dispatchQuery(screen, adjustedQuery);
     }
 
-    static void onSearchChanged(PersonalDatabaseScreen screen, String value) {
+    static void onPanelSearchChanged(PersonalDatabaseScreen screen, int panelIndex, String value) {
         if (screen.syncingSearchBox) {
             return;
         }
-        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-        if (currentQuery.searchText().equals(value)) {
+        if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             return;
         }
-        sendQuery(screen, currentQuery.withSearchText(value));
+        String tabId = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).tab().id();
+        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
+        if (currentQuery.searchTextFor(tabId).equals(value)) {
+            return;
+        }
+        sendQuery(screen, currentQuery.withSearchText(tabId, value).withFocusedTabId(tabId));
     }
 
-    static void changePage(PersonalDatabaseScreen screen, int delta) {
-        var viewState = screen.databaseMenu.viewState();
-        int nextPage = Math.max(0, Math.min(viewState.totalPages() - 1, viewState.query().pageIndex() + delta));
-        if (nextPage == viewState.query().pageIndex()) {
+    static void changePanelPage(PersonalDatabaseScreen screen, int panelIndex, int delta) {
+        if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             return;
         }
-        sendQuery(screen, viewState.query().withPageIndex(nextPage));
+        var panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+        int nextPage = Math.max(0, Math.min(panel.totalPages() - 1, panel.pageIndex() + delta));
+        if (nextPage == panel.pageIndex()) {
+            return;
+        }
+        sendQuery(
+                screen,
+                screen.databaseMenu.viewState().query().withPageIndex(panel.tab().id(), nextPage).withFocusedTabId(panel.tab().id())
+        );
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query) {
@@ -173,5 +200,36 @@ final class PersonalDatabaseScreenLayoutHelper {
         screen.accessoryScrollRow = nextScrollRow;
         rebuildLayout(screen);
         return true;
+    }
+
+    private static void rebuildWidgets(PersonalDatabaseScreen screen) {
+        screen.clearScreenWidgets();
+        screen.panelSearchBoxes.clear();
+        screen.panelSortButtons.clear();
+        screen.panelPreviousPageButtons.clear();
+        screen.panelPageButtons.clear();
+        screen.panelNextPageButtons.clear();
+        screen.advancedSearchToggleButtons.clear();
+        screen.advancedSearchWeightButtons.clear();
+        screen.enhancementToggleButtons.clear();
+        screen.managementNameBox = null;
+        screen.iconSearchBox = null;
+        PersonalDatabaseScreenWidgetHelper.buildWidgets(screen);
+        PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(screen);
+    }
+
+    private static String uiSignature(PersonalDatabaseScreen screen) {
+        DatabaseQuery query = screen.databaseMenu.viewState().query();
+        List<String> signatureParts = new ArrayList<>();
+        signatureParts.add(Integer.toString(screen.screenWidthValue()));
+        signatureParts.add(Integer.toString(screen.screenHeightValue()));
+        signatureParts.add(Boolean.toString(screen.accessoriesExpanded));
+        signatureParts.add(query.scope().name());
+        signatureParts.add(query.focusedTabId());
+        signatureParts.addAll(query.visibleTabIds());
+        for (DatabaseTab tab : screen.databaseMenu.viewState().panels().stream().map(com.agguy.infiniteinventory.database.DatabasePanelView::tab).toList()) {
+            signatureParts.add(tab.id());
+        }
+        return String.join("|", signatureParts);
     }
 }

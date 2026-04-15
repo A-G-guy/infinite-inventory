@@ -9,6 +9,7 @@ import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
+import com.agguy.infiniteinventory.database.DatabaseTabQueryState;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
@@ -44,7 +45,11 @@ public final class DatabaseQueryEngine {
         DatabaseTabDirectory resolvedTabDirectory = tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
         DatabaseQuery normalizedQuery = resolvedTabDirectory.sanitizeQuery(query == null ? DatabaseQuery.defaultQuery() : query);
         String normalizedTabId = normalizeTabId(tabId, resolvedTabDirectory);
-        CachedQueryResult queryResult = this.resolveQueryResult(this.runtimeIndexFor(resolvedDatabase), normalizedQuery, normalizedTabId);
+        CachedQueryResult queryResult = this.resolveQueryResult(
+                this.runtimeIndexFor(resolvedDatabase),
+                normalizedQuery.tabStateFor(normalizedTabId),
+                normalizedTabId
+        );
         return this.toPage(normalizedQuery, queryResult, resolvedTabDirectory.resolve(normalizedTabId));
     }
 
@@ -58,28 +63,28 @@ public final class DatabaseQueryEngine {
         return rebuiltIndex;
     }
 
-    private CachedQueryResult resolveQueryResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
-        if (SearchTextNormalizer.splitTerms(query.searchText()).isEmpty()) {
-            return this.resolveNoSearchResult(runtimeIndex, query, tabId);
+    private CachedQueryResult resolveQueryResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
+        if (SearchTextNormalizer.splitTerms(tabQueryState.searchText()).isEmpty()) {
+            return this.resolveNoSearchResult(runtimeIndex, tabQueryState, tabId);
         }
-        return this.resolveSearchResult(runtimeIndex, query, tabId);
+        return this.resolveSearchResult(runtimeIndex, tabQueryState, tabId);
     }
 
-    private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
+    private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
         String normalizedTabId = normalizeTabId(tabId, null);
-        return runtimeIndex.noSearchResult(normalizedTabId, query.sortOption(), () -> {
+        return runtimeIndex.noSearchResult(normalizedTabId, tabQueryState.sortOption(), () -> {
             List<ResolvedQueryRecord> sortedRecords = new ArrayList<>(runtimeIndex.recordsFor(normalizedTabId).size());
             for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
                 sortedRecords.add(new ResolvedQueryRecord(entryRecord, entryRecord.baseSortSnapshot()));
             }
-            sortedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(query)));
+            sortedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(tabQueryState)));
             return new CachedQueryResult(sortedRecords, runtimeIndex.totalItemsFor(normalizedTabId));
         });
     }
 
-    private CachedQueryResult resolveSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseQuery query, String tabId) {
+    private CachedQueryResult resolveSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
         String normalizedTabId = normalizeTabId(tabId, null);
-        QueryFingerprint fingerprint = QueryFingerprint.of(query, normalizedTabId);
+        QueryFingerprint fingerprint = QueryFingerprint.of(tabQueryState, normalizedTabId);
         CachedQueryResult cachedResult = runtimeIndex.searchResult(fingerprint);
         if (cachedResult != null) {
             return cachedResult;
@@ -88,14 +93,14 @@ public final class DatabaseQueryEngine {
         List<ResolvedQueryRecord> matchedRecords = new ArrayList<>();
         long totalItems = 0L;
         for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
-            DatabaseSearchRanking ranking = this.searchEvaluator.evaluate(query, entryRecord.searchIndex(), entryRecord.entry().amount());
+            DatabaseSearchRanking ranking = this.searchEvaluator.evaluate(tabQueryState, entryRecord.searchIndex(), entryRecord.entry().amount());
             if (!ranking.matched()) {
                 continue;
             }
             matchedRecords.add(new ResolvedQueryRecord(entryRecord, entryRecord.baseSortSnapshot().withSearchRanking(ranking)));
             totalItems = safeAdd(totalItems, entryRecord.entry().amount());
         }
-        matchedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(query)));
+        matchedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(tabQueryState)));
 
         CachedQueryResult builtResult = new CachedQueryResult(matchedRecords, totalItems);
         runtimeIndex.cacheSearchResult(fingerprint, builtResult);
@@ -156,12 +161,12 @@ public final class DatabaseQueryEngine {
             String normalizedSearchText,
             DatabaseSearchConfig searchConfig
     ) {
-        private static QueryFingerprint of(DatabaseQuery query, String tabId) {
+        private static QueryFingerprint of(DatabaseTabQueryState tabQueryState, String tabId) {
             return new QueryFingerprint(
                     normalizeTabId(tabId, null),
-                    query.sortOption(),
-                    SearchTextNormalizer.normalizeQueryText(query.searchText()),
-                    query.searchConfig()
+                    tabQueryState.sortOption(),
+                    SearchTextNormalizer.normalizeQueryText(tabQueryState.searchText()),
+                    tabQueryState.searchConfig()
             );
         }
     }
