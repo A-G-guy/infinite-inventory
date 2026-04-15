@@ -70,10 +70,25 @@ final class PersonalDatabaseScreenManagementLogic {
         if (selectedTab == null) {
             return false;
         }
-        if (selectedTab.canRename() && !managementDraftName(screen).equals(PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab))) {
+        if (hasNameChange(screen, selectedTab)) {
             return true;
         }
-        return !Objects.equals(screen.pendingIconItemId, selectedTab.iconItemId());
+        return hasIconChange(screen, selectedTab);
+    }
+
+    static Component managementPrimaryActionLabel(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        if (selectedTab == null) {
+            return Component.translatable("screen.infiniteinventory.management.rename");
+        }
+        boolean nameChanged = hasNameChange(screen, selectedTab);
+        boolean iconChanged = hasIconChange(screen, selectedTab);
+        if (nameChanged && iconChanged) {
+            return Component.translatable("screen.infiniteinventory.management.save_changes");
+        }
+        if (iconChanged) {
+            return Component.translatable("screen.infiniteinventory.management.apply_icon");
+        }
+        return Component.translatable("screen.infiniteinventory.management.rename");
     }
 
     static boolean saveSelectedTab(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
@@ -82,7 +97,7 @@ final class PersonalDatabaseScreenManagementLogic {
         }
         boolean changed = false;
         String draftName = managementDraftName(screen);
-        if (selectedTab.canRename() && !draftName.equals(PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab))) {
+        if (hasNameChange(screen, selectedTab)) {
             PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,
                     DatabaseTabMutationAction.RENAME,
@@ -119,5 +134,14 @@ final class PersonalDatabaseScreenManagementLogic {
 
     static String managementDraftName(PersonalDatabaseScreen screen) {
         return screen.managementNameBox == null ? "" : screen.managementNameBox.getValue().trim();
+    }
+
+    private static boolean hasNameChange(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        return selectedTab.canRename()
+                && !managementDraftName(screen).equals(PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab));
+    }
+
+    private static boolean hasIconChange(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {
+        return !Objects.equals(screen.pendingIconItemId, selectedTab.iconItemId());
     }
 }

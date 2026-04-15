@@ -270,7 +270,7 @@ final class PersonalDatabaseScreenManagementHelper {
                 PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1),
                 mouseX,
                 mouseY,
-                Component.translatable("screen.infiniteinventory.management.rename"),
+                PersonalDatabaseScreenManagementLogic.managementPrimaryActionLabel(screen, selectedTab),
                 PersonalDatabaseScreenManagementLogic.canSaveSelectedTab(screen, selectedTab)
         );
         PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
@@ -338,6 +338,8 @@ final class PersonalDatabaseScreenManagementHelper {
 
         if (screen.managementNameBox != null
                 && PersonalDatabaseScreenManagementGeometry.managementNameFieldRect(screen).contains(mouseX, mouseY)) {
+            screen.focusScreen(screen.managementNameBox);
+            screen.managementNameBox.setFocused(screen.managementNameBox.active);
             screen.managementNameBox.mouseClicked(mouseX, mouseY, 0);
             return true;
         }
