@@ -9,6 +9,7 @@ import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
@@ -18,6 +19,7 @@ import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
 import java.util.List;
@@ -163,39 +165,30 @@ public final class PersonalDatabaseService {
     }
 
     public long extractToInventory(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
-        if (requestedAmount <= 0L) {
-            return 0L;
-        }
-        Inventory inventory = player.getInventory();
-        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
-        String originalTabId = entryTabId(database, key);
-        long movedItems = 0L;
-        long remainingAmount = requestedAmount;
-        while (remainingAmount > 0L && this.hasSpaceFor(inventory, key)) {
-            int extractedCount = (int) Math.min((long) key.maxStackSize(), remainingAmount);
-            ItemStack extracted = database.extract(key, extractedCount);
-            if (extracted.isEmpty()) {
-                break;
-            }
-            int originalCount = extracted.getCount();
-            inventory.add(extracted);
-            int movedNow = originalCount - extracted.getCount();
-            if (movedNow <= 0) {
-                database.store(extracted, originalTabId);
-                break;
-            }
-            movedItems += movedNow;
-            remainingAmount -= movedNow;
-            if (!extracted.isEmpty()) {
-                database.store(extracted, originalTabId);
-                break;
-            }
-        }
-        if (movedItems > 0L) {
-            this.markScopeDirty(player, scope);
-            inventory.setChanged();
-        }
-        return movedItems;
+        return PersonalDatabaseExtractionHelper.extractToInventory(
+                this,
+                player,
+                scope,
+                this.resolveDatabaseForMutation(player, scope),
+                key,
+                requestedAmount
+        );
+    }
+
+    public long extractSelectionToInventory(
+            ServerPlayer player,
+            DatabaseScope scope,
+            List<DatabaseSelectionEntry> selectionEntries,
+            DatabaseSelectionAction action
+    ) {
+        return PersonalDatabaseExtractionHelper.extractSelectionToInventory(
+                this,
+                player,
+                scope,
+                this.resolveDatabaseForMutation(player, scope),
+                selectionEntries,
+                action
+        );
     }
 
     public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, String tabId) {
@@ -288,6 +281,23 @@ public final class PersonalDatabaseService {
         return changed;
     }
 
+    public boolean transferSelection(
+            ServerPlayer player,
+            DatabaseScope scope,
+            List<DatabaseSelectionEntry> selectionEntries,
+            String targetTabId
+    ) {
+        boolean changed = PersonalDatabaseExtractionHelper.transferSelection(
+                this.resolveDatabaseForMutation(player, scope),
+                selectionEntries,
+                this.resolveConcreteTargetTabId(player, scope, targetTabId)
+        );
+        if (changed) {
+            this.markScopeDirty(player, scope);
+        }
+        return changed;
+    }
+
     public void syncPublicViewers(MinecraftServer server) {
         this.syncViewers(server, true, false);
     }
@@ -314,11 +324,6 @@ public final class PersonalDatabaseService {
                 }
             }
         }
-    }
-
-    private boolean hasSpaceFor(Inventory inventory, StoredStackKey key) {
-        ItemStack probe = key.toStack(1);
-        return inventory.getFreeSlot() != -1 || inventory.getSlotWithRemainingSpace(probe) != -1;
     }
 
     private static long safeAddMovedItems(long currentTotal, ItemStack stack) {
@@ -386,7 +391,7 @@ public final class PersonalDatabaseService {
         return tabDirectory;
     }
 
-    private void markScopeDirty(ServerPlayer player, DatabaseScope scope) {
+    void markScopeDirty(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PERSONAL) {
             storage.prunePersonalDatabase(player.getUUID());
@@ -484,7 +489,7 @@ public final class PersonalDatabaseService {
         ));
     }
 
-    private static String entryTabId(StoredItemDatabase database, StoredStackKey key) {
+    static String entryTabId(StoredItemDatabase database, StoredStackKey key) {
         StoredStackEntry entry = database.entries().get(key);
         return entry == null ? DatabaseTabs.DEFAULT_TAB_ID : entry.tabId();
     }

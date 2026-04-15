@@ -8,7 +8,7 @@ import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
-import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -147,20 +147,19 @@ final class PersonalDatabaseScreenCommonHelper {
         };
     }
 
-    static Component contextMenuLabel(DatabaseClickAction action) {
+    static Component contextMenuLabel(DatabaseSelectionAction action) {
         return switch (action) {
-            case TAKE_SINGLE -> Component.translatable("screen.infiniteinventory.context.take_single");
-            case TAKE_STACK -> Component.translatable("screen.infiniteinventory.context.take_stack");
-            case TAKE_HALF_STACK_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.context.take_half_stack_to_inventory");
-            case TAKE_HALF_ENTRY_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.context.take_half_entry_to_inventory");
-            case TAKE_ALL -> Component.translatable("screen.infiniteinventory.context.take_all_to_inventory");
-            default -> Component.empty();
+            case EXTRACT_ONE_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_one_each");
+            case EXTRACT_HALF_STACK_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_half_stack_each");
+            case EXTRACT_STACK_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_stack_each");
+            case EXTRACT_ALL_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_all_each");
+            case TRANSFER_TO_TAB -> Component.translatable("screen.infiniteinventory.selection.transfer");
         };
     }
 
     static int contextMenuWidth(PersonalDatabaseScreen screen) {
         int width = PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
-        for (DatabaseClickAction action : PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS) {
+        for (DatabaseSelectionAction action : PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS) {
             width = Math.max(width, screen.screenFont().width(contextMenuLabel(action)) + 16);
         }
         return width;

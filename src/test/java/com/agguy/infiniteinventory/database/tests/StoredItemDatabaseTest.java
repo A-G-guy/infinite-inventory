@@ -18,6 +18,7 @@ import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StoredItemDatabaseTest {
@@ -234,6 +235,29 @@ class StoredItemDatabaseTest {
         assertEquals(DatabaseTabs.DEFAULT_TAB_ID, reassignedEntry.tabId());
         assertEquals(4L, reassignedEntry.amount());
         assertEquals(12L, reassignedEntry.lastModified());
+    }
+
+    @Test
+    void moveEntryToTabShouldOnlyMoveMatchingSourceEntry() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+
+        database.store(new ItemStack(Items.STONE, 8), "blocks");
+
+        assertTrue(database.moveEntryToTab(key, "blocks", "building"));
+        assertEquals("building", database.entries().get(key).tabId());
+        assertEquals(8L, database.entries().get(key).amount());
+    }
+
+    @Test
+    void moveEntryToTabShouldIgnoreMismatchedSourceTab() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+
+        database.store(new ItemStack(Items.STONE, 8), "blocks");
+
+        assertFalse(database.moveEntryToTab(key, "ores", "building"));
+        assertEquals("blocks", database.entries().get(key).tabId());
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
 import com.agguy.infiniteinventory.network.DatabaseQuickDepositPayload;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
@@ -200,6 +201,7 @@ final class PersonalDatabaseScreenTargetHelper {
             case TRANSFER_TAB, DELETE_TAB -> PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).stream()
                     .filter(tab -> !tab.id().equals(screen.pendingTargetSourceTabId))
                     .toList();
+            case TRANSFER_SELECTION -> PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen);
             case AUTO_STORE_TARGET -> screen.databaseMenu.viewState().personalTabs().stream()
                     .filter(DatabaseTab::isConcreteTab)
                     .toList();
@@ -213,6 +215,7 @@ final class PersonalDatabaseScreenTargetHelper {
             case CARRIED_STORE -> Component.translatable("screen.infiniteinventory.target_selector.store");
             case QUICK_DEPOSIT -> Component.translatable("screen.infiniteinventory.target_selector.quick_deposit");
             case TRANSFER_TAB -> Component.translatable("screen.infiniteinventory.target_selector.transfer");
+            case TRANSFER_SELECTION -> Component.translatable("screen.infiniteinventory.target_selector.selection_transfer");
             case DELETE_TAB -> Component.translatable("screen.infiniteinventory.target_selector.delete");
             case AUTO_STORE_TARGET -> Component.translatable("screen.infiniteinventory.target_selector.auto_store");
             case NONE -> Component.translatable("screen.infiniteinventory.target_selector.title");
@@ -280,6 +283,11 @@ final class PersonalDatabaseScreenTargetHelper {
                     targetTabId,
                     "",
                     ""
+            );
+            case TRANSFER_SELECTION -> PersonalDatabaseScreenSelectionHelper.sendSelectionAction(
+                    screen,
+                    DatabaseSelectionAction.TRANSFER_TO_TAB,
+                    targetTabId
             );
             case DELETE_TAB -> PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,

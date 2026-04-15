@@ -1,10 +1,8 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseViewState;
-import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemStack;
 
 final class PersonalDatabaseScreenContextHelper {
     private PersonalDatabaseScreenContextHelper() {
@@ -14,17 +12,7 @@ final class PersonalDatabaseScreenContextHelper {
         if (!screen.contextMenuExpanded) {
             return;
         }
-        if (screen.contextMenuPanelIndex < 0 || screen.contextMenuPanelIndex >= viewState.panels().size()) {
-            closeContextMenu(screen);
-            return;
-        }
-        var panel = viewState.panels().get(screen.contextMenuPanelIndex);
-        if (screen.contextMenuSlotIndex < 0 || screen.contextMenuSlotIndex >= panel.entries().size()) {
-            closeContextMenu(screen);
-            return;
-        }
-        ItemStack currentStack = panel.entries().get(screen.contextMenuSlotIndex).stack();
-        if (!ItemStack.isSameItemSameComponents(screen.contextMenuEntryStack, currentStack)) {
+        if (!PersonalDatabaseScreenSelectionHelper.hasSelection(screen)) {
             closeContextMenu(screen);
         }
     }
@@ -37,12 +25,16 @@ final class PersonalDatabaseScreenContextHelper {
             closeContextMenu(screen);
             return;
         }
-        java.util.List<VisibleDatabaseEntry> entries = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).entries();
+        if (!PersonalDatabaseScreenSelectionHelper.hasSelection(screen)) {
+            closeContextMenu(screen);
+            return;
+        }
+        java.util.List<com.agguy.infiniteinventory.database.VisibleDatabaseEntry> entries =
+                PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).entries();
         if (slotIndex < 0 || slotIndex >= entries.size()) {
             closeContextMenu(screen);
             return;
         }
-        VisibleDatabaseEntry entry = entries.get(slotIndex);
         PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
         int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
         int menuHeight = PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS.length * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
@@ -60,7 +52,6 @@ final class PersonalDatabaseScreenContextHelper {
         screen.contextMenuY = Mth.clamp(slotRect.y(), minY, maxY);
         screen.contextMenuPanelIndex = panelIndex;
         screen.contextMenuSlotIndex = slotIndex;
-        screen.contextMenuEntryStack = entry.stack().copyWithCount(1);
         screen.contextMenuExpanded = true;
     }
 
@@ -68,7 +59,6 @@ final class PersonalDatabaseScreenContextHelper {
         screen.contextMenuExpanded = false;
         screen.contextMenuPanelIndex = -1;
         screen.contextMenuSlotIndex = -1;
-        screen.contextMenuEntryStack = ItemStack.EMPTY;
     }
 
     static boolean isWithinContextMenu(PersonalDatabaseScreen screen, double mouseX, double mouseY) {

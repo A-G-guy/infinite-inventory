@@ -319,6 +319,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         syncAdvancedSearchButtons(screen, query);
         syncEnhancementButtons(screen, viewState.enhancementConfig());
         PersonalDatabaseScreenManagementHelper.syncManagementWidgets(screen);
+        PersonalDatabaseScreenSelectionHelper.syncSelectionWithViewState(screen);
         if (!screen.databaseMenu.getCarried().isEmpty()) {
             PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
             return;

@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "11";
+    private static final String NETWORK_VERSION = "12";
 
     private ModNetwork() {
     }
@@ -24,6 +24,7 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
         registrar.playToServer(DatabaseClickPayload.TYPE, DatabaseClickPayload.STREAM_CODEC, ModNetwork::handleDatabaseClick);
+        registrar.playToServer(DatabaseSelectionPayload.TYPE, DatabaseSelectionPayload.STREAM_CODEC, ModNetwork::handleDatabaseSelection);
         registrar.playToServer(DatabaseQuickDepositPayload.TYPE, DatabaseQuickDepositPayload.STREAM_CODEC, ModNetwork::handleQuickDeposit);
         registrar.playToServer(DatabaseTabMutationPayload.TYPE, DatabaseTabMutationPayload.STREAM_CODEC, ModNetwork::handleTabMutation);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
@@ -63,6 +64,16 @@ public final class ModNetwork {
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
             menu.handleDatabaseClick(payload.panelIndex(), payload.pageSlotIndex(), payload.action(), payload.targetTabId());
+        }
+    }
+
+    private static void handleDatabaseSelection(DatabaseSelectionPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu != null) {
+            menu.handleSelectionAction(payload.action(), payload.selectedEntries(), payload.targetTabId());
         }
     }
 

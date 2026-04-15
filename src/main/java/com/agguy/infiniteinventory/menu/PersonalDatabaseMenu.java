@@ -4,11 +4,13 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.network.DatabaseSnapshotPayload;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import java.util.List;
@@ -268,6 +270,28 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
             this.broadcastChanges();
             this.syncAfterDatabaseMutation(serverPlayer);
         } else if (refreshSharedView) {
+            PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
+        }
+    }
+
+    public void handleSelectionAction(
+            DatabaseSelectionAction action,
+            List<DatabaseSelectionEntry> selectionEntries,
+            @Nullable String targetTabId
+    ) {
+        if (!(this.owner instanceof ServerPlayer serverPlayer) || action == null || selectionEntries == null || selectionEntries.isEmpty()) {
+            return;
+        }
+        boolean changed;
+        if (action.requiresTargetTab()) {
+            changed = PersonalDatabaseService.INSTANCE.transferSelection(serverPlayer, this.activeScope, selectionEntries, targetTabId);
+        } else {
+            changed = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(serverPlayer, this.activeScope, selectionEntries, action) > 0L;
+        }
+        if (changed) {
+            this.broadcastChanges();
+            this.syncAfterDatabaseMutation(serverPlayer);
+        } else if (this.activeScope == DatabaseScope.PUBLIC) {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
         }
     }
