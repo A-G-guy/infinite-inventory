@@ -1,0 +1,323 @@
+package com.agguy.infiniteinventory.client.screen;
+
+import com.agguy.infiniteinventory.database.DatabasePanelView;
+import com.agguy.infiniteinventory.database.DatabaseSortOption;
+import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
+import com.agguy.infiniteinventory.network.DatabaseClickAction;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.inventory.Slot;
+import org.lwjgl.glfw.GLFW;
+
+final class PersonalDatabaseScreenInteractionHelper {
+    private PersonalDatabaseScreenInteractionHelper() {
+    }
+
+    static boolean mouseClicked(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
+        if (screen.advancedSearchExpanded && !PersonalDatabaseScreenGeometry.isWithinAdvancedSearchPanel(screen, mouseX, mouseY)) {
+            screen.advancedSearchExpanded = false;
+        }
+        if (screen.enhancementPanelExpanded && !PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
+            screen.enhancementPanelExpanded = false;
+        }
+        if (screen.iconPickerExpanded && PersonalDatabaseScreenManagementHelper.handleIconPickerClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleTabManagementClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.targetSelectorExpanded && PersonalDatabaseScreenTargetHelper.handleTargetSelectorClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.moreTabsExpanded && PersonalDatabaseScreenTabHelper.handleMoreTabsClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.viewSelectorExpanded && PersonalDatabaseScreenTabHelper.handleViewSelectorClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.pagePickerExpanded && handlePagePickerClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.advancedSearchExpanded && PersonalDatabaseScreenGeometry.isWithinAdvancedSearchPanel(screen, mouseX, mouseY)) {
+            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+        if (screen.enhancementPanelExpanded && PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
+            if (PersonalDatabaseScreenTargetHelper.handleEnhancementPanelClick(screen, mouseX, mouseY)) {
+                return true;
+            }
+            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+        if (screen.contextMenuExpanded && handleContextMenuClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.sortDropdownExpanded && handleSortDropdownClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (handlePageLabelClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.accessoriesExpanded && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)) {
+            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            return true;
+        }
+        if (PersonalDatabaseScreenTabHelper.handleTabClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (PersonalDatabaseScreenTargetHelper.handleQuickDepositClick(screen, mouseX, mouseY, button)) {
+            return true;
+        }
+        if (handleDatabaseClick(screen, mouseX, mouseY, button)) {
+            return true;
+        }
+        boolean handled = screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+        if (!handled) {
+            PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+        }
+        return handled;
+    }
+
+    static boolean mouseScrolled(PersonalDatabaseScreen screen, double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (screen.accessoriesExpanded
+                && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)
+                && PersonalDatabaseScreenLayoutHelper.scrollAccessories(screen, (int) -Math.signum(scrollY))) {
+            return true;
+        }
+        return screen.invokeSuperMouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    static boolean keyPressed(PersonalDatabaseScreen screen, int keyCode, int scanCode, int modifiers) {
+        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_F && screen.searchBox != null) {
+            screen.focusScreen(screen.searchBox);
+            screen.searchBox.setFocused(true);
+            return true;
+        }
+        if (screen.iconPickerExpanded
+                && screen.iconSearchBox != null
+                && screen.iconSearchBox.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        if (screen.tabManagementExpanded
+                && screen.managementNameBox != null
+                && screen.managementNameBox.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        if (screen.searchBox != null && screen.searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return screen.invokeSuperKeyPressed(keyCode, scanCode, modifiers);
+    }
+
+    static boolean charTyped(PersonalDatabaseScreen screen, char codePoint, int modifiers) {
+        if (screen.iconPickerExpanded
+                && screen.iconSearchBox != null
+                && screen.iconSearchBox.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        if (screen.tabManagementExpanded
+                && screen.managementNameBox != null
+                && screen.managementNameBox.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        if (screen.searchBox != null && screen.searchBox.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        return screen.invokeSuperCharTyped(codePoint, modifiers);
+    }
+
+    private static boolean handleSortDropdownClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenGeometry.sortDropdownRect(screen);
+        if (dropdownRect == null) {
+            return false;
+        }
+        java.util.List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
+        for (int index = 0; index < sortOptions.size(); index++) {
+            int rowY = dropdownRect.y() + index * PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT;
+            if (mouseX < dropdownRect.x()
+                    || mouseX >= dropdownRect.right()
+                    || mouseY < rowY
+                    || mouseY >= rowY + PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT) {
+                continue;
+            }
+            PersonalDatabaseScreenLayoutHelper.sendQuery(
+                    screen,
+                    screen.databaseMenu.viewState().query().withSortOption(sortOptions.get(index))
+            );
+            return true;
+        }
+        if (!screen.layout.sortButtonRect().contains(mouseX, mouseY)) {
+            screen.sortDropdownExpanded = false;
+        }
+        return false;
+    }
+
+    private static boolean handlePageLabelClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (screen.layout == null || !screen.layout.pageLabelRect().contains(mouseX, mouseY)) {
+            return false;
+        }
+        if (screen.databaseMenu.viewState().totalPages() <= 1) {
+            return true;
+        }
+        PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+        screen.sortDropdownExpanded = false;
+        screen.advancedSearchExpanded = false;
+        screen.enhancementPanelExpanded = false;
+        screen.pagePickerExpanded = !screen.pagePickerExpanded;
+        return true;
+    }
+
+    private static boolean handlePagePickerClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.pagePickerExpanded) {
+            return false;
+        }
+        if (screen.layout != null && screen.layout.pageLabelRect().contains(mouseX, mouseY)) {
+            screen.pagePickerExpanded = false;
+            return true;
+        }
+        PersonalDatabaseLayout.Rect pickerRect = PersonalDatabaseScreenGeometry.pagePickerRect(screen);
+        if (pickerRect == null) {
+            screen.pagePickerExpanded = false;
+            return false;
+        }
+        var options = PersonalDatabaseScreenCommonHelper.pagePickerOptions(screen);
+        for (int index = 0; index < options.size(); index++) {
+            int rowY = pickerRect.y() + index * PersonalDatabaseScreen.PAGE_PICKER_ROW_HEIGHT;
+            if (mouseX < pickerRect.x()
+                    || mouseX >= pickerRect.right()
+                    || mouseY < rowY
+                    || mouseY >= rowY + PersonalDatabaseScreen.PAGE_PICKER_ROW_HEIGHT) {
+                continue;
+            }
+            var option = options.get(index);
+            screen.pagePickerExpanded = false;
+            if (option.pageIndex() != screen.databaseMenu.viewState().query().pageIndex()) {
+                PersonalDatabaseScreenLayoutHelper.sendQuery(
+                        screen,
+                        screen.databaseMenu.viewState().query().withPageIndex(option.pageIndex())
+                );
+            }
+            return true;
+        }
+        if (pickerRect.contains(mouseX, mouseY)) {
+            return true;
+        }
+        screen.pagePickerExpanded = false;
+        return false;
+    }
+
+    private static boolean handleContextMenuClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.contextMenuExpanded) {
+            return false;
+        }
+        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
+        for (int index = 0; index < PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS.length; index++) {
+            int rowY = screen.contextMenuY + index * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+            if (mouseX < screen.contextMenuX
+                    || mouseX >= screen.contextMenuX + menuWidth
+                    || mouseY < rowY
+                    || mouseY >= rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT) {
+                continue;
+            }
+            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                    screen,
+                    screen.contextMenuPanelIndex,
+                    screen.contextMenuSlotIndex,
+                    PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS[index],
+                    ""
+            );
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            return true;
+        }
+        if (PersonalDatabaseScreenContextHelper.isWithinContextMenu(screen, mouseX, mouseY)) {
+            return true;
+        }
+        PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+        return false;
+    }
+
+    private static boolean handleDatabaseClick(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
+        PersonalDatabaseScreen.DatabaseHitResult hitResult = PersonalDatabaseScreenGeometry.findDatabaseSlot(
+                screen,
+                mouseX,
+                mouseY
+        );
+        int panelIndex = hitResult == null
+                ? PersonalDatabaseScreenTabHelper.findDatabasePanel(screen, mouseX, mouseY)
+                : hitResult.panelIndex();
+        boolean carryingStack = !screen.databaseMenu.getCarried().isEmpty();
+        if (panelIndex < 0) {
+            return false;
+        }
+        DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+        if (carryingStack) {
+            DatabaseClickAction action;
+            if (button == 0) {
+                action = DatabaseClickAction.STORE_STACK;
+            } else if (button == 1) {
+                action = DatabaseClickAction.STORE_SINGLE;
+            } else {
+                return false;
+            }
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            screen.sortDropdownExpanded = false;
+            screen.pagePickerExpanded = false;
+            if (panel.tab().isAllTab()) {
+                screen.pendingTargetStoresSingle = action == DatabaseClickAction.STORE_SINGLE;
+                PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                        screen,
+                        PersonalDatabaseScreen.TargetSelectorMode.CARRIED_STORE,
+                        panelIndex,
+                        -1,
+                        ""
+                );
+                return true;
+            }
+            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                    screen,
+                    panelIndex,
+                    hitResult == null ? 0 : hitResult.slotIndex(),
+                    action,
+                    panel.tab().id()
+            );
+            return true;
+        }
+        if (hitResult == null) {
+            if (button == 0 && !screen.databaseMenu.viewState().query().focusedTabId().equals(panel.tab().id())) {
+                PersonalDatabaseScreenLayoutHelper.sendQuery(
+                        screen,
+                        screen.databaseMenu.viewState().query().withFocusedTabId(panel.tab().id())
+                );
+                return true;
+            }
+            return false;
+        }
+        if (hitResult.slotIndex() >= panel.entries().size()) {
+            return false;
+        }
+        if (button == 0) {
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            screen.sortDropdownExpanded = false;
+            screen.pagePickerExpanded = false;
+            screen.enhancementPanelExpanded = false;
+            DatabaseClickAction action = Screen.hasShiftDown()
+                    ? DatabaseClickAction.TAKE_STACK_TO_INVENTORY
+                    : DatabaseClickAction.TAKE_SINGLE;
+            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                    screen,
+                    panelIndex,
+                    hitResult.slotIndex(),
+                    action,
+                    ""
+            );
+            return true;
+        }
+        if (button == 1) {
+            screen.sortDropdownExpanded = false;
+            screen.pagePickerExpanded = false;
+            screen.enhancementPanelExpanded = false;
+            PersonalDatabaseScreenContextHelper.openContextMenu(screen, panelIndex, hitResult.slotIndex());
+            return true;
+        }
+        return false;
+    }
+}
