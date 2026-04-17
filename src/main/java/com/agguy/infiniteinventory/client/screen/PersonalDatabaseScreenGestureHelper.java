@@ -136,7 +136,8 @@ final class PersonalDatabaseScreenGestureHelper {
     }
 
     private static boolean hasBlockingDiscardOverlay(PersonalDatabaseScreen screen) {
-        if (screen.contextMenuExpanded
+        if (screen.customExtractOverlayExpanded
+                || screen.contextMenuExpanded
                 || screen.sortDropdownExpanded
                 || screen.pagePickerExpanded
                 || screen.advancedSearchExpanded
@@ -152,6 +153,9 @@ final class PersonalDatabaseScreenGestureHelper {
             return true;
         }
         if (screen.managementNameBox != null && screen.managementNameBox.isFocused()) {
+            return true;
+        }
+        if (screen.customExtractAmountBox != null && screen.customExtractAmountBox.isFocused()) {
             return true;
         }
         for (var searchBox : screen.panelSearchBoxes) {

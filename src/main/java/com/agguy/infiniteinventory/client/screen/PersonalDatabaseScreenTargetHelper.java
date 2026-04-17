@@ -31,6 +31,7 @@ final class PersonalDatabaseScreenTargetHelper {
             String sourceTabId
     ) {
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+        PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
         screen.sortDropdownExpanded = false;
         screen.pagePickerExpanded = false;
         screen.moreTabsExpanded = false;
@@ -55,6 +56,7 @@ final class PersonalDatabaseScreenTargetHelper {
 
     static void closeTransientOverlays(PersonalDatabaseScreen screen) {
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+        PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
         screen.sortDropdownExpanded = false;
         screen.activeSortPanelIndex = -1;
         screen.pagePickerExpanded = false;
@@ -293,7 +295,8 @@ final class PersonalDatabaseScreenTargetHelper {
             case TRANSFER_SELECTION -> PersonalDatabaseScreenSelectionHelper.sendSelectionAction(
                     screen,
                     DatabaseSelectionAction.TRANSFER_TO_TAB,
-                    targetTabId
+                    targetTabId,
+                    0L
             );
             case DELETE_TAB -> PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,

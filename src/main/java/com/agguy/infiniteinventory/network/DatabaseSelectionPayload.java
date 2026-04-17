@@ -15,6 +15,7 @@ public record DatabaseSelectionPayload(
         long sessionId,
         DatabaseSelectionAction action,
         String targetTabId,
+        long requestedAmount,
         List<DatabaseSelectionEntry> selectedEntries
 ) implements CustomPacketPayload {
     public static final Type<DatabaseSelectionPayload> TYPE =
@@ -26,7 +27,18 @@ public record DatabaseSelectionPayload(
 
     public DatabaseSelectionPayload {
         targetTabId = targetTabId == null ? "" : targetTabId;
+        requestedAmount = action == null ? 0L : action.normalizeRequestedAmount(requestedAmount);
         selectedEntries = selectedEntries == null ? List.of() : List.copyOf(selectedEntries);
+    }
+
+    public DatabaseSelectionPayload(
+            int containerId,
+            long sessionId,
+            DatabaseSelectionAction action,
+            String targetTabId,
+            List<DatabaseSelectionEntry> selectedEntries
+    ) {
+        this(containerId, sessionId, action, targetTabId, 0L, selectedEntries);
     }
 
     @Override
@@ -39,6 +51,7 @@ public record DatabaseSelectionPayload(
         long sessionId = buffer.readVarLong();
         DatabaseSelectionAction action = buffer.readEnum(DatabaseSelectionAction.class);
         String targetTabId = buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH);
+        long requestedAmount = buffer.readVarLong();
         int selectionCount = buffer.readVarInt();
         List<DatabaseSelectionEntry> selectedEntries = new ArrayList<>(selectionCount);
         for (int index = 0; index < selectionCount; index++) {
@@ -49,6 +62,7 @@ public record DatabaseSelectionPayload(
                 sessionId,
                 action,
                 targetTabId,
+                requestedAmount,
                 selectedEntries
         );
     }
@@ -58,6 +72,7 @@ public record DatabaseSelectionPayload(
         buffer.writeVarLong(payload.sessionId);
         buffer.writeEnum(payload.action);
         buffer.writeUtf(payload.targetTabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
+        buffer.writeVarLong(payload.requestedAmount);
         buffer.writeVarInt(payload.selectedEntries.size());
         for (DatabaseSelectionEntry selectedEntry : payload.selectedEntries) {
             selectedEntry.write(buffer);

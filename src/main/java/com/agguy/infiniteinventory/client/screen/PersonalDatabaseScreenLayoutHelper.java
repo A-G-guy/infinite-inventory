@@ -175,11 +175,22 @@ final class PersonalDatabaseScreenLayoutHelper {
             String targetTabId,
             List<DatabaseSelectionEntry> selectedEntries
     ) {
+        sendDatabaseSelection(screen, action, targetTabId, 0L, selectedEntries);
+    }
+
+    static void sendDatabaseSelection(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionAction action,
+            String targetTabId,
+            long requestedAmount,
+            List<DatabaseSelectionEntry> selectedEntries
+    ) {
         PacketDistributor.sendToServer(new DatabaseSelectionPayload(
                 screen.databaseMenu.containerId,
                 screen.databaseMenu.viewState().sessionId(),
                 action,
                 targetTabId == null ? "" : targetTabId,
+                requestedAmount,
                 selectedEntries
         ));
     }

@@ -10,7 +10,6 @@ import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
-import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.EnumMap;
@@ -62,6 +61,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TARGET_SELECTOR_ROW_HEIGHT = 20;
     static final int MANAGEMENT_PANEL_WIDTH = 320;
     static final int MANAGEMENT_PANEL_HEIGHT = 260;
+    static final int CUSTOM_EXTRACT_PANEL_WIDTH = 236;
+    static final int CUSTOM_EXTRACT_PANEL_HEIGHT = 134;
     static final int MANAGEMENT_ROW_HEIGHT = 20;
     static final int MANAGEMENT_LIST_WIDTH = 124;
     static final int MANAGEMENT_BUTTON_WIDTH = 76;
@@ -80,13 +81,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TAB_ICON_SIZE = 16;
     static final int TAB_ICON_LEFT_PADDING = 4;
     static final int TAB_TEXT_GAP = 3;
-    static final DatabaseSelectionAction[] CONTEXT_MENU_ACTIONS = {
-            DatabaseSelectionAction.EXTRACT_ONE_TO_INVENTORY,
-            DatabaseSelectionAction.EXTRACT_HALF_STACK_TO_INVENTORY,
-            DatabaseSelectionAction.EXTRACT_STACK_TO_INVENTORY,
-            DatabaseSelectionAction.EXTRACT_ALL_TO_INVENTORY,
-            DatabaseSelectionAction.TRANSFER_TO_TAB
-    };
 
     final PlayerInventoryPaneProvider inventoryPaneProvider = new VanillaPlayerInventoryPaneProvider();
     final PersonalDatabaseMenu databaseMenu;
@@ -112,6 +106,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     EditBox managementNameBox;
     @Nullable
     EditBox iconSearchBox;
+    @Nullable
+    EditBox customExtractAmountBox;
     final Map<DatabaseSearchField, Button> advancedSearchToggleButtons = new EnumMap<>(DatabaseSearchField.class);
     final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
     final Map<DatabaseEnhancementOption, Button> enhancementToggleButtons = new EnumMap<>(DatabaseEnhancementOption.class);
@@ -129,6 +125,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean iconPickerExpanded;
     boolean accessoriesExpanded;
     boolean contextMenuExpanded;
+    boolean customExtractOverlayExpanded;
     boolean suppressVanillaTooltipRender;
     double lastMouseX;
     double lastMouseY;
@@ -151,6 +148,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     String managementSnapshotTabId = "";
     String managementSnapshotName = "";
     String managementSnapshotIconItemId = "";
+    String customExtractValidationKey = "";
     DatabaseCategory iconPickerCategory = DatabaseCategory.ALL;
     int iconPickerPageIndex;
     String iconPickerOriginalItemId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
@@ -205,6 +203,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.targetSelectorExpanded = false;
         this.tabManagementExpanded = false;
         this.iconPickerExpanded = false;
+        this.customExtractOverlayExpanded = false;
+        this.customExtractValidationKey = "";
         this.targetSelectorScrollIndex = 0;
         this.selectionGestureModel.clearCtrlSelectionGesture();
         this.selectionGestureModel.releaseDiscardKey();
@@ -219,6 +219,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.containerTick();
         PersonalDatabaseScreenLayoutHelper.refreshUiStructureIfNeeded(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
+        PersonalDatabaseScreenCustomExtractOverlayHelper.validateOverlay(this);
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
 
@@ -264,6 +265,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.contextMenuExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderContextMenu(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.customExtractOverlayExpanded) {
+            PersonalDatabaseScreenCustomExtractOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);
         }
         PersonalDatabaseScreenRenderHelper.renderScreenTooltips(this, guiGraphics, mouseX, mouseY);
     }

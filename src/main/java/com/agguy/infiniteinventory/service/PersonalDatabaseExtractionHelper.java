@@ -91,7 +91,8 @@ final class PersonalDatabaseExtractionHelper {
             DatabaseScope scope,
             StoredItemDatabase database,
             List<DatabaseSelectionEntry> selectionEntries,
-            DatabaseSelectionAction action
+            DatabaseSelectionAction action,
+            long requestedAmount
     ) {
         if (action == null || !action.extractsToInventory()) {
             return 0L;
@@ -106,10 +107,14 @@ final class PersonalDatabaseExtractionHelper {
             if (storedEntry == null || !storedEntry.tabId().equals(selectionEntry.sourceTabId())) {
                 continue;
             }
-            long requestedAmount = action.resolveRequestedAmount(storedEntry.amount(), key.maxStackSize());
+            long resolvedRequestedAmount = action.resolveRequestedAmount(
+                    storedEntry.amount(),
+                    key.maxStackSize(),
+                    requestedAmount
+            );
             movedItems = safeAddMovedItems(
                     movedItems,
-                    extractToInventory(service, player, scope, database, key, requestedAmount)
+                    extractToInventory(service, player, scope, database, key, resolvedRequestedAmount)
             );
         }
         return movedItems;
