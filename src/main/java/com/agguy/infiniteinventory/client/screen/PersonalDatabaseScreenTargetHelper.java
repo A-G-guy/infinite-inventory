@@ -1,5 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
@@ -105,9 +107,9 @@ final class PersonalDatabaseScreenTargetHelper {
             return;
         }
 
-        String selectedTargetTabId = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
-                ? screen.databaseMenu.viewState().autoStoreTargetTabId()
-                : "";
+        DatabaseAutoStoreTarget selectedTarget = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
+                ? screen.databaseMenu.viewState().autoStoreTarget()
+                : null;
         for (int index = 0; index < visibleRows.size(); index++) {
             PersonalDatabaseTargetSelectorModel.Row row = visibleRows.get(index);
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
@@ -125,7 +127,7 @@ final class PersonalDatabaseScreenTargetHelper {
                     rowRect,
                     row,
                     rowRect.contains(mouseX, mouseY),
-                    selectedTargetTabId.equals(row.tab().id())
+                    isSelectedAutoStoreTarget(selectedTarget, row)
             );
         }
         guiGraphics.pose().popPose();
@@ -287,7 +289,7 @@ final class PersonalDatabaseScreenTargetHelper {
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
                     screen.databaseMenu.viewState().enhancementConfig(),
-                    targetTabId
+                    new DatabaseAutoStoreTarget(targetSelection.scope(), targetTabId)
             ));
             case NONE -> {
             }
@@ -306,15 +308,20 @@ final class PersonalDatabaseScreenTargetHelper {
             PersonalDatabaseLayout.Rect rowRect,
             PersonalDatabaseTargetSelectorModel.Row row
     ) {
-        Component label = row.sourceScopeGroup()
+        Component label = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
                 ? Component.translatable(
-                        "screen.infiniteinventory.target_selector.group.source_scope",
+                        "screen.infiniteinventory.target_selector.group.target_scope",
                         Component.translatable(row.scope().translationKey())
                 )
-                : Component.translatable(
-                        "screen.infiniteinventory.target_selector.group.other_scope",
-                        Component.translatable(row.scope().translationKey())
-                );
+                : row.sourceScopeGroup()
+                        ? Component.translatable(
+                                "screen.infiniteinventory.target_selector.group.source_scope",
+                                Component.translatable(row.scope().translationKey())
+                        )
+                        : Component.translatable(
+                                "screen.infiniteinventory.target_selector.group.other_scope",
+                                Component.translatable(row.scope().translationKey())
+                        );
         int textX = rowRect.x() + 2;
         int textY = rowRect.y() + 6;
         guiGraphics.drawString(
@@ -374,6 +381,17 @@ final class PersonalDatabaseScreenTargetHelper {
     private static boolean usesGroupedTransferRows(PersonalDatabaseScreen screen) {
         return screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
                 || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION;
+    }
+
+    private static boolean isSelectedAutoStoreTarget(
+            DatabaseAutoStoreTarget selectedTarget,
+            PersonalDatabaseTargetSelectorModel.Row row
+    ) {
+        return selectedTarget != null
+                && row.scope() != null
+                && row.tab() != null
+                && selectedTarget.scope() == row.scope()
+                && selectedTarget.tabId().equals(row.tab().id());
     }
 
     private static List<PersonalDatabaseTargetSelectorModel.Row> visibleTargetSelectorRows(

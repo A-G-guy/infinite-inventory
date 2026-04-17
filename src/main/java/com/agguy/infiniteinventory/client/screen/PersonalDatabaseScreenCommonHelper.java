@@ -1,10 +1,12 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
@@ -77,6 +79,10 @@ final class PersonalDatabaseScreenCommonHelper {
         return screen.databaseMenu.viewState().tabsForScope(screen.databaseMenu.viewState().query().scope());
     }
 
+    static List<DatabaseTab> tabsForScope(PersonalDatabaseScreen screen, DatabaseScope scope) {
+        return screen.databaseMenu.viewState().tabsForScope(scope);
+    }
+
     static List<DatabaseTab> currentConcreteTabs(PersonalDatabaseScreen screen) {
         return currentTabs(screen).stream().filter(DatabaseTab::isConcreteTab).toList();
     }
@@ -106,7 +112,11 @@ final class PersonalDatabaseScreenCommonHelper {
     }
 
     static DatabaseTab findTab(PersonalDatabaseScreen screen, String tabId) {
-        for (DatabaseTab tab : currentTabs(screen)) {
+        return findTab(screen, screen.databaseMenu.viewState().query().scope(), tabId);
+    }
+
+    static DatabaseTab findTab(PersonalDatabaseScreen screen, DatabaseScope scope, String tabId) {
+        for (DatabaseTab tab : tabsForScope(screen, scope)) {
             if (tab.id().equals(tabId)) {
                 return tab;
             }
@@ -128,6 +138,15 @@ final class PersonalDatabaseScreenCommonHelper {
             return Component.translatable(tab.translationKey());
         }
         return Component.literal(tab.id());
+    }
+
+    static Component autoStoreTargetLabel(PersonalDatabaseScreen screen, @Nullable DatabaseAutoStoreTarget autoStoreTarget) {
+        DatabaseAutoStoreTarget resolvedTarget = autoStoreTarget == null
+                ? DatabaseAutoStoreTarget.defaultTarget()
+                : autoStoreTarget;
+        Component scopeLabel = Component.translatable(resolvedTarget.scope().translationKey());
+        Component tabLabel = tabLabel(screen, findTab(screen, resolvedTarget.scope(), resolvedTarget.tabId()));
+        return Component.empty().append(scopeLabel).append(Component.literal(" · ")).append(tabLabel);
     }
 
     static String tabEditableName(PersonalDatabaseScreen screen, DatabaseTab tab) {
@@ -237,7 +256,7 @@ final class PersonalDatabaseScreenCommonHelper {
         int availableWidth = Math.max(0, right - left);
         int textWidth = screen.screenFont().width(text);
         int x = left + Math.max(0, (availableWidth - textWidth) / 2);
-        guiGraphics.drawString(screen.screenFont(), text, x, y, color, false);
+        guiGraphics.drawString(screen.screenFont(), text, x, y, color, true);
     }
 
     static boolean isAdvancedToggleClickable(DatabaseSearchField field, DatabaseSearchConfig searchConfig) {

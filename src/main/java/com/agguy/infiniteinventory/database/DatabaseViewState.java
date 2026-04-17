@@ -10,7 +10,7 @@ public record DatabaseViewState(
         DatabaseQuery personalQuery,
         DatabaseQuery publicQuery,
         DatabaseEnhancementConfig enhancementConfig,
-        String autoStoreTargetTabId,
+        DatabaseAutoStoreTarget autoStoreTarget,
         List<DatabaseTab> personalTabs,
         List<DatabaseTab> publicTabs,
         List<DatabasePanelView> panels
@@ -25,7 +25,7 @@ public record DatabaseViewState(
             personalQuery = query;
         }
         enhancementConfig = enhancementConfig == null ? DatabaseEnhancementConfig.defaultConfig() : enhancementConfig;
-        autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(autoStoreTargetTabId);
+        autoStoreTarget = autoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : autoStoreTarget;
         sessionId = Math.max(0L, sessionId);
         personalTabs = copyTabs(personalTabs);
         publicTabs = copyTabs(publicTabs);
@@ -48,7 +48,7 @@ public record DatabaseViewState(
                 DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
                 DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
                 DatabaseEnhancementConfig.defaultConfig(),
-                DatabaseTabs.DEFAULT_TAB_ID,
+                DatabaseAutoStoreTarget.defaultTarget(),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of()
@@ -99,7 +99,7 @@ public record DatabaseViewState(
         DatabaseQuery personalQuery = DatabaseQuery.read(buffer);
         DatabaseQuery publicQuery = DatabaseQuery.read(buffer);
         DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.read(buffer);
-        String autoStoreTargetTabId = buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH);
+        DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.read(buffer);
         List<DatabaseTab> personalTabs = readTabs(buffer);
         List<DatabaseTab> publicTabs = readTabs(buffer);
         int panelCount = buffer.readVarInt();
@@ -114,7 +114,7 @@ public record DatabaseViewState(
                 personalQuery,
                 publicQuery,
                 enhancementConfig,
-                autoStoreTargetTabId,
+                autoStoreTarget,
                 personalTabs,
                 publicTabs,
                 panels
@@ -128,7 +128,7 @@ public record DatabaseViewState(
         DatabaseQuery.write(buffer, this.personalQuery);
         DatabaseQuery.write(buffer, this.publicQuery);
         DatabaseEnhancementConfig.write(buffer, this.enhancementConfig);
-        buffer.writeUtf(this.autoStoreTargetTabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
+        DatabaseAutoStoreTarget.write(buffer, this.autoStoreTarget);
         writeTabs(buffer, this.personalTabs);
         writeTabs(buffer, this.publicTabs);
         buffer.writeVarInt(this.panels.size());

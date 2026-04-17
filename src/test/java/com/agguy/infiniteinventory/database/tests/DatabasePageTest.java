@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.database.tests;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
@@ -44,7 +45,7 @@ class DatabasePageTest {
                 personalQuery,
                 publicQuery,
                 enhancementConfig,
-                DatabaseTabs.DEFAULT_TAB_ID,
+                DatabaseAutoStoreTarget.defaultTarget(),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(panelView)

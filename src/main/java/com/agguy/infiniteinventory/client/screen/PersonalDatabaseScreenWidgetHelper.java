@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
@@ -10,7 +11,6 @@ import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
-import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -189,7 +189,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.advancedSearchRowRect(screen, field);
             Button toggleButton = screen.addScreenButton(Button.builder(
                             Component.empty(),
-                            button -> toggleAdvancedSearchField(screen, field)
+                            button -> PersonalDatabaseScreenConfigActionHelper.toggleAdvancedSearchField(screen, field)
                     )
                     .bounds(
                             rowRect.x(),
@@ -200,7 +200,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                     .build());
             Button weightButton = screen.addScreenButton(Button.builder(
                             Component.empty(),
-                            button -> cycleAdvancedSearchWeight(screen, field)
+                            button -> PersonalDatabaseScreenConfigActionHelper.cycleAdvancedSearchWeight(screen, field)
                     )
                     .bounds(
                             rowRect.right() - PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
@@ -223,7 +223,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             Button toggleButton = screen.addScreenButton(Button.builder(
                             Component.empty(),
-                            button -> toggleEnhancementOption(screen, option)
+                            button -> PersonalDatabaseScreenConfigActionHelper.toggleEnhancementOption(screen, option)
                     )
                     .bounds(
                             rowRect.x(),
@@ -344,14 +344,19 @@ final class PersonalDatabaseScreenWidgetHelper {
                     screen.screenFont(),
                     searchRect.x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
                     searchRect.y() + 4,
-                    Math.max(1, searchRect.width() - PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING - 4),
+                    Math.max(
+                            1,
+                            searchRect.width()
+                                    - PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING
+                                    - PersonalDatabaseScreen.TEXT_FIELD_RIGHT_PADDING
+                    ),
                     12,
                     Component.translatable("screen.infiniteinventory.search")
             ));
             searchBox.setMaxLength(DatabaseQuery.MAX_SEARCH_LENGTH);
             searchBox.setBordered(false);
-            searchBox.setTextColor(0x303030);
-            searchBox.setTextColorUneditable(0x606060);
+            searchBox.setTextColor(PersonalDatabaseScreen.TEXT_FIELD_TEXT_COLOR);
+            searchBox.setTextColorUneditable(PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR);
             searchBox.setValue(screen.databaseMenu.viewState().query().searchTextFor(tabId));
             final int resolvedPanelIndex = panelIndex;
             searchBox.setResponder(value -> PersonalDatabaseScreenLayoutHelper.onPanelSearchChanged(screen, resolvedPanelIndex, value));
@@ -436,65 +441,5 @@ final class PersonalDatabaseScreenWidgetHelper {
                 nextButton.active = panel.pageIndex() + 1 < panel.totalPages();
             }
         }
-    }
-    private static void toggleAdvancedSearchField(PersonalDatabaseScreen screen, DatabaseSearchField field) {
-        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-        DatabaseSearchConfig searchConfig = currentQuery.searchConfig();
-        DatabaseSearchWeight currentWeight = searchConfig.weightFor(field);
-        DatabaseSearchWeight nextWeight = currentWeight == DatabaseSearchWeight.OFF
-                ? field.defaultWeight()
-                : DatabaseSearchWeight.OFF;
-        if (field.isTextField() && currentWeight != DatabaseSearchWeight.OFF && enabledTextFieldCount(searchConfig) <= 1) {
-            return;
-        }
-        sendSearchConfig(screen, currentQuery, searchConfig.withWeight(field, nextWeight));
-    }
-
-    private static void cycleAdvancedSearchWeight(PersonalDatabaseScreen screen, DatabaseSearchField field) {
-        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-        DatabaseSearchConfig searchConfig = currentQuery.searchConfig();
-        DatabaseSearchWeight currentWeight = searchConfig.weightFor(field);
-        if (currentWeight == DatabaseSearchWeight.OFF) {
-            return;
-        }
-        sendSearchConfig(screen, currentQuery, searchConfig.withWeight(field, nextWeight(currentWeight)));
-    }
-
-    private static void toggleEnhancementOption(PersonalDatabaseScreen screen, DatabaseEnhancementOption option) {
-        DatabaseEnhancementConfig currentConfig = screen.databaseMenu.viewState().enhancementConfig();
-        sendEnhancementConfig(screen, currentConfig.withOption(option, !currentConfig.isEnabled(option)));
-    }
-
-    private static void sendSearchConfig(
-            PersonalDatabaseScreen screen,
-            DatabaseQuery currentQuery,
-            DatabaseSearchConfig newSearchConfig
-    ) {
-        if (currentQuery.searchConfig().equals(newSearchConfig)) {
-            return;
-        }
-        PersonalDatabaseScreenLayoutHelper.sendQuery(screen, currentQuery.withSearchConfig(newSearchConfig));
-    }
-
-    private static void sendEnhancementConfig(PersonalDatabaseScreen screen, DatabaseEnhancementConfig newConfig) {
-        DatabaseEnhancementConfig currentConfig = screen.databaseMenu.viewState().enhancementConfig();
-        String autoStoreTargetTabId = screen.databaseMenu.viewState().autoStoreTargetTabId();
-        if (currentConfig.equals(newConfig)) {
-            return;
-        }
-        PacketDistributor.sendToServer(new DatabaseEnhancementPayload(
-                screen.databaseMenu.containerId,
-                screen.databaseMenu.viewState().sessionId(),
-                newConfig,
-                autoStoreTargetTabId
-        ));
-    }
-    private static DatabaseSearchWeight nextWeight(DatabaseSearchWeight currentWeight) {
-        return switch (currentWeight) {
-            case OFF -> DatabaseSearchWeight.LOW;
-            case LOW -> DatabaseSearchWeight.MEDIUM;
-            case MEDIUM -> DatabaseSearchWeight.HIGH;
-            case HIGH -> DatabaseSearchWeight.LOW;
-        };
     }
 }

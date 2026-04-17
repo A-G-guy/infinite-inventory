@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.database.tests;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
@@ -56,7 +57,7 @@ class DatabaseViewStateTest {
                 personalQuery,
                 publicQuery,
                 enhancementConfig,
-                DatabaseTabs.DEFAULT_TAB_ID,
+                new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 publicTabs,
                 panels
@@ -67,6 +68,7 @@ class DatabaseViewStateTest {
         assertEquals(personalQuery, viewState.queryForScope(DatabaseScope.PERSONAL));
         assertEquals(activePublicQuery, viewState.queryForScope(DatabaseScope.PUBLIC));
         assertEquals(enhancementConfig, viewState.enhancementConfig());
+        assertEquals(new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID), viewState.autoStoreTarget());
         assertEquals(5, viewState.totalEntries());
     }
 

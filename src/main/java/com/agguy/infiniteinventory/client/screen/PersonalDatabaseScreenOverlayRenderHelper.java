@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
@@ -191,24 +192,34 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 PersonalDatabaseScreenGeometry.truncateToWidth(
                         screen,
                         Component.translatable("screen.infiniteinventory.enhancement.auto_store_target").getString(),
-                        Math.max(0, autoStoreRowRect.width() - 70)
+                        Math.max(0, autoStoreRowRect.width() - 132)
                 ),
                 autoStoreRowRect.x() + 6,
                 autoStoreRowRect.y() + 6,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                 false
         );
-        PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
-                screen,
-                guiGraphics,
-                PersonalDatabaseScreenCommonHelper.tabLabel(
+        DatabaseAutoStoreTarget autoStoreTarget = screen.databaseMenu.viewState().autoStoreTarget();
+        Component targetLabel = PersonalDatabaseScreenCommonHelper.autoStoreTargetLabel(screen, autoStoreTarget);
+        int textWidth = screen.screenFont().width(targetLabel);
+        int targetTextX = Math.max(autoStoreRowRect.x() + 92, autoStoreRowRect.right() - 16 - textWidth);
+        guiGraphics.drawString(
+                screen.screenFont(),
+                PersonalDatabaseScreenGeometry.truncateToWidth(
                         screen,
-                        PersonalDatabaseScreenCommonHelper.findTab(screen, screen.databaseMenu.viewState().autoStoreTargetTabId())
+                        targetLabel.getString(),
+                        Math.max(0, autoStoreRowRect.right() - 16 - targetTextX)
                 ),
-                autoStoreRowRect.right() - 62,
-                autoStoreRowRect.right() - 6,
+                targetTextX,
                 autoStoreRowRect.y() + 6,
-                PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
+                PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR,
+                false
+        );
+        VanillaWidgetRenderer.renderDropdownIndicator(
+                guiGraphics,
+                autoStoreRowRect.right() - 9,
+                autoStoreRowRect.y() + autoStoreRowRect.height() / 2,
+                0xFF3F3F3F
         );
         guiGraphics.pose().popPose();
     }

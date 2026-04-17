@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
@@ -78,7 +79,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     protected DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     protected DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     protected DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
-    protected String autoStoreTargetTabId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
+    protected DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.defaultTarget();
     protected DatabaseViewState viewState;
     protected List<DatabasePage> currentPages = List.of();
 
@@ -291,13 +292,13 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
                 this.personalQuery,
                 this.publicQuery,
                 normalizedState.enhancementConfig(),
-                normalizedState.autoStoreTargetTabId(),
+                normalizedState.autoStoreTarget(),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of()
         );
         this.enhancementConfig = normalizedState.enhancementConfig();
-        this.autoStoreTargetTabId = normalizedState.autoStoreTargetTabId();
+        this.autoStoreTarget = normalizedState.autoStoreTarget();
     }
 
     protected void setActiveQuery(DatabaseQuery query) {
@@ -318,7 +319,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         preferences.setQuery(DatabaseScope.PUBLIC, this.publicQuery);
         preferences.setLastScope(this.activeScope);
         preferences.setEnhancementConfig(this.enhancementConfig);
-        preferences.setAutoStoreTargetTabId(this.autoStoreTargetTabId);
+        preferences.setAutoStoreTarget(this.autoStoreTarget);
     }
 
     protected void syncAfterDatabaseMutation(ServerPlayer player) {

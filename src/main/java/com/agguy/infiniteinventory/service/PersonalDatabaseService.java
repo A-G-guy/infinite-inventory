@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.service;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
@@ -137,13 +138,16 @@ public final class PersonalDatabaseService {
         if (pickedUpAmount <= 0) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, DatabaseScope.PERSONAL).store(stack.copy(), this.resolveAutoStoreTargetTabId(player));
-        this.markScopeDirty(player, DatabaseScope.PERSONAL);
+        DatabaseAutoStoreTarget autoStoreTarget = this.resolveAutoStoreTarget(player);
+        this.resolveDatabaseForMutation(player, autoStoreTarget.scope()).store(stack.copy(), autoStoreTarget.tabId());
+        this.markScopeDirty(player, autoStoreTarget.scope());
         player.take(itemEntity, pickedUpAmount);
         player.awardStat(Stats.ITEM_PICKED_UP.get(stack.getItem()), pickedUpAmount);
         player.onItemPickup(itemEntity);
         itemEntity.discard();
-        if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PERSONAL) {
+        if (autoStoreTarget.scope() == DatabaseScope.PUBLIC) {
+            this.syncPublicViewers(player.server);
+        } else if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PERSONAL) {
             menu.syncViewToClient();
         }
         return true;
@@ -210,11 +214,13 @@ public final class PersonalDatabaseService {
         return this.resolveTabsForMutation(player, scope).sanitizeConcreteTarget(requestedTabId);
     }
 
-    public String resolveAutoStoreTargetTabId(ServerPlayer player) {
+    public DatabaseAutoStoreTarget resolveAutoStoreTarget(ServerPlayer player) {
         DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
-        String targetTabId = this.resolveTabsForMutation(player, DatabaseScope.PERSONAL).sanitizeConcreteTarget(preferences.autoStoreTargetTabId());
-        preferences.setAutoStoreTargetTabId(targetTabId);
-        return targetTabId;
+        DatabaseAutoStoreTarget preferredTarget = preferences.autoStoreTarget();
+        String targetTabId = this.resolveTabsForMutation(player, preferredTarget.scope()).sanitizeConcreteTarget(preferredTarget.tabId());
+        DatabaseAutoStoreTarget resolvedTarget = new DatabaseAutoStoreTarget(preferredTarget.scope(), targetTabId);
+        preferences.setAutoStoreTarget(resolvedTarget);
+        return resolvedTarget;
     }
 
     public boolean createTab(ServerPlayer player, DatabaseScope scope, String name, String iconItemId) {
@@ -256,11 +262,11 @@ public final class PersonalDatabaseService {
         }
         boolean databaseChanged = this.resolveDatabaseForMutation(player, scope).transferTab(tabId, resolvedTargetTabId);
         boolean directoryChanged = tabDirectory.deleteTab(tabId);
-        if (DatabaseScope.normalize(scope) == DatabaseScope.PERSONAL) {
-            DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
-            if (preferences.autoStoreTargetTabId().equals(tabId)) {
-                preferences.setAutoStoreTargetTabId(resolvedTargetTabId);
-            }
+        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
+        DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
+        DatabaseAutoStoreTarget autoStoreTarget = preferences.autoStoreTarget();
+        if (autoStoreTarget.scope() == normalizedScope && autoStoreTarget.tabId().equals(tabId)) {
+            preferences.setAutoStoreTarget(new DatabaseAutoStoreTarget(normalizedScope, resolvedTargetTabId));
         }
         if (databaseChanged || directoryChanged) {
             this.markScopeDirty(player, scope);

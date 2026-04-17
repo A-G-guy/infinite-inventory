@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -103,6 +104,30 @@ class PersonalDatabaseTargetSelectorModelTest {
         assertTarget(rows.getFirst(), DatabaseScope.PUBLIC, "public_food");
     }
 
+    @Test
+    void autoStoreTargetRowsShouldGroupPersonalAndPublicTabs() {
+        DatabaseViewState viewState = viewState(
+                DatabaseScope.PERSONAL,
+                List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab(), tab("personal_tools", "Personal Tools")),
+                List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab(), tab("public_food", "Public Food"))
+        );
+
+        List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
+                PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET,
+                viewState,
+                "",
+                List.of()
+        );
+
+        assertEquals(6, rows.size());
+        assertHeader(rows.get(0), DatabaseScope.PERSONAL, false);
+        assertTarget(rows.get(1), DatabaseScope.PERSONAL, DatabaseTabs.DEFAULT_TAB_ID);
+        assertTarget(rows.get(2), DatabaseScope.PERSONAL, "personal_tools");
+        assertHeader(rows.get(3), DatabaseScope.PUBLIC, false);
+        assertTarget(rows.get(4), DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID);
+        assertTarget(rows.get(5), DatabaseScope.PUBLIC, "public_food");
+    }
+
     private static void assertHeader(
             PersonalDatabaseTargetSelectorModel.Row row,
             DatabaseScope expectedScope,
@@ -139,7 +164,7 @@ class PersonalDatabaseTargetSelectorModelTest {
                 DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
                 DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
                 DatabaseEnhancementConfig.defaultConfig(),
-                DatabaseTabs.DEFAULT_TAB_ID,
+                DatabaseAutoStoreTarget.defaultTarget(),
                 personalTabs,
                 publicTabs,
                 List.of()

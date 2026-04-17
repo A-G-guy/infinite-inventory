@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.database.tests;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -51,6 +52,7 @@ class DatabaseViewPreferencesAttachmentTest {
         preferences.setQuery(DatabaseScope.PUBLIC, publicQuery);
         preferences.setLastScope(DatabaseScope.PUBLIC);
         preferences.setEnhancementConfig(enhancementConfig);
+        preferences.setAutoStoreTarget(new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, "public_blocks"));
 
         DatabaseViewPreferencesAttachment restored = new DatabaseViewPreferencesAttachment();
         restored.deserializeNBT(null, preferences.serializeNBT(null));
@@ -59,5 +61,6 @@ class DatabaseViewPreferencesAttachmentTest {
         assertEquals(personalQuery, restored.queryFor(DatabaseScope.PERSONAL));
         assertEquals(publicQuery, restored.queryFor(DatabaseScope.PUBLIC));
         assertEquals(enhancementConfig, restored.enhancementConfig());
+        assertEquals(new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, "public_blocks"), restored.autoStoreTarget());
     }
 }

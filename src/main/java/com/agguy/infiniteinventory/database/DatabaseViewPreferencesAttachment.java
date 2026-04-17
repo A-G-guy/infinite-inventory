@@ -9,13 +9,14 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
     private static final String PERSONAL_QUERY_KEY = "personal_query";
     private static final String PUBLIC_QUERY_KEY = "public_query";
     private static final String ENHANCEMENT_CONFIG_KEY = "enhancement_config";
-    private static final String AUTO_STORE_TARGET_TAB_ID_KEY = "auto_store_target_tab_id";
+    private static final String AUTO_STORE_TARGET_KEY = "auto_store_target";
+    private static final String LEGACY_AUTO_STORE_TARGET_TAB_ID_KEY = "auto_store_target_tab_id";
 
     private DatabaseScope lastScope = DatabaseScope.defaultScope();
     private DatabaseQuery personalQuery = DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL);
     private DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
-    private String autoStoreTargetTabId = DatabaseTabs.DEFAULT_TAB_ID;
+    private DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.defaultTarget();
 
     public DatabaseScope lastScope() {
         return this.lastScope;
@@ -29,8 +30,8 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         return this.enhancementConfig;
     }
 
-    public String autoStoreTargetTabId() {
-        return this.autoStoreTargetTabId;
+    public DatabaseAutoStoreTarget autoStoreTarget() {
+        return this.autoStoreTarget;
     }
 
     public void setLastScope(DatabaseScope scope) {
@@ -59,8 +60,8 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.enhancementConfig = config == null ? DatabaseEnhancementConfig.defaultConfig() : config;
     }
 
-    public void setAutoStoreTargetTabId(String tabId) {
-        this.autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
+    public void setAutoStoreTarget(DatabaseAutoStoreTarget target) {
+        this.autoStoreTarget = target == null ? DatabaseAutoStoreTarget.defaultTarget() : target;
     }
 
     @Override
@@ -70,7 +71,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         tag.put(PERSONAL_QUERY_KEY, this.personalQuery.toTag());
         tag.put(PUBLIC_QUERY_KEY, this.publicQuery.toTag());
         tag.put(ENHANCEMENT_CONFIG_KEY, this.enhancementConfig.toTag());
-        tag.putString(AUTO_STORE_TARGET_TAB_ID_KEY, this.autoStoreTargetTabId);
+        tag.put(AUTO_STORE_TARGET_KEY, this.autoStoreTarget.toTag());
         return tag;
     }
 
@@ -80,7 +81,17 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.personalQuery = DatabaseQuery.fromTag(tag.getCompound(PERSONAL_QUERY_KEY), DatabaseScope.PERSONAL);
         this.publicQuery = DatabaseQuery.fromTag(tag.getCompound(PUBLIC_QUERY_KEY), DatabaseScope.PUBLIC);
         this.enhancementConfig = DatabaseEnhancementConfig.fromTag(tag.getCompound(ENHANCEMENT_CONFIG_KEY));
-        this.autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(tag.getString(AUTO_STORE_TARGET_TAB_ID_KEY));
+        this.autoStoreTarget = readAutoStoreTarget(tag);
+    }
+
+    private static DatabaseAutoStoreTarget readAutoStoreTarget(CompoundTag tag) {
+        if (tag.contains(AUTO_STORE_TARGET_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+            return DatabaseAutoStoreTarget.fromTag(tag.getCompound(AUTO_STORE_TARGET_KEY));
+        }
+        return new DatabaseAutoStoreTarget(
+                DatabaseScope.PERSONAL,
+                tag.getString(LEGACY_AUTO_STORE_TARGET_TAB_ID_KEY)
+        );
     }
 
     private static DatabaseScope readScope(String serializedScope) {
