@@ -22,7 +22,7 @@ public final class DatabaseSearchEvaluator {
 
     public DatabaseSearchRanking evaluate(DatabaseQuery query, DatabaseSearchIndex index, long amount) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        return this.evaluate(normalizedQuery.tabStateFor(normalizedQuery.focusedTabId()), index, amount);
+        return this.evaluate(normalizedQuery.tabStateFor(normalizedQuery.focusedTab()), index, amount);
     }
 
     public DatabaseSearchRanking evaluate(DatabaseTabQueryState tabQueryState, DatabaseSearchIndex index, long amount) {

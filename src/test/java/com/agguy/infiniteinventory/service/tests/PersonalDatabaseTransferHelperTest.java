@@ -41,8 +41,8 @@ class PersonalDatabaseTransferHelperTest {
                 sourceDatabase,
                 targetDatabase,
                 List.of(
-                        new DatabaseSelectionEntry("ores", diamondStack),
-                        new DatabaseSelectionEntry("ores", diamondStack)
+                        new DatabaseSelectionEntry(DatabaseScope.PERSONAL, "ores", diamondStack),
+                        new DatabaseSelectionEntry(DatabaseScope.PERSONAL, "ores", diamondStack)
                 ),
                 "gems"
         ));

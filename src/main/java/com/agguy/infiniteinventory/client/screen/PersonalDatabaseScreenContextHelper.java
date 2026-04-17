@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.util.Mth;
@@ -118,11 +119,16 @@ final class PersonalDatabaseScreenContextHelper {
 
     private static void triggerSelectionAction(PersonalDatabaseScreen screen, com.agguy.infiniteinventory.network.DatabaseSelectionAction action) {
         if (action.requiresTargetTab()) {
+            DatabaseScope sourceScope = screen.databaseMenu.viewState().query().focusedTab().scope();
+            if (screen.contextMenuPanelIndex >= 0 && screen.contextMenuPanelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+                sourceScope = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(screen.contextMenuPanelIndex).scopedTab().scope();
+            }
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
                     screen,
                     PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
                     -1,
                     -1,
+                    sourceScope,
                     ""
             );
             return;
@@ -149,6 +155,7 @@ final class PersonalDatabaseScreenContextHelper {
                 screen.contextMenuPanelIndex,
                 screen.contextMenuSlotIndex,
                 action,
+                panel.scopedTab().scope(),
                 panel.tab().id()
         );
         PersonalDatabaseScreenSelectionHelper.clearSelection(screen);

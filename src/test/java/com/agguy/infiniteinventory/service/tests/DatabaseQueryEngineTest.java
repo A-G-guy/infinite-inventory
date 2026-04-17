@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.service.tests;
 
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseTab;
@@ -37,8 +38,18 @@ class DatabaseQueryEngineTest {
         DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
         DatabaseQuery firstPageQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_ASC, "", 0, 1);
 
-        DatabasePage firstPage = this.queryEngine.buildPage(database, tabDirectory, firstPageQuery, DatabaseTabs.ALL_TAB_ID);
-        DatabasePage secondPage = this.queryEngine.buildPage(database, tabDirectory, firstPageQuery.withPageIndex(1), DatabaseTabs.ALL_TAB_ID);
+        DatabasePage firstPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                firstPageQuery,
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)
+        );
+        DatabasePage secondPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                firstPageQuery.withPageIndex(1),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)
+        );
         Object runtimeIndex = this.runtimeIndexFor(database);
 
         assertEquals(3, firstPage.totalEntries());
@@ -54,16 +65,21 @@ class DatabaseQueryEngineTest {
         DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
         DatabaseQuery searchQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.COUNT_DESC, "diamond", 0, 1);
 
-        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseTabs.ALL_TAB_ID);
+        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL));
         Object firstRuntimeIndex = this.runtimeIndexFor(database);
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
-        this.queryEngine.buildPage(database, tabDirectory, searchQuery.withPageIndex(1), DatabaseTabs.ALL_TAB_ID);
+        this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                searchQuery.withPageIndex(1),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)
+        );
         assertSame(firstRuntimeIndex, this.runtimeIndexFor(database));
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
         database.store(new ItemStack(Items.DIAMOND_BLOCK, 2));
-        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseTabs.ALL_TAB_ID);
+        this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL));
         Object rebuiltRuntimeIndex = this.runtimeIndexFor(database);
 
         assertNotSame(firstRuntimeIndex, rebuiltRuntimeIndex);
@@ -83,7 +99,7 @@ class DatabaseQueryEngineTest {
                 database,
                 tabDirectory,
                 this.query(blocksTab.id(), DatabaseSortOption.RECENTLY_CHANGED, "", 0, 10),
-                blocksTab.id()
+                DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, blocksTab.id())
         );
 
         assertEquals(2, page.totalEntries());

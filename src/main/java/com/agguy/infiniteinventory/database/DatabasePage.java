@@ -4,6 +4,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 public record DatabasePage(
+        DatabaseScopedTabRef scopedTab,
         DatabaseTab tab,
         int pageIndex,
         int pageSize,
@@ -13,6 +14,7 @@ public record DatabasePage(
         List<DatabasePageEntry> entries
 ) {
     public DatabasePage {
+        scopedTab = scopedTab == null ? DatabaseScopedTabRef.defaultTab() : scopedTab;
         tab = tab == null ? DatabaseTabs.allTab() : tab;
         pageIndex = Math.max(0, pageIndex);
         pageSize = Math.max(1, pageSize);
@@ -32,6 +34,7 @@ public record DatabasePage(
 
     public DatabasePanelView toPanelView() {
         return new DatabasePanelView(
+                this.scopedTab,
                 this.tab,
                 this.pageIndex,
                 this.pageSize,

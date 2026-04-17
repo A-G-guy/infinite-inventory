@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
@@ -16,7 +17,7 @@ final class PersonalDatabaseScreenManagementLogic {
         if (selectedTab == null) {
             return false;
         }
-        boolean snapshotChanged = screen.managementSnapshotScope != screen.databaseMenu.viewState().query().scope()
+        boolean snapshotChanged = screen.managementSnapshotScope != screen.managementSelectedScope
                 || !Objects.equals(screen.managementSnapshotTabId, selectedTab.id())
                 || !Objects.equals(screen.managementSnapshotName, PersonalDatabaseScreenCommonHelper.tabEditableName(screen, selectedTab))
                 || !Objects.equals(screen.managementSnapshotIconItemId, selectedTab.iconItemId());
@@ -47,11 +48,16 @@ final class PersonalDatabaseScreenManagementLogic {
         );
     }
 
-    static boolean canMoveManagementTab(PersonalDatabaseScreen screen, DatabaseTab selectedTab, int direction) {
+    static boolean canMoveManagementTab(
+            PersonalDatabaseScreen screen,
+            DatabaseScope selectedScope,
+            DatabaseTab selectedTab,
+            int direction
+    ) {
         if (selectedTab == null || !selectedTab.isConcreteTab()) {
             return false;
         }
-        List<DatabaseTab> concreteTabs = PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen);
+        List<DatabaseTab> concreteTabs = PersonalDatabaseScreenCommonHelper.concreteTabsForScope(screen, selectedScope);
         int selectedIndex = -1;
         for (int index = 0; index < concreteTabs.size(); index++) {
             if (concreteTabs.get(index).id().equals(selectedTab.id())) {
@@ -82,6 +88,7 @@ final class PersonalDatabaseScreenManagementLogic {
         if (hasNameChange(screen, selectedTab)) {
             PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,
+                    screen.managementSelectedScope,
                     DatabaseTabMutationAction.RENAME,
                     selectedTab.id(),
                     "",
@@ -99,6 +106,7 @@ final class PersonalDatabaseScreenManagementLogic {
         }
         PersonalDatabaseScreenManagementHelper.sendTabMutation(
                 screen,
+                screen.managementSelectedScope,
                 DatabaseTabMutationAction.CHANGE_ICON,
                 selectedTab.id(),
                 "",

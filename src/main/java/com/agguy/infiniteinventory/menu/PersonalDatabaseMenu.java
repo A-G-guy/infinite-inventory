@@ -2,9 +2,9 @@ package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
-import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
@@ -27,7 +27,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
@@ -82,9 +81,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
         this.applyOpenState(new PersonalDatabaseOpenState(
                 this.sessionId,
-                preferences.lastScope(),
-                preferences.queryFor(DatabaseScope.PERSONAL),
-                preferences.queryFor(DatabaseScope.PUBLIC),
+                preferences.query(),
                 preferences.enhancementConfig(),
                 preferences.autoStoreTarget()
         ));
@@ -93,7 +90,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     public void applyViewState(DatabaseViewState newState) {
         this.sessionId = newState.sessionId();
         this.viewState = newState;
-        this.activeScope = newState.query().scope();
+        this.query = newState.query();
+        this.activeScope = this.query.scope();
         this.personalQuery = newState.personalQuery();
         this.publicQuery = newState.publicQuery();
         this.enhancementConfig = newState.enhancementConfig();
@@ -155,70 +153,27 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     }
 
     public void syncViewToClient() {
-        if (!(this.owner instanceof ServerPlayer serverPlayer)) {
-            return;
-        }
-        this.personalQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, this.personalQuery);
-        this.publicQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, this.publicQuery);
-        DatabaseQuery activeQuery = this.currentQuery();
-        java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabIds().size());
-        DatabaseQuery adjustedQuery = activeQuery;
-        for (String visibleTabId : activeQuery.visibleTabIds()) {
-            DatabasePage page = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, adjustedQuery, visibleTabId);
-            rebuiltPages.add(page);
-            adjustedQuery = adjustedQuery
-                    .withPageIndex(page.tab().id(), page.pageIndex())
-                    .withPageSize(page.tab().id(), page.pageSize());
-        }
-        this.currentPages = List.copyOf(rebuiltPages);
-        this.setActiveQuery(adjustedQuery);
-        this.autoStoreTarget = PersonalDatabaseService.INSTANCE.resolveAutoStoreTarget(serverPlayer);
-        this.persistPreferences(serverPlayer);
-        this.viewState = new DatabaseViewState(
-                this.containerId,
-                this.sessionId,
-                this.currentQuery(),
-                this.personalQuery,
-                this.publicQuery,
-                this.enhancementConfig,
-                this.autoStoreTarget,
-                PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PERSONAL),
-                PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC),
-                this.currentPages.stream().map(DatabasePage::toPanelView).toList()
-        );
-        PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(this.viewState));
+        PersonalDatabaseMenuSyncHelper.syncViewToClient(this);
     }
 
     public void updateQuery(DatabaseQuery newQuery) {
-        DatabaseScope previousScope = this.activeScope;
-        this.setActiveQuery(newQuery == null ? this.currentQuery() : newQuery);
-        if (this.owner instanceof ServerPlayer serverPlayer) {
-            this.persistPreferences(serverPlayer);
-        }
-        this.syncViewToClient();
-        if (this.owner instanceof ServerPlayer serverPlayer && previousScope != this.activeScope) {
-            PersonalDatabaseService.INSTANCE.notifyViewerAboutUnresolvedEntries(serverPlayer, this.activeScope);
-        }
+        PersonalDatabaseMenuSyncHelper.updateQuery(this, newQuery);
     }
 
     public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig, DatabaseAutoStoreTarget newAutoStoreTarget) {
-        this.enhancementConfig = newConfig == null ? DatabaseEnhancementConfig.defaultConfig() : newConfig;
-        this.autoStoreTarget = newAutoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : newAutoStoreTarget;
-        if (this.owner instanceof ServerPlayer serverPlayer) {
-            this.persistPreferences(serverPlayer);
-        }
-        this.syncViewToClient();
+        PersonalDatabaseMenuSyncHelper.updateEnhancementConfig(this, newConfig, newAutoStoreTarget);
     }
 
-    public void depositAllFromMainInventory(String targetTabId) {
+    public void depositAllFromMainInventory(@Nullable DatabaseScope targetScope, String targetTabId) {
+        DatabaseScopedTabRef targetTab = this.resolveStoreTarget(-1, targetScope, targetTabId);
         if (this.owner instanceof ServerPlayer serverPlayer
-                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, this.activeScope, targetTabId) > 0L) {
+                && PersonalDatabaseService.INSTANCE.depositMainInventory(serverPlayer, targetTab.scope(), targetTab.tabId()) > 0L) {
             this.broadcastChanges();
-            this.syncAfterDatabaseMutation(serverPlayer);
+            this.syncAfterScopeMutation(serverPlayer, targetTab.scope());
         }
     }
 
-    public void depositInventorySlot(int slotIndex, String targetTabId) {
+    public void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId) {
         if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
@@ -229,21 +184,31 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         if (!slot.hasItem()) {
             return;
         }
-        if (PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, targetTabId, slot)) {
+        DatabaseScopedTabRef targetTab = this.resolveStoreTarget(-1, targetScope, targetTabId);
+        if (PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, targetTab.scope(), targetTab.tabId(), slot)) {
             this.broadcastChanges();
-            this.syncAfterDatabaseMutation(serverPlayer);
+            this.syncAfterScopeMutation(serverPlayer, targetTab.scope());
         }
     }
 
-    public void handleDatabaseClick(int panelIndex, int pageSlotIndex, DatabaseClickAction action, @Nullable String targetTabId) {
+    public void handleDatabaseClick(
+            int panelIndex,
+            int pageSlotIndex,
+            DatabaseClickAction action,
+            @Nullable DatabaseScope targetScope,
+            @Nullable String targetTabId
+    ) {
         if (!(this.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
         boolean changed = false;
         boolean refreshSharedView = false;
+        DatabaseScope changedScope = null;
         if (action.isStoreAction()) {
             if (!this.getCarried().isEmpty()) {
-                changed = this.storeCarriedStack(serverPlayer, action.storesSingleItem(), this.resolveStoreTargetTab(panelIndex, targetTabId));
+                DatabaseScopedTabRef resolvedTarget = this.resolveStoreTarget(panelIndex, targetScope, targetTabId);
+                changed = this.storeCarriedStack(serverPlayer, resolvedTarget.scope(), action.storesSingleItem(), resolvedTarget.tabId());
+                changedScope = resolvedTarget.scope();
             }
         } else {
             if (!this.getCarried().isEmpty()) {
@@ -251,28 +216,33 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
             }
             DatabasePageEntry pageEntry = this.getPageEntry(panelIndex, pageSlotIndex);
             if (pageEntry == null) {
-                refreshSharedView = this.activeScope == DatabaseScope.PUBLIC;
+                if (panelIndex >= 0 && panelIndex < this.currentPages.size()) {
+                    refreshSharedView = this.currentPages.get(panelIndex).scopedTab().scope() == DatabaseScope.PUBLIC;
+                }
             } else {
+                DatabaseScope sourceScope = pageEntry.view().scope();
                 long requestedAmount = action.resolveRequestedAmount(pageEntry.view().amount(), pageEntry.key().maxStackSize());
                 if (action.dropsToWorld()) {
-                    changed = PersonalDatabaseService.INSTANCE.extractToWorld(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
+                    changed = PersonalDatabaseService.INSTANCE.extractToWorld(serverPlayer, sourceScope, pageEntry.key(), requestedAmount) > 0L;
                 } else if (action.extractsToInventory()) {
-                    changed = PersonalDatabaseService.INSTANCE.extractToInventory(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
+                    changed = PersonalDatabaseService.INSTANCE.extractToInventory(serverPlayer, sourceScope, pageEntry.key(), requestedAmount) > 0L;
                 } else {
                     changed = this.withdrawToCarried(
                             serverPlayer,
+                            sourceScope,
                             pageEntry.key(),
                             (int) Math.min(Integer.MAX_VALUE, requestedAmount)
                     );
                 }
-                if (!changed && this.activeScope == DatabaseScope.PUBLIC) {
+                changedScope = sourceScope;
+                if (!changed && sourceScope == DatabaseScope.PUBLIC) {
                     refreshSharedView = true;
                 }
             }
         }
         if (changed) {
             this.broadcastChanges();
-            this.syncAfterDatabaseMutation(serverPlayer);
+            this.syncAfterScopeMutation(serverPlayer, changedScope);
         } else if (refreshSharedView) {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
         }
@@ -305,46 +275,62 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         if (!(this.owner instanceof ServerPlayer serverPlayer) || action == null || selectionEntries == null || selectionEntries.isEmpty()) {
             return;
         }
-        boolean changed;
+        boolean changed = false;
+        boolean personalChanged = false;
+        boolean publicChanged = false;
+        java.util.Map<DatabaseScope, java.util.List<DatabaseSelectionEntry>> entriesByScope = new java.util.LinkedHashMap<>();
+        for (DatabaseSelectionEntry selectionEntry : selectionEntries) {
+            if (selectionEntry == null || selectionEntry.isEmpty()) {
+                continue;
+            }
+            entriesByScope.computeIfAbsent(selectionEntry.scope(), ignored -> new java.util.ArrayList<>()).add(selectionEntry);
+        }
         if (action.requiresTargetTab()) {
-            changed = PersonalDatabaseService.INSTANCE.transferSelection(
-                    serverPlayer,
-                    this.activeScope,
-                    targetScope,
-                    selectionEntries,
-                    targetTabId
-            );
+            DatabaseScope normalizedTargetScope = DatabaseScope.normalize(targetScope);
+            for (java.util.Map.Entry<DatabaseScope, java.util.List<DatabaseSelectionEntry>> entry : entriesByScope.entrySet()) {
+                boolean scopeChanged = PersonalDatabaseService.INSTANCE.transferSelection(
+                        serverPlayer,
+                        entry.getKey(),
+                        normalizedTargetScope,
+                        entry.getValue(),
+                        targetTabId
+                );
+                changed = changed || scopeChanged;
+                if (scopeChanged) {
+                    personalChanged = personalChanged || entry.getKey() == DatabaseScope.PERSONAL || normalizedTargetScope == DatabaseScope.PERSONAL;
+                    publicChanged = publicChanged || entry.getKey() == DatabaseScope.PUBLIC || normalizedTargetScope == DatabaseScope.PUBLIC;
+                }
+            }
         } else {
-            changed = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(
-                    serverPlayer,
-                    this.activeScope,
-                    selectionEntries,
-                    action,
-                    requestedAmount
-            ) > 0L;
+            for (java.util.Map.Entry<DatabaseScope, java.util.List<DatabaseSelectionEntry>> entry : entriesByScope.entrySet()) {
+                boolean scopeChanged = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(
+                        serverPlayer,
+                        entry.getKey(),
+                        entry.getValue(),
+                        action,
+                        requestedAmount
+                ) > 0L;
+                changed = changed || scopeChanged;
+                if (scopeChanged) {
+                    personalChanged = personalChanged || entry.getKey() == DatabaseScope.PERSONAL;
+                    publicChanged = publicChanged || entry.getKey() == DatabaseScope.PUBLIC;
+                }
+            }
         }
         if (changed) {
             this.broadcastChanges();
-            if (action.requiresTargetTab()) {
-                this.syncAfterTransferMutation(serverPlayer, targetScope);
-            } else {
-                this.syncAfterDatabaseMutation(serverPlayer);
-            }
-        } else if (this.activeScope == DatabaseScope.PUBLIC) {
+            this.syncAfterScopedMutations(serverPlayer, personalChanged, publicChanged);
+        } else if (entriesByScope.containsKey(DatabaseScope.PUBLIC)) {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
         }
     }
 
-    private void syncAfterTransferMutation(ServerPlayer player, @Nullable DatabaseScope targetScope) {
-        DatabaseScope normalizedTargetScope = PersonalDatabaseTransferHelper.resolveTargetScope(this.activeScope, targetScope);
-        if (!PersonalDatabaseTransferHelper.affectsPublicScope(this.activeScope, normalizedTargetScope)) {
-            this.syncAfterDatabaseMutation(player);
-            return;
-        }
-        if (this.activeScope != DatabaseScope.PUBLIC) {
-            this.syncViewToClient();
-        }
-        PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+    private void syncAfterScopeMutation(ServerPlayer player, @Nullable DatabaseScope scope) {
+        PersonalDatabaseMenuSyncHelper.syncAfterScopeMutation(this, player, scope);
+    }
+
+    private void syncAfterScopedMutations(ServerPlayer player, boolean personalChanged, boolean publicChanged) {
+        PersonalDatabaseMenuSyncHelper.syncAfterScopedMutations(this, player, personalChanged, publicChanged);
     }
 
     @Override
@@ -378,13 +364,18 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         ItemStack rawStack = slot.getItem();
         ItemStack copy = rawStack.copy();
 
-        String quickMoveTargetTabId = this.resolveSingleStoreTargetTab();
+        DatabaseScopedTabRef quickMoveTargetTab = this.resolveSingleStoreTarget();
         if (this.shouldDepositQuickMovedSlot(slotIndex)
                 && player instanceof ServerPlayer serverPlayer
-                && quickMoveTargetTabId != null
-                && PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, this.activeScope, quickMoveTargetTabId, slot)) {
+                && quickMoveTargetTab != null
+                && PersonalDatabaseService.INSTANCE.depositSlot(
+                        serverPlayer,
+                        quickMoveTargetTab.scope(),
+                        quickMoveTargetTab.tabId(),
+                        slot
+                )) {
             this.broadcastChanges();
-            this.syncAfterDatabaseMutation(serverPlayer);
+            this.syncAfterScopeMutation(serverPlayer, quickMoveTargetTab.scope());
             return copy;
         }
 

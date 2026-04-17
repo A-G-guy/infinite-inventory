@@ -4,6 +4,7 @@ import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
@@ -27,6 +28,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
                 PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
                 viewState,
+                DatabaseScope.PERSONAL,
                 "",
                 List.of()
         );
@@ -50,6 +52,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
                 PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB,
                 viewState,
+                DatabaseScope.PERSONAL,
                 "shared_tab",
                 List.of()
         );
@@ -75,6 +78,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
                 PersonalDatabaseScreen.TargetSelectorMode.DELETE_TAB,
                 viewState,
+                DatabaseScope.PUBLIC,
                 "public_blocks",
                 List.of()
         );
@@ -86,7 +90,7 @@ class PersonalDatabaseTargetSelectorModelTest {
     }
 
     @Test
-    void depositAllRowsShouldRemainFlatAndUseVisibleConcreteTabs() {
+    void depositAllRowsShouldGroupVisibleConcreteTabsAcrossScopes() {
         DatabaseViewState viewState = viewState(
                 DatabaseScope.PUBLIC,
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab(), tab("personal_misc", "Personal Misc")),
@@ -96,12 +100,19 @@ class PersonalDatabaseTargetSelectorModelTest {
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
                 PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
                 viewState,
+                DatabaseScope.PUBLIC,
                 "",
-                List.of(panel(tab("public_food", "Public Food")))
+                List.of(
+                        panel(DatabaseScope.PERSONAL, tab("personal_misc", "Personal Misc")),
+                        panel(DatabaseScope.PUBLIC, tab("public_food", "Public Food"))
+                )
         );
 
-        assertEquals(1, rows.size());
-        assertTarget(rows.getFirst(), DatabaseScope.PUBLIC, "public_food");
+        assertEquals(4, rows.size());
+        assertHeader(rows.get(0), DatabaseScope.PERSONAL, false);
+        assertTarget(rows.get(1), DatabaseScope.PERSONAL, "personal_misc");
+        assertHeader(rows.get(2), DatabaseScope.PUBLIC, false);
+        assertTarget(rows.get(3), DatabaseScope.PUBLIC, "public_food");
     }
 
     @Test
@@ -115,6 +126,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
                 PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET,
                 viewState,
+                DatabaseScope.PERSONAL,
                 "",
                 List.of()
         );
@@ -161,8 +173,6 @@ class PersonalDatabaseTargetSelectorModelTest {
                 1,
                 42L,
                 DatabaseQuery.defaultQuery(queryScope),
-                DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
-                DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
                 DatabaseEnhancementConfig.defaultConfig(),
                 DatabaseAutoStoreTarget.defaultTarget(),
                 personalTabs,
@@ -171,8 +181,8 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
     }
 
-    private static DatabasePanelView panel(DatabaseTab tab) {
-        return new DatabasePanelView(tab, 0, 54, 0, 1, 0L, List.of());
+    private static DatabasePanelView panel(DatabaseScope scope, DatabaseTab tab) {
+        return new DatabasePanelView(DatabaseScopedTabRef.concreteTab(scope, tab.id()), tab, 0, 54, 0, 1, 0L, List.of());
     }
 
     private static DatabaseTab tab(String id, String name) {

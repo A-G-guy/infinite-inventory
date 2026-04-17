@@ -49,13 +49,19 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (screen.targetSelectorExpanded && PersonalDatabaseScreenTargetHelper.handleTargetSelectorClick(screen, mouseX, mouseY)) {
             return true;
         }
-        if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleTabManagementClick(screen, mouseX, mouseY)) {
+        if (screen.topTabReplaceExpanded && PersonalDatabaseScreenTabHelper.handleTopTabReplacePromptClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.topTabActionPromptExpanded && PersonalDatabaseScreenTabHelper.handleTopTabActionPromptClick(screen, mouseX, mouseY)) {
+            return true;
+        }
+        if (screen.viewSelectorExpanded && PersonalDatabaseScreenTabHelper.handleViewSelectorClick(screen, mouseX, mouseY)) {
             return true;
         }
         if (screen.moreTabsExpanded && PersonalDatabaseScreenTabHelper.handleMoreTabsClick(screen, mouseX, mouseY)) {
             return true;
         }
-        if (screen.viewSelectorExpanded && PersonalDatabaseScreenTabHelper.handleViewSelectorClick(screen, mouseX, mouseY)) {
+        if (screen.tabManagementExpanded && PersonalDatabaseScreenManagementHelper.handleTabManagementClick(screen, mouseX, mouseY)) {
             return true;
         }
         if (screen.pagePickerExpanded && handlePagePickerClick(screen, mouseX, mouseY)) {
@@ -132,6 +138,10 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (screen.topTabActionPromptExpanded) {
+                PersonalDatabaseScreenTabHelper.applyPrimaryTopTabAction(screen);
+                return true;
+            }
             if (screen.iconPickerExpanded) {
                 PersonalDatabaseScreenManagementHelper.applyIconPickerSelection(screen);
                 return true;
@@ -332,6 +342,7 @@ final class PersonalDatabaseScreenInteractionHelper {
                         PersonalDatabaseScreen.TargetSelectorMode.CARRIED_STORE,
                         panelIndex,
                         -1,
+                        panel.scopedTab().scope(),
                         ""
                 );
                 return true;
@@ -341,6 +352,7 @@ final class PersonalDatabaseScreenInteractionHelper {
                     panelIndex,
                     pointerTarget.slotIndex() >= 0 ? pointerTarget.slotIndex() : 0,
                     action,
+                    panel.scopedTab().scope(),
                     panel.tab().id()
             );
             return true;
@@ -350,10 +362,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 : null;
         if (button == 0) {
             PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
-            if (!screen.databaseMenu.viewState().query().focusedTabId().equals(panel.tab().id())) {
+            if (!screen.databaseMenu.viewState().query().focusedTab().equals(panel.scopedTab())) {
                 PersonalDatabaseScreenLayoutHelper.sendQuery(
                         screen,
-                        screen.databaseMenu.viewState().query().withFocusedTabId(panel.tab().id())
+                        screen.databaseMenu.viewState().query().withFocusedTab(panel.scopedTab())
                 );
             }
             if (selectionEntry != null) {
@@ -368,6 +380,7 @@ final class PersonalDatabaseScreenInteractionHelper {
                                 panelIndex,
                                 pointerTarget.slotIndex(),
                                 DatabaseClickAction.TAKE_STACK_TO_INVENTORY,
+                                panel.scopedTab().scope(),
                                 panel.tab().id()
                         );
                         return true;
@@ -427,6 +440,10 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (screen.targetSelectorExpanded) {
             PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
+            return true;
+        }
+        if (screen.topTabReplaceExpanded || screen.topTabActionPromptExpanded) {
+            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
             return true;
         }
         if (screen.moreTabsExpanded) {

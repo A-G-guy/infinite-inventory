@@ -65,7 +65,13 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.handleDatabaseClick(payload.panelIndex(), payload.pageSlotIndex(), payload.action(), payload.targetTabId());
+            menu.handleDatabaseClick(
+                    payload.panelIndex(),
+                    payload.pageSlotIndex(),
+                    payload.action(),
+                    payload.targetScope(),
+                    payload.targetTabId()
+            );
         }
     }
 
@@ -91,7 +97,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.depositInventorySlot(payload.slotIndex(), payload.targetTabId());
+            menu.depositInventorySlot(payload.slotIndex(), payload.targetScope(), payload.targetTabId());
         }
     }
 
@@ -151,7 +157,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.depositAllFromMainInventory(payload.targetTabId());
+            menu.depositAllFromMainInventory(payload.targetScope(), payload.targetTabId());
         }
     }
 

@@ -12,6 +12,7 @@ import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
@@ -25,7 +26,6 @@ import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
 import java.util.List;
 import java.util.UUID;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -38,7 +38,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
-    private static final int HOTBAR_SLOT_COUNT = 9;
+    static final int HOTBAR_SLOT_COUNT = 9;
     private static final Logger LOGGER = LogManager.getLogger();
     private final DatabaseQueryEngine queryEngine = DatabaseQueryEngine.INSTANCE;
 
@@ -50,7 +50,7 @@ public final class PersonalDatabaseService {
         player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
             menu.syncViewToClient();
-            this.notifyAboutUnresolvedEntries(player, menu.activeScope());
+            PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, menu.activeScope());
         }
     }
 
@@ -89,14 +89,14 @@ public final class PersonalDatabaseService {
         long movedItems = 0L;
         boolean movedAny = false;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
-            if (!isPrimaryStorageSlot(slotIndex)) {
+            if (!PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex)) {
                 continue;
             }
             ItemStack stack = inventory.items.get(slotIndex);
             if (!this.canStore(stack)) {
                 continue;
             }
-            movedItems = safeAddMovedItems(movedItems, stack);
+            movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
             movedAny = true;
             database.store(stack.copy(), resolvedTargetTabId);
             inventory.items.set(slotIndex, ItemStack.EMPTY);
@@ -191,19 +191,50 @@ public final class PersonalDatabaseService {
         );
     }
 
-    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, String tabId) {
+    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, DatabaseScopedTabRef scopedTab) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
         return this.queryEngine.buildPage(
-                this.resolveDatabaseForView(player, normalizedQuery.scope()),
-                this.resolveTabsForView(player, normalizedQuery.scope()),
+                this.resolveDatabaseForView(player, scopedTab.scope()),
+                this.resolveTabsForView(player, scopedTab.scope()),
                 normalizedQuery,
-                tabId
+                scopedTab
         );
     }
 
     public DatabaseQuery sanitizeQuery(ServerPlayer player, DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        return this.resolveTabsForView(player, normalizedQuery.scope()).sanitizeQuery(normalizedQuery);
+        DatabaseScopedTabRef focusedTab = this.resolveScopedTabForView(player, normalizedQuery.focusedTab());
+        java.util.LinkedHashSet<DatabaseScopedTabRef> visibleTabs = new java.util.LinkedHashSet<>();
+        for (DatabaseScopedTabRef visibleTab : normalizedQuery.visibleTabs()) {
+            DatabaseScopedTabRef resolvedVisibleTab = this.resolveScopedTabForView(player, visibleTab);
+            if (resolvedVisibleTab == null) {
+                continue;
+            }
+            visibleTabs.add(resolvedVisibleTab);
+            if (visibleTabs.size() >= DatabaseTabs.MAX_VISIBLE_TAB_COUNT) {
+                break;
+            }
+        }
+        if (focusedTab == null) {
+            focusedTab = DatabaseScopedTabRef.defaultTab();
+        }
+        if (visibleTabs.isEmpty()) {
+            visibleTabs.add(focusedTab);
+        }
+        if (!visibleTabs.contains(focusedTab)) {
+            focusedTab = visibleTabs.getFirst();
+        }
+        java.util.LinkedHashMap<DatabaseScopedTabRef, com.agguy.infiniteinventory.database.DatabaseTabQueryState> tabStates =
+                new java.util.LinkedHashMap<>();
+        for (DatabaseTab tab : this.tabsForScope(player, DatabaseScope.PERSONAL)) {
+            DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, tab.id());
+            tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
+        }
+        for (DatabaseTab tab : this.tabsForScope(player, DatabaseScope.PUBLIC)) {
+            DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, tab.id());
+            tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
+        }
+        return new DatabaseQuery(focusedTab, java.util.List.copyOf(visibleTabs), tabStates);
     }
 
     public List<DatabaseTab> tabsForScope(ServerPlayer player, DatabaseScope scope) {
@@ -295,49 +326,27 @@ public final class PersonalDatabaseService {
     }
 
     public void syncPublicViewers(MinecraftServer server) {
-        this.syncViewers(server, true, false);
+        PersonalDatabaseServiceViewerHelper.syncPublicViewers(server);
     }
 
     public void syncAllViewers(MinecraftServer server) {
-        this.syncViewers(server, false, false);
+        PersonalDatabaseServiceViewerHelper.syncAllViewers(server);
     }
 
     public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) {
-        this.syncViewers(server, false, true);
+        PersonalDatabaseServiceViewerHelper.syncAllViewersAndNotifyCurrentScope(server);
     }
 
     public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
-        this.notifyAboutUnresolvedEntries(player, scope);
-    }
-
-    private void syncViewers(MinecraftServer server, boolean publicOnly, boolean notifyCurrentScope) {
-        for (ServerPlayer onlinePlayer : server.getPlayerList().getPlayers()) {
-            if (onlinePlayer.containerMenu instanceof PersonalDatabaseMenu menu
-                    && (!publicOnly || menu.activeScope() == DatabaseScope.PUBLIC)) {
-                menu.syncViewToClient();
-                if (notifyCurrentScope) {
-                    this.notifyAboutUnresolvedEntries(onlinePlayer, menu.activeScope());
-                }
-            }
-        }
+        PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, scope);
     }
 
     private static long safeAddMovedItems(long currentTotal, ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return currentTotal;
-        }
-        int stackCount = stack.getCount();
-        if (stackCount <= 0) {
-            return currentTotal;
-        }
-        if (Long.MAX_VALUE - currentTotal < stackCount) {
-            return Long.MAX_VALUE;
-        }
-        return currentTotal + stackCount;
+        return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack);
     }
 
     private static boolean isPrimaryStorageSlot(int slotIndex) {
-        return slotIndex >= HOTBAR_SLOT_COUNT;
+        return PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex);
     }
 
     private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
@@ -360,6 +369,16 @@ public final class PersonalDatabaseService {
         DatabaseTabDirectory tabDirectory = storage.personalTabsView(player.getUUID());
         database.ensureTabAssignments(tabDirectory);
         return tabDirectory;
+    }
+
+    private DatabaseScopedTabRef resolveScopedTabForView(ServerPlayer player, DatabaseScopedTabRef scopedTab) {
+        DatabaseScopedTabRef normalizedScopedTab = scopedTab == null ? DatabaseScopedTabRef.defaultTab() : scopedTab;
+        DatabaseTabDirectory tabDirectory = this.resolveTabsForView(player, normalizedScopedTab.scope());
+        String resolvedVisibleTabId = tabDirectory.resolveVisibleTabId(normalizedScopedTab.tabId());
+        if (resolvedVisibleTabId == null) {
+            return DatabaseScopedTabRef.allTab(normalizedScopedTab.scope());
+        }
+        return DatabaseScopedTabRef.concreteTab(normalizedScopedTab.scope(), resolvedVisibleTabId);
     }
 
     StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
@@ -469,20 +488,6 @@ public final class PersonalDatabaseService {
         if (storage.clearMigrationState(playerId)) {
             storage.setDirty();
         }
-    }
-
-    private void notifyAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
-        DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
-        int unresolvedEntryCount = storage.unresolvedEntryCount(scope, player.getUUID());
-        if (unresolvedEntryCount <= 0) {
-            return;
-        }
-        player.sendSystemMessage(Component.translatable(
-                DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC
-                        ? "message.infiniteinventory.database.unresolved.public"
-                        : "message.infiniteinventory.database.unresolved.personal",
-                unresolvedEntryCount
-        ));
     }
 
     static String entryTabId(StoredItemDatabase database, StoredStackKey key) {

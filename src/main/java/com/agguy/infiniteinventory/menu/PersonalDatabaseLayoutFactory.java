@@ -39,27 +39,14 @@ final class PersonalDatabaseLayoutFactory {
                 Math.max(1, frameRect.width() - PersonalDatabaseLayout.INNER_PADDING * 2),
                 PersonalDatabaseLayout.TITLE_HEIGHT
         );
-        int scopeButtonsX = Math.max(
-                titleRect.x(),
-                frameRect.right() - PersonalDatabaseLayout.INNER_PADDING - PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH * 2
-        );
-        PersonalDatabaseLayout.Rect personalScopeButtonRect = new PersonalDatabaseLayout.Rect(
-                scopeButtonsX,
-                titleRect.y(),
-                PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect publicScopeButtonRect = new PersonalDatabaseLayout.Rect(
-                personalScopeButtonRect.right(),
-                titleRect.y(),
-                PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
+        int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
+        PersonalDatabaseLayout.Rect personalScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
+        PersonalDatabaseLayout.Rect publicScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
         int toolbarY = titleRect.bottom() + PersonalDatabaseLayout.TITLE_GAP;
         PersonalDatabaseLayout.Rect toolbarRect = PersonalDatabaseLayout.Rect.empty();
         PersonalDatabaseLayout.Rect searchFieldRect = PersonalDatabaseLayout.Rect.empty();
         PersonalDatabaseLayout.Rect tabManagementButtonRect = new PersonalDatabaseLayout.Rect(
-                personalScopeButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
+                toolbarRight - PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
                 titleRect.y(),
                 PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH,
                 PersonalDatabaseLayout.CONTROL_HEIGHT

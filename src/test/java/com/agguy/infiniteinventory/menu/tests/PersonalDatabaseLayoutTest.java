@@ -73,14 +73,16 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void scopeButtonsShouldStayInsideFrameTitleArea() {
+    void titleAreaShouldUseViewAndManageButtonsInsteadOfScopeButtons() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertTrue(layout.personalScopeButtonRect().x() >= layout.frameRect().x());
-        assertTrue(layout.personalScopeButtonRect().right() <= layout.frameRect().right());
-        assertTrue(layout.publicScopeButtonRect().x() == layout.personalScopeButtonRect().right());
-        assertTrue(layout.publicScopeButtonRect().right() <= layout.frameRect().right());
-        assertTrue(layout.personalScopeButtonRect().y() == layout.titleRect().y());
+        assertEquals(PersonalDatabaseLayout.Rect.empty(), layout.personalScopeButtonRect());
+        assertEquals(PersonalDatabaseLayout.Rect.empty(), layout.publicScopeButtonRect());
+        assertTrue(layout.viewSelectorButtonRect().x() >= layout.frameRect().x());
+        assertTrue(layout.viewSelectorButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.tabManagementButtonRect().x() >= layout.viewSelectorButtonRect().right());
+        assertTrue(layout.tabManagementButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.viewSelectorButtonRect().y() == layout.titleRect().y());
     }
 
     @Test

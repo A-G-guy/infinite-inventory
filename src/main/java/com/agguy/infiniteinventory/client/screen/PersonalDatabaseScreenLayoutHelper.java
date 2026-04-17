@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
@@ -28,7 +29,7 @@ final class PersonalDatabaseScreenLayoutHelper {
     static void rebuildLayout(PersonalDatabaseScreen screen) {
         int visiblePanelCount = Math.max(
                 1,
-                Math.min(DatabaseTabs.MAX_VISIBLE_TAB_COUNT, screen.databaseMenu.viewState().query().visibleTabIds().size())
+                Math.min(DatabaseTabs.MAX_VISIBLE_TAB_COUNT, screen.databaseMenu.viewState().query().visibleTabs().size())
         );
         screen.layout = PersonalDatabaseLayout.create(
                 screen.screenWidthValue(),
@@ -63,8 +64,8 @@ final class PersonalDatabaseScreenLayoutHelper {
         DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
         if (screen.pendingLayoutQuery != null) {
             boolean allSynced = true;
-            for (String visibleTabId : currentQuery.visibleTabIds()) {
-                if (currentQuery.pageSizeFor(visibleTabId) != screen.pendingLayoutQuery.pageSizeFor(visibleTabId)) {
+            for (DatabaseScopedTabRef visibleTab : currentQuery.visibleTabs()) {
+                if (currentQuery.pageSizeFor(visibleTab) != screen.pendingLayoutQuery.pageSizeFor(visibleTab)) {
                     allSynced = false;
                     break;
                 }
@@ -75,24 +76,24 @@ final class PersonalDatabaseScreenLayoutHelper {
                 return;
             }
         }
-        Map<String, Integer> nextPageIndexes = new java.util.LinkedHashMap<>();
-        Map<String, Integer> nextPageSizes = new java.util.LinkedHashMap<>();
-        for (Map.Entry<String, com.agguy.infiniteinventory.database.DatabaseTabQueryState> entry : currentQuery.tabStates().entrySet()) {
+        Map<DatabaseScopedTabRef, Integer> nextPageIndexes = new java.util.LinkedHashMap<>();
+        Map<DatabaseScopedTabRef, Integer> nextPageSizes = new java.util.LinkedHashMap<>();
+        for (Map.Entry<DatabaseScopedTabRef, com.agguy.infiniteinventory.database.DatabaseTabQueryState> entry : currentQuery.tabStates().entrySet()) {
             nextPageIndexes.put(entry.getKey(), entry.getValue().pageIndex());
             nextPageSizes.put(entry.getKey(), entry.getValue().pageSize());
         }
         boolean changed = false;
-        for (int panelIndex = 0; panelIndex < currentQuery.visibleTabIds().size(); panelIndex++) {
-            String visibleTabId = currentQuery.visibleTabIds().get(panelIndex);
+        for (int panelIndex = 0; panelIndex < currentQuery.visibleTabs().size(); panelIndex++) {
+            DatabaseScopedTabRef visibleTab = currentQuery.visibleTabs().get(panelIndex);
             int targetPageSize = Math.max(1, screen.layout.visibleDatabaseSlotCount(panelIndex));
-            int currentPageSize = currentQuery.pageSizeFor(visibleTabId);
+            int currentPageSize = currentQuery.pageSizeFor(visibleTab);
             if (currentPageSize == targetPageSize) {
                 continue;
             }
-            long firstVisibleEntryIndex = (long) currentQuery.pageIndexFor(visibleTabId) * Math.max(1, currentPageSize);
+            long firstVisibleEntryIndex = (long) currentQuery.pageIndexFor(visibleTab) * Math.max(1, currentPageSize);
             int adjustedPageIndex = (int) Math.min(Integer.MAX_VALUE, firstVisibleEntryIndex / targetPageSize);
-            nextPageIndexes.put(visibleTabId, adjustedPageIndex);
-            nextPageSizes.put(visibleTabId, targetPageSize);
+            nextPageIndexes.put(visibleTab, adjustedPageIndex);
+            nextPageSizes.put(visibleTab, targetPageSize);
             changed = true;
         }
         if (!changed) {
@@ -111,12 +112,12 @@ final class PersonalDatabaseScreenLayoutHelper {
         if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             return;
         }
-        String tabId = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).tab().id();
+        DatabaseScopedTabRef scopedTab = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab();
         DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-        if (currentQuery.searchTextFor(tabId).equals(value)) {
+        if (currentQuery.searchTextFor(scopedTab).equals(value)) {
             return;
         }
-        sendQuery(screen, currentQuery.withSearchText(tabId, value).withFocusedTabId(tabId));
+        sendQuery(screen, currentQuery.withSearchText(scopedTab, value).withFocusedTab(scopedTab));
     }
 
     static void changePanelPage(PersonalDatabaseScreen screen, int panelIndex, int delta) {
@@ -130,7 +131,7 @@ final class PersonalDatabaseScreenLayoutHelper {
         }
         sendQuery(
                 screen,
-                screen.databaseMenu.viewState().query().withPageIndex(panel.tab().id(), nextPage).withFocusedTabId(panel.tab().id())
+                screen.databaseMenu.viewState().query().withPageIndex(panel.scopedTab(), nextPage).withFocusedTab(panel.scopedTab())
         );
     }
 
@@ -157,6 +158,7 @@ final class PersonalDatabaseScreenLayoutHelper {
             int panelIndex,
             int slotIndex,
             DatabaseClickAction action,
+            DatabaseScope targetScope,
             String targetTabId
     ) {
         PacketDistributor.sendToServer(new DatabaseClickPayload(
@@ -165,6 +167,7 @@ final class PersonalDatabaseScreenLayoutHelper {
                 panelIndex,
                 slotIndex,
                 action,
+                targetScope,
                 targetTabId == null ? "" : targetTabId
         ));
     }
@@ -266,11 +269,12 @@ final class PersonalDatabaseScreenLayoutHelper {
         signatureParts.add(Integer.toString(screen.screenWidthValue()));
         signatureParts.add(Integer.toString(screen.screenHeightValue()));
         signatureParts.add(Boolean.toString(screen.accessoriesExpanded));
-        signatureParts.add(query.scope().name());
-        signatureParts.add(query.focusedTabId());
-        signatureParts.addAll(query.visibleTabIds());
-        for (DatabaseTab tab : screen.databaseMenu.viewState().panels().stream().map(com.agguy.infiniteinventory.database.DatabasePanelView::tab).toList()) {
-            signatureParts.add(tab.id());
+        signatureParts.add(query.focusedTab().scope().name() + ":" + query.focusedTab().tabId());
+        for (DatabaseScopedTabRef visibleTab : query.visibleTabs()) {
+            signatureParts.add(visibleTab.scope().name() + ":" + visibleTab.tabId());
+        }
+        for (var panel : screen.databaseMenu.viewState().panels()) {
+            signatureParts.add(panel.scopedTab().scope().name() + ":" + panel.scopedTab().tabId());
         }
         return String.join("|", signatureParts);
     }
