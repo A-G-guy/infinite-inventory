@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.network.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseTabs;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionPayload;
 import io.netty.buffer.Unpooled;
@@ -10,6 +11,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DatabaseSelectionPayloadTest {
     @Test
@@ -18,6 +20,7 @@ class DatabaseSelectionPayloadTest {
                 12,
                 34L,
                 DatabaseSelectionAction.EXTRACT_CUSTOM_TO_INVENTORY,
+                DatabaseScope.PUBLIC,
                 DatabaseTabs.DEFAULT_TAB_ID,
                 7L,
                 List.of()
@@ -28,6 +31,7 @@ class DatabaseSelectionPayloadTest {
         DatabaseSelectionPayload restored = DatabaseSelectionPayload.STREAM_CODEC.decode(buffer);
 
         assertEquals(payload, restored);
+        assertEquals(DatabaseScope.PUBLIC, restored.targetScope());
         assertEquals(7L, restored.requestedAmount());
     }
 
@@ -37,6 +41,7 @@ class DatabaseSelectionPayloadTest {
                 1,
                 2L,
                 DatabaseSelectionAction.EXTRACT_CUSTOM_TO_INVENTORY,
+                null,
                 null,
                 -9L,
                 null
@@ -51,8 +56,10 @@ class DatabaseSelectionPayloadTest {
         );
 
         assertEquals("", customPayload.targetTabId());
+        assertNull(customPayload.targetScope());
         assertEquals(0L, customPayload.requestedAmount());
         assertEquals(List.of(), customPayload.selectedEntries());
+        assertNull(transferPayload.targetScope());
         assertEquals(0L, transferPayload.requestedAmount());
     }
 }

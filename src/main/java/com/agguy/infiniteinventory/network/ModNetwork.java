@@ -2,9 +2,11 @@ package com.agguy.infiniteinventory.network;
 
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.agguy.infiniteinventory.service.PersonalDatabaseTransferHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -13,7 +15,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "14";
+    private static final String NETWORK_VERSION = "15";
 
     private ModNetwork() {
     }
@@ -76,6 +78,7 @@ public final class ModNetwork {
             menu.handleSelectionAction(
                     payload.action(),
                     payload.selectedEntries(),
+                    payload.targetScope(),
                     payload.targetTabId(),
                     payload.requestedAmount()
             );
@@ -107,16 +110,39 @@ public final class ModNetwork {
             case MOVE_LEFT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), -1);
             case MOVE_RIGHT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), 1);
             case DELETE -> PersonalDatabaseService.INSTANCE.deleteTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
-            case TRANSFER -> PersonalDatabaseService.INSTANCE.transferTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
+            case TRANSFER -> PersonalDatabaseService.INSTANCE.transferTab(
+                    player,
+                    payload.scope(),
+                    payload.resolvedTargetScope(),
+                    payload.tabId(),
+                    payload.targetTabId()
+            );
         };
         if (!changed) {
             return;
         }
-        if (payload.scope() == com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC) {
+        if (payload.action() == DatabaseTabMutationAction.TRANSFER) {
+            syncAfterTransfer(menu, player, payload.scope(), payload.resolvedTargetScope());
+            return;
+        }
+        if (payload.scope() == DatabaseScope.PUBLIC) {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
         } else {
             menu.syncViewToClient();
         }
+    }
+
+    private static void syncAfterTransfer(PersonalDatabaseMenu menu, ServerPlayer player, DatabaseScope sourceScope, DatabaseScope targetScope) {
+        DatabaseScope normalizedSourceScope = DatabaseScope.normalize(sourceScope);
+        DatabaseScope normalizedTargetScope = PersonalDatabaseTransferHelper.resolveTargetScope(sourceScope, targetScope);
+        if (!PersonalDatabaseTransferHelper.affectsPublicScope(normalizedSourceScope, normalizedTargetScope)) {
+            menu.syncViewToClient();
+            return;
+        }
+        if (normalizedSourceScope != DatabaseScope.PUBLIC) {
+            menu.syncViewToClient();
+        }
+        PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
     }
 
     private static void handleDepositAll(DepositAllPayload payload, IPayloadContext context) {
