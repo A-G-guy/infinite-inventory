@@ -1,8 +1,8 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
-import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
+import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
@@ -108,6 +108,14 @@ final class PersonalDatabaseScreenInteractionHelper {
         return screen.invokeSuperMouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
+    static boolean mouseDragged(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return PersonalDatabaseScreenGestureHelper.mouseDragged(screen, mouseX, mouseY, button, dragX, dragY);
+    }
+
+    static boolean mouseReleased(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
+        return PersonalDatabaseScreenGestureHelper.mouseReleased(screen, mouseX, mouseY, button);
+    }
+
     static boolean keyPressed(PersonalDatabaseScreen screen, int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && closeTopOverlay(screen)) {
             return true;
@@ -144,7 +152,14 @@ final class PersonalDatabaseScreenInteractionHelper {
                 return true;
             }
         }
+        if (PersonalDatabaseScreenGestureHelper.handleHoveredDatabaseDiscardKey(screen, keyCode, scanCode)) {
+            return true;
+        }
         return screen.invokeSuperKeyPressed(keyCode, scanCode, modifiers);
+    }
+
+    static boolean keyReleased(PersonalDatabaseScreen screen, int keyCode, int scanCode, int modifiers) {
+        return PersonalDatabaseScreenGestureHelper.keyReleased(screen, keyCode, scanCode, modifiers);
     }
 
     static boolean charTyped(PersonalDatabaseScreen screen, char codePoint, int modifiers) {
@@ -305,6 +320,7 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
         if (carryingStack) {
+            screen.selectionGestureModel.clearCtrlSelectionGesture();
             DatabaseClickAction action;
             if (button == 0) {
                 action = DatabaseClickAction.STORE_STACK;
@@ -313,9 +329,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             } else {
                 return false;
             }
-            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-            screen.sortDropdownExpanded = false;
-            screen.pagePickerExpanded = false;
+            PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
             if (panel.tab().isAllTab()) {
                 screen.pendingTargetStoresSingle = action == DatabaseClickAction.STORE_SINGLE;
                 PersonalDatabaseScreenTargetHelper.openTargetSelector(
@@ -337,6 +351,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (hitResult == null) {
+            screen.selectionGestureModel.clearCtrlSelectionGesture();
             if (button == 0 && !screen.databaseMenu.viewState().query().focusedTabId().equals(panel.tab().id())) {
                 PersonalDatabaseScreenLayoutHelper.sendQuery(
                         screen,
@@ -354,6 +369,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             return false;
         }
         if (hitResult.slotIndex() >= panel.entries().size()) {
+            screen.selectionGestureModel.clearCtrlSelectionGesture();
             if (button == 0 || button == 1) {
                 PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
                 screen.sortDropdownExpanded = false;
@@ -369,18 +385,28 @@ final class PersonalDatabaseScreenInteractionHelper {
                 hitResult.slotIndex()
         );
         if (button == 0) {
-            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-            screen.sortDropdownExpanded = false;
-            screen.pagePickerExpanded = false;
-            screen.enhancementPanelExpanded = false;
-            if (Screen.hasControlDown()) {
-                PersonalDatabaseScreenSelectionHelper.toggleSelection(screen, selectionEntry);
-            } else {
-                PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
+            PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
+            if (Screen.hasShiftDown()) {
+                screen.selectionGestureModel.clearCtrlSelectionGesture();
+                PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                        screen,
+                        panelIndex,
+                        hitResult.slotIndex(),
+                        DatabaseClickAction.TAKE_STACK_TO_INVENTORY,
+                        panel.tab().id()
+                );
+                return true;
             }
+            if (Screen.hasControlDown()) {
+                screen.selectionGestureModel.beginCtrlClick(panelIndex, hitResult.slotIndex());
+                return true;
+            }
+            screen.selectionGestureModel.clearCtrlSelectionGesture();
+            PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
             return true;
         }
         if (button == 1) {
+            screen.selectionGestureModel.clearCtrlSelectionGesture();
             screen.sortDropdownExpanded = false;
             screen.pagePickerExpanded = false;
             screen.enhancementPanelExpanded = false;

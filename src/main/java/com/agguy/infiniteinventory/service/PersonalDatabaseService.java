@@ -165,14 +165,11 @@ public final class PersonalDatabaseService {
     }
 
     public long extractToInventory(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
-        return PersonalDatabaseExtractionHelper.extractToInventory(
-                this,
-                player,
-                scope,
-                this.resolveDatabaseForMutation(player, scope),
-                key,
-                requestedAmount
-        );
+        return PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
+    }
+
+    public long extractToWorld(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
+        return PersonalDatabaseExtractionHelper.extractToWorld(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
     }
 
     public long extractSelectionToInventory(
@@ -182,12 +179,7 @@ public final class PersonalDatabaseService {
             DatabaseSelectionAction action
     ) {
         return PersonalDatabaseExtractionHelper.extractSelectionToInventory(
-                this,
-                player,
-                scope,
-                this.resolveDatabaseForMutation(player, scope),
-                selectionEntries,
-                action
+                this, player, scope, this.resolveDatabaseForMutation(player, scope), selectionEntries, action
         );
     }
 

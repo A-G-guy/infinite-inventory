@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.service.tests;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
+import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import java.util.UUID;
@@ -24,6 +25,13 @@ class PersonalDatabaseServiceTest {
     @Test
     void depositMainInventoryShouldReturnLongToAvoidOverflowRegression() throws ReflectiveOperationException {
         var method = PersonalDatabaseService.class.getDeclaredMethod("depositMainInventory", ServerPlayer.class, DatabaseScope.class, String.class);
+
+        assertEquals(long.class, method.getReturnType());
+    }
+
+    @Test
+    void extractToWorldShouldReturnLongToPreserveDroppedCountContract() throws ReflectiveOperationException {
+        var method = PersonalDatabaseService.class.getDeclaredMethod("extractToWorld", ServerPlayer.class, DatabaseScope.class, StoredStackKey.class, long.class);
 
         assertEquals(long.class, method.getReturnType());
     }

@@ -252,7 +252,9 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
                 refreshSharedView = this.activeScope == DatabaseScope.PUBLIC;
             } else {
                 long requestedAmount = action.resolveRequestedAmount(pageEntry.view().amount(), pageEntry.key().maxStackSize());
-                if (action.extractsToInventory()) {
+                if (action.dropsToWorld()) {
+                    changed = PersonalDatabaseService.INSTANCE.extractToWorld(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
+                } else if (action.extractsToInventory()) {
                     changed = PersonalDatabaseService.INSTANCE.extractToInventory(serverPlayer, this.activeScope, pageEntry.key(), requestedAmount) > 0L;
                 } else {
                     changed = this.withdrawToCarried(

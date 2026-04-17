@@ -58,6 +58,33 @@ final class PersonalDatabaseExtractionHelper {
         return movedItems;
     }
 
+    static long extractToWorld(
+            PersonalDatabaseService service,
+            ServerPlayer player,
+            DatabaseScope scope,
+            StoredItemDatabase database,
+            StoredStackKey key,
+            long requestedAmount
+    ) {
+        if (requestedAmount <= 0L) {
+            return 0L;
+        }
+        String originalTabId = PersonalDatabaseService.entryTabId(database, key);
+        ItemStack extracted = database.extract(
+                key,
+                (int) Math.min(Integer.MAX_VALUE, Math.min((long) key.maxStackSize(), requestedAmount))
+        );
+        if (extracted.isEmpty()) {
+            return 0L;
+        }
+        if (player.drop(extracted, true) == null) {
+            database.store(extracted, originalTabId);
+            return 0L;
+        }
+        service.markScopeDirty(player, scope);
+        return extracted.getCount();
+    }
+
     static long extractSelectionToInventory(
             PersonalDatabaseService service,
             ServerPlayer player,
