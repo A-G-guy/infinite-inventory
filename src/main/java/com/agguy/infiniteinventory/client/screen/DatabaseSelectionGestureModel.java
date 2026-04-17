@@ -7,43 +7,42 @@ import org.jetbrains.annotations.Nullable;
 final class DatabaseSelectionGestureModel {
     private final Set<Long> visitedDragSlots = new LinkedHashSet<>();
     @Nullable
-    private SelectionPoint pendingCtrlClick;
+    private SelectionGesture pendingSelectionGesture;
     private boolean dragSelectionActive;
     private boolean discardKeyConsumed;
 
-    void beginCtrlClick(int panelIndex, int slotIndex) {
-        this.pendingCtrlClick = new SelectionPoint(panelIndex, slotIndex);
+    void beginSelectionGesture(SelectionMode mode, PointerTarget startTarget, boolean clickedEntrySelected) {
+        this.pendingSelectionGesture = new SelectionGesture(mode, startTarget, clickedEntrySelected);
         this.dragSelectionActive = false;
         this.visitedDragSlots.clear();
     }
 
-    boolean hasPendingCtrlClick() {
-        return this.pendingCtrlClick != null;
+    boolean hasPendingSelectionGesture() {
+        return this.pendingSelectionGesture != null;
     }
 
-    boolean hasCtrlSelectionGesture() {
-        return this.pendingCtrlClick != null || this.dragSelectionActive;
+    boolean hasSelectionGesture() {
+        return this.pendingSelectionGesture != null || this.dragSelectionActive;
     }
 
     @Nullable
-    SelectionPoint pendingCtrlClick() {
-        return this.pendingCtrlClick;
+    SelectionGesture pendingSelectionGesture() {
+        return this.pendingSelectionGesture;
     }
 
-    boolean shouldPromoteToDrag(int panelIndex, int slotIndex) {
-        if (this.pendingCtrlClick == null || this.dragSelectionActive) {
+    boolean shouldPromoteToDrag(PointerTarget currentTarget) {
+        if (this.pendingSelectionGesture == null || this.dragSelectionActive) {
             return false;
         }
-        return slotKey(panelIndex, slotIndex) != slotKey(this.pendingCtrlClick.panelIndex(), this.pendingCtrlClick.slotIndex());
+        return !this.pendingSelectionGesture.startTarget().matches(currentTarget);
     }
 
     boolean activateDragSelection() {
-        if (this.pendingCtrlClick == null) {
+        if (this.pendingSelectionGesture == null) {
             return false;
         }
         this.dragSelectionActive = true;
         this.visitedDragSlots.clear();
-        this.visitedDragSlots.add(slotKey(this.pendingCtrlClick.panelIndex(), this.pendingCtrlClick.slotIndex()));
         return true;
     }
 
@@ -55,8 +54,8 @@ final class DatabaseSelectionGestureModel {
         return this.dragSelectionActive && this.visitedDragSlots.add(slotKey(panelIndex, slotIndex));
     }
 
-    void clearCtrlSelectionGesture() {
-        this.pendingCtrlClick = null;
+    void clearSelectionGesture() {
+        this.pendingSelectionGesture = null;
         this.dragSelectionActive = false;
         this.visitedDragSlots.clear();
     }
@@ -81,6 +80,50 @@ final class DatabaseSelectionGestureModel {
         return ((long) panelIndex << 32) | (slotIndex & 0xFFFFFFFFL);
     }
 
-    record SelectionPoint(int panelIndex, int slotIndex) {
+    enum SelectionMode {
+        REPLACE,
+        ADDITIVE
+    }
+
+    enum PointerTargetType {
+        FILLED_SLOT,
+        EMPTY_SLOT,
+        PANEL_BACKGROUND,
+        OUTSIDE_PANEL
+    }
+
+    record PointerTarget(int panelIndex, int slotIndex, PointerTargetType type) {
+        static PointerTarget filledSlot(int panelIndex, int slotIndex) {
+            return new PointerTarget(panelIndex, slotIndex, PointerTargetType.FILLED_SLOT);
+        }
+
+        static PointerTarget emptySlot(int panelIndex, int slotIndex) {
+            return new PointerTarget(panelIndex, slotIndex, PointerTargetType.EMPTY_SLOT);
+        }
+
+        static PointerTarget panelBackground(int panelIndex) {
+            return new PointerTarget(panelIndex, -1, PointerTargetType.PANEL_BACKGROUND);
+        }
+
+        static PointerTarget outsidePanel() {
+            return new PointerTarget(-1, -1, PointerTargetType.OUTSIDE_PANEL);
+        }
+
+        boolean isFilledSlot() {
+            return this.type == PointerTargetType.FILLED_SLOT;
+        }
+
+        boolean isWithinPanel() {
+            return this.type != PointerTargetType.OUTSIDE_PANEL;
+        }
+
+        boolean matches(PointerTarget other) {
+            return this.panelIndex == other.panelIndex
+                    && this.slotIndex == other.slotIndex
+                    && this.type == other.type;
+        }
+    }
+
+    record SelectionGesture(SelectionMode mode, PointerTarget startTarget, boolean clickedEntrySelected) {
     }
 }

@@ -206,7 +206,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.customExtractOverlayExpanded = false;
         this.customExtractValidationKey = "";
         this.targetSelectorScrollIndex = 0;
-        this.selectionGestureModel.clearCtrlSelectionGesture();
+        this.selectionGestureModel.clearSelectionGesture();
         this.selectionGestureModel.releaseDiscardKey();
         PersonalDatabaseScreenContextHelper.closeContextMenu(this);
         PersonalDatabaseScreenWidgetHelper.buildWidgets(this);

@@ -21,7 +21,7 @@ final class PersonalDatabaseScreenSelectionHelper {
     }
 
     static void replaceSelection(PersonalDatabaseScreen screen, DatabaseSelectionEntry selectionEntry) {
-        clearSelection(screen);
+        clearSelectionEntries(screen);
         if (selectionEntry == null || selectionEntry.isEmpty()) {
             return;
         }
@@ -50,8 +50,12 @@ final class PersonalDatabaseScreenSelectionHelper {
     }
 
     static void clearSelection(PersonalDatabaseScreen screen) {
+        clearSelectionEntries(screen);
+        screen.selectionGestureModel.clearSelectionGesture();
+    }
+
+    static void clearSelectionEntries(PersonalDatabaseScreen screen) {
         screen.selectedDatabaseEntries.clear();
-        screen.selectionGestureModel.clearCtrlSelectionGesture();
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
         PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
     }
