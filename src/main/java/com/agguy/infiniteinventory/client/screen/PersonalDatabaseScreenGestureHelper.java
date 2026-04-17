@@ -10,18 +10,18 @@ final class PersonalDatabaseScreenGestureHelper {
     }
 
     static boolean mouseDragged(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (button != 0 || !screen.selectionGestureModel.hasCtrlSelectionGesture()) {
+        if (button != 0 || !screen.selectionGestureModel.hasSelectionGesture()) {
             return screen.invokeSuperMouseDragged(mouseX, mouseY, button, dragX, dragY);
         }
-        tryExtendCtrlDragSelection(screen, mouseX, mouseY);
+        tryExtendPrimaryDragSelection(screen, mouseX, mouseY);
         return true;
     }
 
     static boolean mouseReleased(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
-        if (button != 0 || !screen.selectionGestureModel.hasCtrlSelectionGesture()) {
+        if (button != 0 || !screen.selectionGestureModel.hasSelectionGesture()) {
             return screen.invokeSuperMouseReleased(mouseX, mouseY, button);
         }
-        finishCtrlSelectionGesture(screen);
+        finishPrimarySelectionGesture(screen);
         return true;
     }
 
@@ -61,6 +61,27 @@ final class PersonalDatabaseScreenGestureHelper {
         screen.enhancementPanelExpanded = false;
     }
 
+    static DatabaseSelectionGestureModel.PointerTarget resolvePointerTarget(
+            PersonalDatabaseScreen screen,
+            double mouseX,
+            double mouseY
+    ) {
+        PersonalDatabaseScreen.DatabaseHitResult hitResult = PersonalDatabaseScreenGeometry.findDatabaseSlot(screen, mouseX, mouseY);
+        if (hitResult != null) {
+            int panelIndex = hitResult.panelIndex();
+            if (panelIndex >= 0 && panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+                DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
+                return hitResult.slotIndex() < panel.entries().size()
+                        ? DatabaseSelectionGestureModel.PointerTarget.filledSlot(panelIndex, hitResult.slotIndex())
+                        : DatabaseSelectionGestureModel.PointerTarget.emptySlot(panelIndex, hitResult.slotIndex());
+            }
+        }
+        int panelIndex = PersonalDatabaseScreenTabHelper.findDatabasePanel(screen, mouseX, mouseY);
+        return panelIndex >= 0
+                ? DatabaseSelectionGestureModel.PointerTarget.panelBackground(panelIndex)
+                : DatabaseSelectionGestureModel.PointerTarget.outsidePanel();
+    }
+
     @Nullable
     static PersonalDatabaseScreen.DatabaseHitResult findFilledDatabaseHit(
             PersonalDatabaseScreen screen,
@@ -79,55 +100,99 @@ final class PersonalDatabaseScreenGestureHelper {
         return hitResult.slotIndex() < panel.entries().size() ? hitResult : null;
     }
 
-    private static void tryExtendCtrlDragSelection(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        PersonalDatabaseScreen.DatabaseHitResult hitResult = findFilledDatabaseHit(screen, mouseX, mouseY);
-        if (hitResult == null) {
-            return;
-        }
-        if (screen.selectionGestureModel.shouldPromoteToDrag(hitResult.panelIndex(), hitResult.slotIndex())) {
-            DatabaseSelectionGestureModel.SelectionPoint startPoint = screen.selectionGestureModel.pendingCtrlClick();
-            if (startPoint == null || !screen.selectionGestureModel.activateDragSelection()) {
+    private static void tryExtendPrimaryDragSelection(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        DatabaseSelectionGestureModel.PointerTarget currentTarget = resolvePointerTarget(screen, mouseX, mouseY);
+        if (screen.selectionGestureModel.shouldPromoteToDrag(currentTarget)) {
+            DatabaseSelectionGestureModel.SelectionGesture selectionGesture = screen.selectionGestureModel.pendingSelectionGesture();
+            if (selectionGesture == null || !screen.selectionGestureModel.activateDragSelection()) {
                 return;
             }
-            PersonalDatabaseScreenSelectionHelper.addSelection(
-                    screen,
-                    PersonalDatabaseScreenSelectionHelper.selectionEntryAt(screen, startPoint.panelIndex(), startPoint.slotIndex())
-            );
-            PersonalDatabaseScreenSelectionHelper.addSelection(
-                    screen,
-                    PersonalDatabaseScreenSelectionHelper.selectionEntryAt(screen, hitResult.panelIndex(), hitResult.slotIndex())
-            );
-            screen.selectionGestureModel.recordDraggedSlot(hitResult.panelIndex(), hitResult.slotIndex());
+            if (selectionGesture.mode() == DatabaseSelectionGestureModel.SelectionMode.REPLACE) {
+                PersonalDatabaseScreenSelectionHelper.clearSelectionEntries(screen);
+            }
+            addDraggedSelection(screen, selectionGesture.startTarget());
+        }
+        if (!screen.selectionGestureModel.isDragSelectionActive()) {
             return;
         }
-        if (screen.selectionGestureModel.recordDraggedSlot(hitResult.panelIndex(), hitResult.slotIndex())) {
-            PersonalDatabaseScreenSelectionHelper.addSelection(
-                    screen,
-                    PersonalDatabaseScreenSelectionHelper.selectionEntryAt(screen, hitResult.panelIndex(), hitResult.slotIndex())
-            );
+        addDraggedSelection(screen, currentTarget);
+    }
+
+    private static void addDraggedSelection(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionGestureModel.PointerTarget target
+    ) {
+        if (!target.isFilledSlot() || !screen.selectionGestureModel.recordDraggedSlot(target.panelIndex(), target.slotIndex())) {
+            return;
+        }
+        PersonalDatabaseScreenSelectionHelper.addSelection(
+                screen,
+                PersonalDatabaseScreenSelectionHelper.selectionEntryAt(screen, target.panelIndex(), target.slotIndex())
+        );
+    }
+
+    private static void finishPrimarySelectionGesture(PersonalDatabaseScreen screen) {
+        try {
+            DatabaseSelectionGestureModel.SelectionGesture selectionGesture = screen.selectionGestureModel.pendingSelectionGesture();
+            if (selectionGesture == null || screen.selectionGestureModel.isDragSelectionActive()) {
+                return;
+            }
+            if (selectionGesture.mode() == DatabaseSelectionGestureModel.SelectionMode.ADDITIVE) {
+                finishAdditiveClick(screen, selectionGesture.startTarget());
+                return;
+            }
+            finishReplaceClick(screen, selectionGesture);
+        } finally {
+            screen.selectionGestureModel.clearSelectionGesture();
         }
     }
 
-    private static void finishCtrlSelectionGesture(PersonalDatabaseScreen screen) {
-        try {
-            if (screen.selectionGestureModel.isDragSelectionActive()) {
-                return;
-            }
-            DatabaseSelectionGestureModel.SelectionPoint pendingClick = screen.selectionGestureModel.pendingCtrlClick();
-            if (pendingClick == null) {
-                return;
-            }
-            PersonalDatabaseScreenSelectionHelper.toggleSelection(
-                    screen,
-                    PersonalDatabaseScreenSelectionHelper.selectionEntryAt(
-                            screen,
-                            pendingClick.panelIndex(),
-                            pendingClick.slotIndex()
-                    )
-            );
-        } finally {
-            screen.selectionGestureModel.clearCtrlSelectionGesture();
+    private static void finishAdditiveClick(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionGestureModel.PointerTarget startTarget
+    ) {
+        if (!startTarget.isFilledSlot()) {
+            return;
         }
+        PersonalDatabaseScreenSelectionHelper.toggleSelection(
+                screen,
+                PersonalDatabaseScreenSelectionHelper.selectionEntryAt(
+                        screen,
+                        startTarget.panelIndex(),
+                        startTarget.slotIndex()
+                )
+        );
+    }
+
+    private static void finishReplaceClick(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionGestureModel.SelectionGesture selectionGesture
+    ) {
+        DatabaseSelectionGestureModel.PointerTarget startTarget = selectionGesture.startTarget();
+        if (!startTarget.isFilledSlot()) {
+            PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+            return;
+        }
+        if (selectionGesture.clickedEntrySelected()) {
+            DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(startTarget.panelIndex());
+            PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                    screen,
+                    startTarget.panelIndex(),
+                    startTarget.slotIndex(),
+                    DatabaseClickAction.TAKE_SINGLE,
+                    panel.tab().id()
+            );
+            PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+            return;
+        }
+        PersonalDatabaseScreenSelectionHelper.replaceSelection(
+                screen,
+                PersonalDatabaseScreenSelectionHelper.selectionEntryAt(
+                        screen,
+                        startTarget.panelIndex(),
+                        startTarget.slotIndex()
+                )
+        );
     }
 
     private static boolean isDropKey(PersonalDatabaseScreen screen, int keyCode, int scanCode) {

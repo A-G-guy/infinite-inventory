@@ -303,21 +303,19 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     private static boolean handleDatabaseClick(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
-        PersonalDatabaseScreen.DatabaseHitResult hitResult = PersonalDatabaseScreenGeometry.findDatabaseSlot(
+        DatabaseSelectionGestureModel.PointerTarget pointerTarget = PersonalDatabaseScreenGestureHelper.resolvePointerTarget(
                 screen,
                 mouseX,
                 mouseY
         );
-        int panelIndex = hitResult == null
-                ? PersonalDatabaseScreenTabHelper.findDatabasePanel(screen, mouseX, mouseY)
-                : hitResult.panelIndex();
+        int panelIndex = pointerTarget.panelIndex();
         boolean carryingStack = !screen.databaseMenu.getCarried().isEmpty();
-        if (panelIndex < 0) {
+        if (!pointerTarget.isWithinPanel()) {
             return false;
         }
         DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
         if (carryingStack) {
-            screen.selectionGestureModel.clearCtrlSelectionGesture();
+            screen.selectionGestureModel.clearSelectionGesture();
             DatabaseClickAction action;
             if (button == 0) {
                 action = DatabaseClickAction.STORE_STACK;
@@ -341,92 +339,70 @@ final class PersonalDatabaseScreenInteractionHelper {
             PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
                     screen,
                     panelIndex,
-                    hitResult == null ? 0 : hitResult.slotIndex(),
+                    pointerTarget.slotIndex() >= 0 ? pointerTarget.slotIndex() : 0,
                     action,
                     panel.tab().id()
             );
             return true;
         }
-        if (hitResult == null) {
-            screen.selectionGestureModel.clearCtrlSelectionGesture();
-            if (button == 0 && !screen.databaseMenu.viewState().query().focusedTabId().equals(panel.tab().id())) {
+        DatabaseSelectionEntry selectionEntry = pointerTarget.isFilledSlot()
+                ? PersonalDatabaseScreenSelectionHelper.selectionEntryAt(screen, panelIndex, pointerTarget.slotIndex())
+                : null;
+        if (button == 0) {
+            PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
+            if (!screen.databaseMenu.viewState().query().focusedTabId().equals(panel.tab().id())) {
                 PersonalDatabaseScreenLayoutHelper.sendQuery(
                         screen,
                         screen.databaseMenu.viewState().query().withFocusedTabId(panel.tab().id())
                 );
-                return true;
             }
-            if ((button == 0 || button == 1) && PersonalDatabaseScreenSelectionHelper.hasSelection(screen)) {
-                PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
-                screen.sortDropdownExpanded = false;
-                screen.pagePickerExpanded = false;
-                screen.enhancementPanelExpanded = false;
-                return true;
+            if (selectionEntry != null) {
+                switch (PersonalDatabasePrimaryClickModel.resolve(
+                        Screen.hasShiftDown(),
+                        Screen.hasControlDown()
+                )) {
+                    case TAKE_STACK_TO_INVENTORY -> {
+                        screen.selectionGestureModel.clearSelectionGesture();
+                        PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                                screen,
+                                panelIndex,
+                                pointerTarget.slotIndex(),
+                                DatabaseClickAction.TAKE_STACK_TO_INVENTORY,
+                                panel.tab().id()
+                        );
+                        return true;
+                    }
+                    case START_ADDITIVE_SELECTION, START_REPLACE_SELECTION -> {
+                    }
+                }
             }
-            return false;
-        }
-        if (hitResult.slotIndex() >= panel.entries().size()) {
-            screen.selectionGestureModel.clearCtrlSelectionGesture();
-            if (button == 0 || button == 1) {
-                PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
-                screen.sortDropdownExpanded = false;
-                screen.pagePickerExpanded = false;
-                screen.enhancementPanelExpanded = false;
-                return true;
-            }
-            return false;
-        }
-        DatabaseSelectionEntry selectionEntry = PersonalDatabaseScreenSelectionHelper.selectionEntryAt(
-                screen,
-                panelIndex,
-                hitResult.slotIndex()
-        );
-        if (button == 0) {
-            PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
             boolean clickedEntrySelected = selectionEntry != null && screen.selectedDatabaseEntries.contains(selectionEntry);
-            switch (PersonalDatabasePrimaryClickModel.resolve(
-                    Screen.hasShiftDown(),
-                    Screen.hasControlDown(),
-                    clickedEntrySelected
-            )) {
-                case TAKE_STACK_TO_INVENTORY -> {
-                    screen.selectionGestureModel.clearCtrlSelectionGesture();
-                    PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
-                            screen,
-                            panelIndex,
-                            hitResult.slotIndex(),
-                            DatabaseClickAction.TAKE_STACK_TO_INVENTORY,
-                            panel.tab().id()
-                    );
-                }
-                case CTRL_SELECTION -> screen.selectionGestureModel.beginCtrlClick(panelIndex, hitResult.slotIndex());
-                case TAKE_SINGLE -> {
-                    screen.selectionGestureModel.clearCtrlSelectionGesture();
-                    PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
-                            screen,
-                            panelIndex,
-                            hitResult.slotIndex(),
-                            DatabaseClickAction.TAKE_SINGLE,
-                            panel.tab().id()
-                    );
-                    PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
-                }
-                case REPLACE_SELECTION -> {
-                    screen.selectionGestureModel.clearCtrlSelectionGesture();
-                    PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
-                }
-            }
+            DatabaseSelectionGestureModel.SelectionMode selectionMode = Screen.hasControlDown()
+                    ? DatabaseSelectionGestureModel.SelectionMode.ADDITIVE
+                    : DatabaseSelectionGestureModel.SelectionMode.REPLACE;
+            screen.selectionGestureModel.beginSelectionGesture(selectionMode, pointerTarget, clickedEntrySelected);
             return true;
         }
         if (button == 1) {
-            screen.selectionGestureModel.clearCtrlSelectionGesture();
+            screen.selectionGestureModel.clearSelectionGesture();
             screen.sortDropdownExpanded = false;
             screen.pagePickerExpanded = false;
             screen.enhancementPanelExpanded = false;
+            if (!pointerTarget.isFilledSlot()) {
+                if (pointerTarget.type() == DatabaseSelectionGestureModel.PointerTargetType.EMPTY_SLOT) {
+                    PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+                    return true;
+                }
+                if (PersonalDatabaseScreenSelectionHelper.hasSelection(screen)) {
+                    PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
+                    return true;
+                }
+                return false;
+            }
             if (selectionEntry != null && !screen.selectedDatabaseEntries.contains(selectionEntry)) {
                 PersonalDatabaseScreenSelectionHelper.replaceSelection(screen, selectionEntry);
             }
-            PersonalDatabaseScreenContextHelper.openContextMenu(screen, panelIndex, hitResult.slotIndex());
+            PersonalDatabaseScreenContextHelper.openContextMenu(screen, panelIndex, pointerTarget.slotIndex());
             return true;
         }
         return false;
