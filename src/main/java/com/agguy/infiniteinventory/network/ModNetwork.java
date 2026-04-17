@@ -13,7 +13,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "13";
+    private static final String NETWORK_VERSION = "14";
 
     private ModNetwork() {
     }
@@ -73,7 +73,12 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.handleSelectionAction(payload.action(), payload.selectedEntries(), payload.targetTabId());
+            menu.handleSelectionAction(
+                    payload.action(),
+                    payload.selectedEntries(),
+                    payload.targetTabId(),
+                    payload.requestedAmount()
+            );
         }
     }
 

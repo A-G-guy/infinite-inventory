@@ -281,6 +281,15 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
             List<DatabaseSelectionEntry> selectionEntries,
             @Nullable String targetTabId
     ) {
+        this.handleSelectionAction(action, selectionEntries, targetTabId, 0L);
+    }
+
+    public void handleSelectionAction(
+            DatabaseSelectionAction action,
+            List<DatabaseSelectionEntry> selectionEntries,
+            @Nullable String targetTabId,
+            long requestedAmount
+    ) {
         if (!(this.owner instanceof ServerPlayer serverPlayer) || action == null || selectionEntries == null || selectionEntries.isEmpty()) {
             return;
         }
@@ -288,7 +297,13 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         if (action.requiresTargetTab()) {
             changed = PersonalDatabaseService.INSTANCE.transferSelection(serverPlayer, this.activeScope, selectionEntries, targetTabId);
         } else {
-            changed = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(serverPlayer, this.activeScope, selectionEntries, action) > 0L;
+            changed = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(
+                    serverPlayer,
+                    this.activeScope,
+                    selectionEntries,
+                    action,
+                    requestedAmount
+            ) > 0L;
         }
         if (changed) {
             this.broadcastChanges();

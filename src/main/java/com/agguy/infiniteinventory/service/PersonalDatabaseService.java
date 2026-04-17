@@ -39,9 +39,7 @@ import org.apache.logging.log4j.Logger;
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
     private static final int HOTBAR_SLOT_COUNT = 9;
-
     private static final Logger LOGGER = LogManager.getLogger();
-
     private final DatabaseQueryEngine queryEngine = DatabaseQueryEngine.INSTANCE;
 
     private PersonalDatabaseService() {
@@ -172,14 +170,21 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseExtractionHelper.extractToWorld(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
     }
 
+    public long extractSelectionToInventory(ServerPlayer player, DatabaseScope scope, List<DatabaseSelectionEntry> selectionEntries, DatabaseSelectionAction action) {
+        return this.extractSelectionToInventory(player, scope, selectionEntries, action, 0L);
+    }
+
     public long extractSelectionToInventory(
-            ServerPlayer player,
-            DatabaseScope scope,
-            List<DatabaseSelectionEntry> selectionEntries,
-            DatabaseSelectionAction action
+            ServerPlayer player, DatabaseScope scope, List<DatabaseSelectionEntry> selectionEntries, DatabaseSelectionAction action, long requestedAmount
     ) {
         return PersonalDatabaseExtractionHelper.extractSelectionToInventory(
-                this, player, scope, this.resolveDatabaseForMutation(player, scope), selectionEntries, action
+                this,
+                player,
+                scope,
+                this.resolveDatabaseForMutation(player, scope),
+                selectionEntries,
+                action,
+                requestedAmount
         );
     }
 

@@ -52,6 +52,7 @@ final class PersonalDatabaseScreenSelectionHelper {
         screen.selectedDatabaseEntries.clear();
         screen.selectionGestureModel.clearCtrlSelectionGesture();
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+        PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
     }
 
     static boolean hasSelection(PersonalDatabaseScreen screen) {
@@ -60,6 +61,10 @@ final class PersonalDatabaseScreenSelectionHelper {
 
     static List<DatabaseSelectionEntry> selectedEntries(PersonalDatabaseScreen screen) {
         return List.copyOf(screen.selectedDatabaseEntries);
+    }
+
+    static int selectedEntryCount(PersonalDatabaseScreen screen) {
+        return screen.selectedDatabaseEntries.size();
     }
 
     static boolean isSelected(PersonalDatabaseScreen screen, VisibleDatabaseEntry entry) {
@@ -79,12 +84,21 @@ final class PersonalDatabaseScreenSelectionHelper {
     }
 
     static void sendSelectionAction(PersonalDatabaseScreen screen, DatabaseSelectionAction action, String targetTabId) {
+        sendSelectionAction(screen, action, targetTabId, 0L);
+    }
+
+    static void sendSelectionAction(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionAction action,
+            String targetTabId,
+            long requestedAmount
+    ) {
         List<DatabaseSelectionEntry> selectedEntries = selectedEntries(screen);
         if (selectedEntries.isEmpty()) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             return;
         }
-        PersonalDatabaseScreenLayoutHelper.sendDatabaseSelection(screen, action, targetTabId, selectedEntries);
+        PersonalDatabaseScreenLayoutHelper.sendDatabaseSelection(screen, action, targetTabId, requestedAmount, selectedEntries);
         clearSelection(screen);
     }
 

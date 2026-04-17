@@ -15,6 +15,10 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean mouseClicked(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
+        if (screen.customExtractOverlayExpanded
+                && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
+            return true;
+        }
         if (screen.advancedSearchExpanded
                 && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
                         PersonalDatabaseScreenGeometry.advancedSearchPanelRect(screen),
@@ -95,6 +99,9 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean mouseScrolled(PersonalDatabaseScreen screen, double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (screen.customExtractOverlayExpanded) {
+            return true;
+        }
         if (screen.targetSelectorExpanded
                 && PersonalDatabaseScreenGeometry.targetSelectorRect(screen).contains(mouseX, mouseY)
                 && PersonalDatabaseScreenTargetHelper.scrollTargetSelector(screen, (int) -Math.signum(scrollY))) {
@@ -118,6 +125,10 @@ final class PersonalDatabaseScreenInteractionHelper {
 
     static boolean keyPressed(PersonalDatabaseScreen screen, int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && closeTopOverlay(screen)) {
+            return true;
+        }
+        if (screen.customExtractOverlayExpanded
+                && PersonalDatabaseScreenCustomExtractOverlayHelper.keyPressed(screen, keyCode, scanCode, modifiers)) {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -163,6 +174,10 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     static boolean charTyped(PersonalDatabaseScreen screen, char codePoint, int modifiers) {
+        if (screen.customExtractOverlayExpanded
+                && PersonalDatabaseScreenCustomExtractOverlayHelper.charTyped(screen, codePoint, modifiers)) {
+            return true;
+        }
         if (screen.iconPickerExpanded
                 && screen.iconSearchBox != null
                 && screen.iconSearchBox.charTyped(codePoint, modifiers)) {
@@ -275,27 +290,9 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!screen.contextMenuExpanded) {
             return false;
         }
-        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
-        for (int index = 0; index < PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS.length; index++) {
-            int rowY = screen.contextMenuY + index * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
-            if (mouseX < screen.contextMenuX
-                    || mouseX >= screen.contextMenuX + menuWidth
-                    || mouseY < rowY
-                    || mouseY >= rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT) {
-                continue;
-            }
-            DatabaseSelectionAction action = PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS[index];
-            if (action.requiresTargetTab()) {
-                PersonalDatabaseScreenTargetHelper.openTargetSelector(
-                        screen,
-                        PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
-                        -1,
-                        -1,
-                        ""
-                );
-            } else {
-                PersonalDatabaseScreenSelectionHelper.sendSelectionAction(screen, action, "");
-            }
+        PersonalDatabaseContextMenuItem item = PersonalDatabaseScreenContextHelper.contextMenuItemAt(screen, mouseX, mouseY);
+        if (item != null) {
+            PersonalDatabaseScreenContextHelper.activateContextMenuItem(screen, item);
             return true;
         }
         if (PersonalDatabaseScreenContextHelper.isWithinContextMenu(screen, mouseX, mouseY)) {
@@ -420,6 +417,10 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     private static boolean closeTopOverlay(PersonalDatabaseScreen screen) {
+        if (screen.customExtractOverlayExpanded) {
+            PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
+            return true;
+        }
         if (screen.contextMenuExpanded) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             return true;

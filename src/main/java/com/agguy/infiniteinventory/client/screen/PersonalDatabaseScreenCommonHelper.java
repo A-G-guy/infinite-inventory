@@ -7,6 +7,7 @@ import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
+import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import java.util.List;
@@ -19,6 +20,52 @@ import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenCommonHelper {
+    private static final List<PersonalDatabaseContextMenuItem> SINGLE_SELECTION_CONTEXT_MENU_ITEMS = List.of(
+            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_single", DatabaseClickAction.TAKE_SINGLE),
+            PersonalDatabaseContextMenuItem.click(
+                    "screen.infiniteinventory.context.take_half_stack_to_inventory",
+                    DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_stack", DatabaseClickAction.TAKE_STACK),
+            PersonalDatabaseContextMenuItem.click(
+                    "screen.infiniteinventory.context.take_half_entry_to_inventory",
+                    DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_all_to_inventory", DatabaseClickAction.TAKE_ALL),
+            PersonalDatabaseContextMenuItem.local(
+                    "screen.infiniteinventory.context.take_custom_to_inventory",
+                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
+            ),
+            PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
+    );
+    private static final List<PersonalDatabaseContextMenuItem> MULTI_SELECTION_CONTEXT_MENU_ITEMS = List.of(
+            PersonalDatabaseContextMenuItem.selection(
+                    "screen.infiniteinventory.selection.take_one_each",
+                    DatabaseSelectionAction.EXTRACT_ONE_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.selection(
+                    "screen.infiniteinventory.selection.take_half_stack_each",
+                    DatabaseSelectionAction.EXTRACT_HALF_STACK_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.selection(
+                    "screen.infiniteinventory.selection.take_stack_each",
+                    DatabaseSelectionAction.EXTRACT_STACK_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.selection(
+                    "screen.infiniteinventory.selection.take_half_entry_each",
+                    DatabaseSelectionAction.EXTRACT_HALF_ENTRY_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.selection(
+                    "screen.infiniteinventory.selection.take_all_each",
+                    DatabaseSelectionAction.EXTRACT_ALL_TO_INVENTORY
+            ),
+            PersonalDatabaseContextMenuItem.local(
+                    "screen.infiniteinventory.selection.take_custom_each",
+                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
+            ),
+            PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
+    );
+
     private PersonalDatabaseScreenCommonHelper() {
     }
 
@@ -147,22 +194,35 @@ final class PersonalDatabaseScreenCommonHelper {
         };
     }
 
-    static Component contextMenuLabel(DatabaseSelectionAction action) {
-        return switch (action) {
-            case EXTRACT_ONE_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_one_each");
-            case EXTRACT_HALF_STACK_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_half_stack_each");
-            case EXTRACT_STACK_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_stack_each");
-            case EXTRACT_ALL_TO_INVENTORY -> Component.translatable("screen.infiniteinventory.selection.take_all_each");
-            case TRANSFER_TO_TAB -> Component.translatable("screen.infiniteinventory.selection.transfer");
-        };
+    static int selectedEntryCount(PersonalDatabaseScreen screen) {
+        return screen.selectedDatabaseEntries.size();
+    }
+
+    static List<PersonalDatabaseContextMenuItem> contextMenuItems(PersonalDatabaseScreen screen) {
+        return contextMenuItemsForSelectionCount(selectedEntryCount(screen));
+    }
+
+    static List<PersonalDatabaseContextMenuItem> contextMenuItemsForSelectionCount(int selectedEntryCount) {
+        if (selectedEntryCount <= 0) {
+            return List.of();
+        }
+        return selectedEntryCount > 1 ? MULTI_SELECTION_CONTEXT_MENU_ITEMS : SINGLE_SELECTION_CONTEXT_MENU_ITEMS;
+    }
+
+    static Component contextMenuLabel(PersonalDatabaseContextMenuItem item) {
+        return Component.translatable(item.translationKey());
     }
 
     static int contextMenuWidth(PersonalDatabaseScreen screen) {
         int width = PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
-        for (DatabaseSelectionAction action : PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS) {
-            width = Math.max(width, screen.screenFont().width(contextMenuLabel(action)) + 16);
+        for (PersonalDatabaseContextMenuItem item : contextMenuItems(screen)) {
+            width = Math.max(width, screen.screenFont().width(contextMenuLabel(item)) + 16);
         }
         return width;
+    }
+
+    static int contextMenuHeight(PersonalDatabaseScreen screen) {
+        return contextMenuItems(screen).size() * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
     }
 
     static void drawCenteredShadow(

@@ -1,8 +1,10 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenContextHelper {
     private PersonalDatabaseScreenContextHelper() {
@@ -37,7 +39,7 @@ final class PersonalDatabaseScreenContextHelper {
         }
         PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
         int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
-        int menuHeight = PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS.length * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+        int menuHeight = PersonalDatabaseScreenCommonHelper.contextMenuHeight(screen);
         PersonalDatabaseLayout.Rect frameRect = screen.layout.frameRect();
         int minX = frameRect.x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, frameRect.right() - menuWidth - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
@@ -55,6 +57,47 @@ final class PersonalDatabaseScreenContextHelper {
         screen.contextMenuExpanded = true;
     }
 
+    @Nullable
+    static PersonalDatabaseContextMenuItem contextMenuItemAt(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.contextMenuExpanded) {
+            return null;
+        }
+        java.util.List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenCommonHelper.contextMenuItems(screen);
+        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
+        for (int index = 0; index < items.size(); index++) {
+            int rowY = screen.contextMenuY + index * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+            if (mouseX < screen.contextMenuX
+                    || mouseX >= screen.contextMenuX + menuWidth
+                    || mouseY < rowY
+                    || mouseY >= rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT) {
+                continue;
+            }
+            return items.get(index);
+        }
+        return null;
+    }
+
+    static void activateContextMenuItem(PersonalDatabaseScreen screen, PersonalDatabaseContextMenuItem item) {
+        if (item == null) {
+            return;
+        }
+        if (item.clickAction() != null) {
+            triggerSingleClickAction(screen, item.clickAction());
+            return;
+        }
+        if (item.selectionAction() != null) {
+            triggerSelectionAction(screen, item.selectionAction());
+            return;
+        }
+        if (item.localAction() == null) {
+            return;
+        }
+        closeContextMenu(screen);
+        if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY) {
+            PersonalDatabaseScreenCustomExtractOverlayHelper.openOverlay(screen);
+        }
+    }
+
     static void closeContextMenu(PersonalDatabaseScreen screen) {
         screen.contextMenuExpanded = false;
         screen.contextMenuPanelIndex = -1;
@@ -70,6 +113,44 @@ final class PersonalDatabaseScreenContextHelper {
                 && mouseX < screen.contextMenuX + menuWidth
                 && mouseY >= screen.contextMenuY
                 && mouseY < screen.contextMenuY
-                + PersonalDatabaseScreen.CONTEXT_MENU_ACTIONS.length * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+                + PersonalDatabaseScreenCommonHelper.contextMenuHeight(screen);
+    }
+
+    private static void triggerSelectionAction(PersonalDatabaseScreen screen, com.agguy.infiniteinventory.network.DatabaseSelectionAction action) {
+        if (action.requiresTargetTab()) {
+            PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                    screen,
+                    PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
+                    -1,
+                    -1,
+                    ""
+            );
+            return;
+        }
+        PersonalDatabaseScreenSelectionHelper.sendSelectionAction(screen, action, "", 0L);
+    }
+
+    private static void triggerSingleClickAction(
+            PersonalDatabaseScreen screen,
+            com.agguy.infiniteinventory.network.DatabaseClickAction action
+    ) {
+        if (screen.contextMenuPanelIndex < 0
+                || screen.contextMenuPanelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
+            closeContextMenu(screen);
+            return;
+        }
+        DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(screen.contextMenuPanelIndex);
+        if (screen.contextMenuSlotIndex < 0 || screen.contextMenuSlotIndex >= panel.entries().size()) {
+            closeContextMenu(screen);
+            return;
+        }
+        PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                screen,
+                screen.contextMenuPanelIndex,
+                screen.contextMenuSlotIndex,
+                action,
+                panel.tab().id()
+        );
+        PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
     }
 }
