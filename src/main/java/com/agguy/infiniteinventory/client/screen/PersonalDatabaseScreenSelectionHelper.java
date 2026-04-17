@@ -41,8 +41,16 @@ final class PersonalDatabaseScreenSelectionHelper {
         screen.selectedDatabaseEntries.add(selectionEntry);
     }
 
+    static void addSelection(PersonalDatabaseScreen screen, DatabaseSelectionEntry selectionEntry) {
+        if (selectionEntry == null || selectionEntry.isEmpty()) {
+            return;
+        }
+        screen.selectedDatabaseEntries.add(selectionEntry);
+    }
+
     static void clearSelection(PersonalDatabaseScreen screen) {
         screen.selectedDatabaseEntries.clear();
+        screen.selectionGestureModel.clearCtrlSelectionGesture();
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
     }
 

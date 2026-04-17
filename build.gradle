@@ -217,6 +217,7 @@ def javaLineLimitSources = [
             include '**/*.java'
         }
 ]
+def projectDirectoryPath = project.projectDir.toPath()
 
 tasks.register('checkJavaFileLineLimit') {
     group = 'verification'
@@ -229,7 +230,8 @@ tasks.register('checkJavaFileLineLimit') {
             sourceTree.files.sort { left, right -> left.path <=> right.path }.each { sourceFile ->
                 int lineCount = sourceFile.readLines('UTF-8').size()
                 if (lineCount > javaFileLineLimit) {
-                    violations.add("${project.relativePath(sourceFile)} (${lineCount} lines)")
+                    String relativePath = projectDirectoryPath.relativize(sourceFile.toPath()).toString().replace('\\', '/')
+                    violations.add("${relativePath} (${lineCount} lines)")
                 }
             }
         }

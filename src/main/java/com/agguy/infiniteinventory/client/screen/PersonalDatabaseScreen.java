@@ -130,6 +130,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean accessoriesExpanded;
     boolean contextMenuExpanded;
     boolean suppressVanillaTooltipRender;
+    double lastMouseX;
+    double lastMouseY;
     int accessoryScrollRow;
     int contextMenuPanelIndex = -1;
     int contextMenuSlotIndex = -1;
@@ -137,6 +139,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     int contextMenuY;
     ItemStack contextMenuEntryStack = ItemStack.EMPTY;
     final LinkedHashSet<DatabaseSelectionEntry> selectedDatabaseEntries = new LinkedHashSet<>();
+    final DatabaseSelectionGestureModel selectionGestureModel = new DatabaseSelectionGestureModel();
     @Nullable
     DatabaseViewState selectionTrackedViewState;
     String pendingTargetSourceTabId = "";
@@ -203,6 +206,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.tabManagementExpanded = false;
         this.iconPickerExpanded = false;
         this.targetSelectorScrollIndex = 0;
+        this.selectionGestureModel.clearCtrlSelectionGesture();
+        this.selectionGestureModel.releaseDiscardKey();
         PersonalDatabaseScreenContextHelper.closeContextMenu(this);
         PersonalDatabaseScreenWidgetHelper.buildWidgets(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
@@ -220,6 +225,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
         this.suppressVanillaTooltipRender = true;
         try {
             super.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -303,8 +310,23 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return PersonalDatabaseScreenInteractionHelper.mouseDragged(this, mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        return PersonalDatabaseScreenInteractionHelper.mouseReleased(this, mouseX, mouseY, button);
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         return PersonalDatabaseScreenInteractionHelper.keyPressed(this, keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        return PersonalDatabaseScreenInteractionHelper.keyReleased(this, keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -354,8 +376,20 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
+    boolean invokeSuperMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    boolean invokeSuperMouseReleased(double mouseX, double mouseY, int button) {
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
     boolean invokeSuperKeyPressed(int keyCode, int scanCode, int modifiers) {
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    boolean invokeSuperKeyReleased(int keyCode, int scanCode, int modifiers) {
+        return super.keyReleased(keyCode, scanCode, modifiers);
     }
 
     boolean invokeSuperCharTyped(char codePoint, int modifiers) {
