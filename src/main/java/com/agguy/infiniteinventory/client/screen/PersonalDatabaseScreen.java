@@ -57,7 +57,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TAB_SELECTOR_WIDTH = 220;
     static final int TAB_SELECTOR_ROW_HEIGHT = 20;
     static final int MORE_TABS_WIDTH = 180;
-    static final int TARGET_SELECTOR_WIDTH = 180;
+    static final int TARGET_SELECTOR_WIDTH = 236;
     static final int TARGET_SELECTOR_ROW_HEIGHT = 20;
     static final int MANAGEMENT_PANEL_WIDTH = 320;
     static final int MANAGEMENT_PANEL_HEIGHT = 260;

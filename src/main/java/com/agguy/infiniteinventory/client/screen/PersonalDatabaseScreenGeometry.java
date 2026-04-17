@@ -51,7 +51,7 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        int rowCount = Math.max(1, PersonalDatabaseScreenTargetHelper.targetSelectorTabs(screen).size());
+        int rowCount = Math.max(1, PersonalDatabaseScreenTargetHelper.targetSelectorRows(screen).size());
         int height = PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2
                 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
                 + 8

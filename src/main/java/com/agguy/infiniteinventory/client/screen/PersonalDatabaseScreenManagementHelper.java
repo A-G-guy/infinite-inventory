@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationPayload;
@@ -159,10 +160,23 @@ final class PersonalDatabaseScreenManagementHelper {
             String name,
             String iconItemId
     ) {
+        sendTabMutation(screen, action, tabId, null, targetTabId, name, iconItemId);
+    }
+
+    static void sendTabMutation(
+            PersonalDatabaseScreen screen,
+            DatabaseTabMutationAction action,
+            String tabId,
+            DatabaseScope targetScope,
+            String targetTabId,
+            String name,
+            String iconItemId
+    ) {
         PacketDistributor.sendToServer(new DatabaseTabMutationPayload(
                 screen.databaseMenu.containerId,
                 screen.databaseMenu.viewState().sessionId(),
                 screen.databaseMenu.viewState().query().scope(),
+                targetScope,
                 action,
                 tabId == null ? "" : tabId,
                 targetTabId == null ? "" : targetTabId,

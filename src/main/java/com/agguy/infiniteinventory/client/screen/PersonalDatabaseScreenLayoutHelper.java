@@ -175,7 +175,7 @@ final class PersonalDatabaseScreenLayoutHelper {
             String targetTabId,
             List<DatabaseSelectionEntry> selectedEntries
     ) {
-        sendDatabaseSelection(screen, action, targetTabId, 0L, selectedEntries);
+        sendDatabaseSelection(screen, action, null, targetTabId, 0L, selectedEntries);
     }
 
     static void sendDatabaseSelection(
@@ -185,10 +185,22 @@ final class PersonalDatabaseScreenLayoutHelper {
             long requestedAmount,
             List<DatabaseSelectionEntry> selectedEntries
     ) {
+        sendDatabaseSelection(screen, action, null, targetTabId, requestedAmount, selectedEntries);
+    }
+
+    static void sendDatabaseSelection(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionAction action,
+            DatabaseScope targetScope,
+            String targetTabId,
+            long requestedAmount,
+            List<DatabaseSelectionEntry> selectedEntries
+    ) {
         PacketDistributor.sendToServer(new DatabaseSelectionPayload(
                 screen.databaseMenu.containerId,
                 screen.databaseMenu.viewState().sessionId(),
                 action,
+                targetScope,
                 targetTabId == null ? "" : targetTabId,
                 requestedAmount,
                 selectedEntries

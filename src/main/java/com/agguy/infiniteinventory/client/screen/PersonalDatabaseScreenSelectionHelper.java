@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
@@ -84,7 +85,7 @@ final class PersonalDatabaseScreenSelectionHelper {
     }
 
     static void sendSelectionAction(PersonalDatabaseScreen screen, DatabaseSelectionAction action, String targetTabId) {
-        sendSelectionAction(screen, action, targetTabId, 0L);
+        sendSelectionAction(screen, action, null, targetTabId, 0L);
     }
 
     static void sendSelectionAction(
@@ -93,12 +94,29 @@ final class PersonalDatabaseScreenSelectionHelper {
             String targetTabId,
             long requestedAmount
     ) {
+        sendSelectionAction(screen, action, null, targetTabId, requestedAmount);
+    }
+
+    static void sendSelectionAction(
+            PersonalDatabaseScreen screen,
+            DatabaseSelectionAction action,
+            DatabaseScope targetScope,
+            String targetTabId,
+            long requestedAmount
+    ) {
         List<DatabaseSelectionEntry> selectedEntries = selectedEntries(screen);
         if (selectedEntries.isEmpty()) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             return;
         }
-        PersonalDatabaseScreenLayoutHelper.sendDatabaseSelection(screen, action, targetTabId, requestedAmount, selectedEntries);
+        PersonalDatabaseScreenLayoutHelper.sendDatabaseSelection(
+                screen,
+                action,
+                targetScope,
+                targetTabId,
+                requestedAmount,
+                selectedEntries
+        );
         clearSelection(screen);
     }
 
