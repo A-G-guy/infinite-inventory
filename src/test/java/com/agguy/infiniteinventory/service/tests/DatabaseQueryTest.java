@@ -46,17 +46,17 @@ class DatabaseQueryTest {
     }
 
     @Test
-    void normalizeForScopeShouldRetargetStoredQueryWithoutDroppingFilters() {
+    void normalizeForScopeShouldProjectToTargetScopeState() {
         DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.DEFAULT_TAB_ID, DatabaseSortOption.COUNT_DESC, "ore", DatabaseSearchConfig.defaultConfig(), 4, 72);
         DatabaseQuery normalized = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, query);
 
         assertEquals(DatabaseScope.PUBLIC, normalized.scope());
-        assertEquals(DatabaseTabs.DEFAULT_TAB_ID, normalized.focusedTabId());
-        assertEquals(List.of(DatabaseTabs.DEFAULT_TAB_ID), normalized.visibleTabIds());
-        assertEquals(DatabaseSortOption.COUNT_DESC, normalized.sortOption());
-        assertEquals("ore", normalized.searchText());
-        assertEquals(4, normalized.pageIndex());
-        assertEquals(72, normalized.pageSize());
+        assertEquals(DatabaseTabs.ALL_TAB_ID, normalized.focusedTabId());
+        assertEquals(List.of(DatabaseTabs.ALL_TAB_ID), normalized.visibleTabIds());
+        assertEquals(DatabaseSortOption.RECENTLY_CHANGED, normalized.sortOption());
+        assertEquals("", normalized.searchText());
+        assertEquals(0, normalized.pageIndex());
+        assertEquals(DatabaseQuery.DEFAULT_PAGE_SIZE, normalized.pageSize());
     }
 
     @Test

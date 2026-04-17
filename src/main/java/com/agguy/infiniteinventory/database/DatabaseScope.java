@@ -41,4 +41,15 @@ public enum DatabaseScope {
     public static DatabaseScope normalize(DatabaseScope scope) {
         return scope == null ? defaultScope() : scope;
     }
+
+    public static DatabaseScope read(String serializedScope, DatabaseScope fallback) {
+        if (serializedScope == null || serializedScope.isBlank()) {
+            return normalize(fallback);
+        }
+        try {
+            return DatabaseScope.valueOf(serializedScope);
+        } catch (IllegalArgumentException exception) {
+            return normalize(fallback);
+        }
+    }
 }

@@ -128,6 +128,6 @@ final class PersonalDatabaseScreenSelectionHelper {
         if (entry == null || entry.stack().isEmpty()) {
             return null;
         }
-        return new DatabaseSelectionEntry(entry.tabId(), entry.stack());
+        return new DatabaseSelectionEntry(entry.scope(), entry.tabId(), entry.stack());
     }
 }

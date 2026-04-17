@@ -80,6 +80,7 @@ public final class DatabaseTabDirectory {
 
     public DatabaseQuery sanitizeQuery(DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
+        DatabaseScope scope = normalizedQuery.scope();
         String focusedTabId = this.resolveVisibleTabId(normalizedQuery.focusedTabId());
         if (focusedTabId == null) {
             focusedTabId = DatabaseTabs.ALL_TAB_ID;
@@ -89,11 +90,16 @@ public final class DatabaseTabDirectory {
             focusedTabId = visibleTabIds.getFirst();
         }
 
-        Map<String, DatabaseTabQueryState> tabStates = new LinkedHashMap<>();
+        Map<DatabaseScopedTabRef, DatabaseTabQueryState> tabStates = new LinkedHashMap<>();
         for (DatabaseTab tab : this.orderedTabs()) {
-            tabStates.put(tab.id(), normalizedQuery.tabStateFor(tab.id()));
+            DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(scope, tab.id());
+            tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
         }
-        return new DatabaseQuery(normalizedQuery.scope(), focusedTabId, visibleTabIds, tabStates);
+        return new DatabaseQuery(
+                DatabaseScopedTabRef.concreteTab(scope, focusedTabId),
+                visibleTabIds.stream().map(tabId -> DatabaseScopedTabRef.concreteTab(scope, tabId)).toList(),
+                tabStates
+        );
     }
 
     public DatabaseTab addCustomTab(String name, String iconItemId) {

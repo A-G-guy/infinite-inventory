@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.database.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseCrossTransferHelper;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
@@ -35,7 +36,7 @@ class DatabaseCrossTransferHelperTest {
                 null,
                 sourceDatabase,
                 targetDatabase,
-                List.of(new DatabaseSelectionEntry("source_tab", new ItemStack(Items.STONE))),
+                List.of(new DatabaseSelectionEntry(DatabaseScope.PERSONAL, "source_tab", new ItemStack(Items.STONE))),
                 "target_tab"
         );
 

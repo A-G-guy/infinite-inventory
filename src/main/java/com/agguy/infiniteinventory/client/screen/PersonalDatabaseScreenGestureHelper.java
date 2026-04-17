@@ -49,6 +49,7 @@ final class PersonalDatabaseScreenGestureHelper {
                 hitResult.panelIndex(),
                 hitResult.slotIndex(),
                 DatabaseClickAction.DROP_SINGLE,
+                panel.scopedTab().scope(),
                 panel.tab().id()
         );
         return true;
@@ -180,6 +181,7 @@ final class PersonalDatabaseScreenGestureHelper {
                     startTarget.panelIndex(),
                     startTarget.slotIndex(),
                     DatabaseClickAction.TAKE_SINGLE,
+                    panel.scopedTab().scope(),
                     panel.tab().id()
             );
             PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
@@ -209,6 +211,8 @@ final class PersonalDatabaseScreenGestureHelper {
                 || screen.enhancementPanelExpanded
                 || screen.viewSelectorExpanded
                 || screen.moreTabsExpanded
+                || screen.topTabActionPromptExpanded
+                || screen.topTabReplaceExpanded
                 || screen.targetSelectorExpanded
                 || screen.tabManagementExpanded
                 || screen.iconPickerExpanded) {

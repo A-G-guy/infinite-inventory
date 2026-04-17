@@ -6,6 +6,8 @@ import com.agguy.infiniteinventory.database.DatabaseCategory;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
@@ -60,13 +62,15 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int ENHANCEMENT_ROW_HEIGHT = 20;
     static final int ENHANCEMENT_ROW_GAP = 2;
     static final int ENHANCEMENT_TOGGLE_WIDTH = 24;
-    static final int TAB_SELECTOR_WIDTH = 220;
+    static final int TAB_SELECTOR_WIDTH = 520;
     static final int TAB_SELECTOR_ROW_HEIGHT = 20;
     static final int MORE_TABS_WIDTH = 180;
-    static final int TARGET_SELECTOR_WIDTH = 236;
+    static final int TARGET_SELECTOR_WIDTH = 280;
     static final int TARGET_SELECTOR_ROW_HEIGHT = 20;
-    static final int MANAGEMENT_PANEL_WIDTH = 320;
+    static final int MANAGEMENT_PANEL_WIDTH = 520;
     static final int MANAGEMENT_PANEL_HEIGHT = 260;
+    static final int TOP_TAB_ACTION_WIDTH = 300;
+    static final int TOP_TAB_ACTION_ROW_HEIGHT = 20;
     static final int CUSTOM_EXTRACT_PANEL_WIDTH = 236;
     static final int CUSTOM_EXTRACT_PANEL_HEIGHT = 134;
     static final int MANAGEMENT_ROW_HEIGHT = 20;
@@ -126,6 +130,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean enhancementPanelExpanded;
     boolean viewSelectorExpanded;
     boolean moreTabsExpanded;
+    boolean topTabActionPromptExpanded;
+    boolean topTabReplaceExpanded;
     boolean targetSelectorExpanded;
     boolean tabManagementExpanded;
     boolean iconPickerExpanded;
@@ -146,11 +152,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     @Nullable
     DatabaseViewState selectionTrackedViewState;
     String pendingTargetSourceTabId = "";
+    DatabaseScope pendingTargetSourceScope = DatabaseScope.PERSONAL;
     int pendingTargetPanelIndex = -1;
     int pendingQuickDepositSlotIndex = -1;
     String managementSelectedTabId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
+    DatabaseScope managementSelectedScope = DatabaseScope.PERSONAL;
     String pendingIconItemId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
-    com.agguy.infiniteinventory.database.DatabaseScope managementSnapshotScope = com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL;
+    DatabaseScope managementSnapshotScope = DatabaseScope.PERSONAL;
     String managementSnapshotTabId = "";
     String managementSnapshotName = "";
     String managementSnapshotIconItemId = "";
@@ -162,6 +170,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean pendingTargetStoresSingle;
     TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
     int targetSelectorScrollIndex;
+    @Nullable
+    DatabaseScopedTabRef pendingTopTabActionTab;
 
     enum TargetSelectorMode {
         NONE,
@@ -206,6 +216,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.enhancementPanelExpanded = false;
         this.viewSelectorExpanded = false;
         this.moreTabsExpanded = false;
+        this.topTabActionPromptExpanded = false;
+        this.topTabReplaceExpanded = false;
         this.targetSelectorExpanded = false;
         this.tabManagementExpanded = false;
         this.iconPickerExpanded = false;
@@ -259,6 +271,12 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.moreTabsExpanded) {
             PersonalDatabaseScreenTabHelper.renderMoreTabsDropdown(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.topTabActionPromptExpanded) {
+            PersonalDatabaseScreenTabHelper.renderTopTabActionPrompt(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.topTabReplaceExpanded) {
+            PersonalDatabaseScreenTabHelper.renderTopTabReplacePrompt(this, guiGraphics, mouseX, mouseY);
         }
         if (this.tabManagementExpanded && !this.iconPickerExpanded && !this.targetSelectorExpanded) {
             PersonalDatabaseScreenManagementHelper.renderTabManagementPanel(this, guiGraphics, mouseX, mouseY);

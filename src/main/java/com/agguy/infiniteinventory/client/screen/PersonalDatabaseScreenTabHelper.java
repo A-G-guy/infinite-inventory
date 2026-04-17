@@ -1,8 +1,8 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTab;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -14,8 +14,8 @@ final class PersonalDatabaseScreenTabHelper {
     private PersonalDatabaseScreenTabHelper() {
     }
 
-    static List<DatabaseTab> visibleTopTabs(PersonalDatabaseScreen screen) {
-        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
+    static List<DatabaseScopedTabRef> visibleTopTabs(PersonalDatabaseScreen screen) {
+        List<DatabaseScopedTabRef> tabs = PersonalDatabaseScreenCommonHelper.allTopTabs(screen);
         if (screen.layout == null || tabs.size() <= 1) {
             return tabs;
         }
@@ -37,41 +37,38 @@ final class PersonalDatabaseScreenTabHelper {
         );
         int visibleCount = Math.max(1, maxVisibleWithMore);
 
-        LinkedHashSet<String> visibleTabIds = new LinkedHashSet<>();
-        for (DatabaseTab tab : tabs) {
-            if (visibleTabIds.size() >= visibleCount) {
+        LinkedHashSet<DatabaseScopedTabRef> visibleTabs = new LinkedHashSet<>();
+        for (DatabaseScopedTabRef tab : tabs) {
+            if (visibleTabs.size() >= visibleCount) {
                 break;
             }
-            visibleTabIds.add(tab.id());
+            visibleTabs.add(tab);
         }
 
-        String focusedTabId = screen.databaseMenu.viewState().query().focusedTabId();
-        if (!visibleTabIds.contains(focusedTabId)) {
-            List<String> orderedTabIds = new ArrayList<>(visibleTabIds);
-            if (!orderedTabIds.isEmpty()) {
-                orderedTabIds.set(orderedTabIds.size() - 1, focusedTabId);
-                visibleTabIds.clear();
-                visibleTabIds.addAll(orderedTabIds);
+        DatabaseScopedTabRef focusedTab = screen.databaseMenu.viewState().query().focusedTab();
+        if (!visibleTabs.contains(focusedTab)) {
+            List<DatabaseScopedTabRef> orderedTabs = new ArrayList<>(visibleTabs);
+            if (!orderedTabs.isEmpty()) {
+                orderedTabs.set(orderedTabs.size() - 1, focusedTab);
+                visibleTabs.clear();
+                visibleTabs.addAll(orderedTabs);
             }
         }
 
-        List<DatabaseTab> visibleTabs = new ArrayList<>(visibleTabIds.size());
-        for (DatabaseTab tab : tabs) {
-            if (visibleTabIds.contains(tab.id())) {
-                visibleTabs.add(tab);
+        List<DatabaseScopedTabRef> orderedVisibleTabs = new ArrayList<>(visibleTabs.size());
+        for (DatabaseScopedTabRef tab : tabs) {
+            if (visibleTabs.contains(tab)) {
+                orderedVisibleTabs.add(tab);
             }
         }
-        return List.copyOf(visibleTabs);
+        return List.copyOf(orderedVisibleTabs);
     }
 
-    static List<DatabaseTab> hiddenTopTabs(PersonalDatabaseScreen screen) {
-        LinkedHashSet<String> visibleTabIds = new LinkedHashSet<>();
-        for (DatabaseTab tab : visibleTopTabs(screen)) {
-            visibleTabIds.add(tab.id());
-        }
-        List<DatabaseTab> hiddenTabs = new ArrayList<>();
-        for (DatabaseTab tab : PersonalDatabaseScreenCommonHelper.currentTabs(screen)) {
-            if (!visibleTabIds.contains(tab.id())) {
+    static List<DatabaseScopedTabRef> hiddenTopTabs(PersonalDatabaseScreen screen) {
+        LinkedHashSet<DatabaseScopedTabRef> visibleTabs = new LinkedHashSet<>(visibleTopTabs(screen));
+        List<DatabaseScopedTabRef> hiddenTabs = new ArrayList<>();
+        for (DatabaseScopedTabRef tab : PersonalDatabaseScreenCommonHelper.allTopTabs(screen)) {
+            if (!visibleTabs.contains(tab)) {
                 hiddenTabs.add(tab);
             }
         }
@@ -124,14 +121,16 @@ final class PersonalDatabaseScreenTabHelper {
         if (screen.layout == null) {
             return;
         }
-        List<DatabaseTab> visibleTabs = visibleTopTabs(screen);
+        List<DatabaseScopedTabRef> visibleTabs = visibleTopTabs(screen);
+        List<DatabaseScopedTabRef> hiddenTabs = hiddenTopTabs(screen);
         DatabaseQuery query = screen.databaseMenu.viewState().query();
         for (int index = 0; index < visibleTabs.size(); index++) {
-            DatabaseTab tab = visibleTabs.get(index);
-            PersonalDatabaseLayout.Rect tabRect = topTabRect(screen, index, visibleTabs.size(), !hiddenTopTabs(screen).isEmpty());
+            DatabaseScopedTabRef scopedTab = visibleTabs.get(index);
+            DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, scopedTab);
+            PersonalDatabaseLayout.Rect tabRect = topTabRect(screen, index, visibleTabs.size(), !hiddenTabs.isEmpty());
             boolean hovered = tabRect.contains(mouseX, mouseY);
-            boolean selected = query.visibleTabIds().contains(tab.id());
-            boolean focused = query.focusedTabId().equals(tab.id());
+            boolean selected = query.visibleTabs().contains(scopedTab);
+            boolean focused = query.focusedTab().equals(scopedTab);
             VanillaWidgetRenderer.renderTab(guiGraphics, tabRect, selected, hovered);
             if (focused) {
                 guiGraphics.fill(tabRect.x() + 3, tabRect.bottom() - 3, tabRect.right() - 3, tabRect.bottom() - 1, 0xFFD4B16A);
@@ -148,7 +147,7 @@ final class PersonalDatabaseScreenTabHelper {
                     screen.screenFont(),
                     PersonalDatabaseScreenGeometry.truncateToWidth(
                             screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
+                            PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, scopedTab).getString(),
                             labelWidth
                     ),
                     labelX,
@@ -157,7 +156,7 @@ final class PersonalDatabaseScreenTabHelper {
                     true
             );
         }
-        if (!hiddenTopTabs(screen).isEmpty()) {
+        if (!hiddenTabs.isEmpty()) {
             PersonalDatabaseLayout.Rect moreRect = moreTabsButtonRect(screen);
             boolean hovered = moreRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderTab(guiGraphics, moreRect, screen.moreTabsExpanded, hovered);
@@ -174,219 +173,66 @@ final class PersonalDatabaseScreenTabHelper {
     }
 
     static void renderViewSelector(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.viewSelectorRect(screen);
-        if (panelRect.width() <= 0 || panelRect.height() <= 0) {
-            return;
-        }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 252.0F);
-        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
-        guiGraphics.drawString(
-                screen.screenFont(),
-                Component.translatable("screen.infiniteinventory.visible_tabs_title"),
-                panelRect.x() + 8,
-                panelRect.y() + 8,
-                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                false
-        );
-        guiGraphics.fill(
-                panelRect.x() + 8,
-                panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                panelRect.right() - 8,
-                panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
-        );
-        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
-
-        DatabaseQuery query = screen.databaseMenu.viewState().query();
-        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            DatabaseTab tab = tabs.get(index);
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
-                    panelRect,
-                    index,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
-            );
-            boolean visible = query.visibleTabIds().contains(tab.id());
-            boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean enabled = visible || query.visibleTabIds().size() < DatabaseTabs.MAX_VISIBLE_TAB_COUNT;
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, visible);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
-                            screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
-                            Math.max(0, rowRect.width() - 44)
-                    ),
-                    rowRect.x() + 24,
-                    rowRect.y() + 6,
-                    query.focusedTabId().equals(tab.id())
-                            ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
-                            : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
-            );
-            PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
-                    screen,
-                    guiGraphics,
-                    Component.literal(visible ? "ON" : "OFF"),
-                    rowRect.right() - 30,
-                    rowRect.right() - 4,
-                    rowRect.y() + 6,
-                    enabled ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR
-            );
-        }
-        guiGraphics.pose().popPose();
+        PersonalDatabaseScreenViewSelectorHelper.renderViewSelector(screen, guiGraphics, mouseX, mouseY);
     }
 
     static void renderMoreTabsDropdown(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
-        if (panelRect.width() <= 0 || panelRect.height() <= 0) {
-            return;
-        }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 253.0F);
-        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
-        List<DatabaseTab> tabs = hiddenTopTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            DatabaseTab tab = tabs.get(index);
-            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
-                    panelRect.x() + 2,
-                    panelRect.y() + 2 + index * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
-                    panelRect.width() - 4,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
-            );
-            boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean selected = screen.databaseMenu.viewState().query().focusedTabId().equals(tab.id());
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
-                            screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
-                            Math.max(0, rowRect.width() - 28)
-                    ),
-                    rowRect.x() + 24,
-                    rowRect.y() + 6,
-                    selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
-            );
-        }
-        guiGraphics.pose().popPose();
+        PersonalDatabaseScreenViewSelectorHelper.renderMoreTabsDropdown(screen, guiGraphics, mouseX, mouseY);
+    }
+
+    static void renderTopTabActionPrompt(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        PersonalDatabaseScreenTopTabPromptHelper.renderTopTabActionPrompt(screen, guiGraphics, mouseX, mouseY);
+    }
+
+    static void renderTopTabReplacePrompt(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        PersonalDatabaseScreenTopTabPromptHelper.renderTopTabReplacePrompt(screen, guiGraphics, mouseX, mouseY);
     }
 
     static boolean handleTabClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         if (screen.layout == null) {
             return false;
         }
-        List<DatabaseTab> visibleTabs = visibleTopTabs(screen);
+        List<DatabaseScopedTabRef> visibleTabs = visibleTopTabs(screen);
         for (int index = 0; index < visibleTabs.size(); index++) {
-            DatabaseTab tab = visibleTabs.get(index);
+            DatabaseScopedTabRef scopedTab = visibleTabs.get(index);
             PersonalDatabaseLayout.Rect tabRect = topTabRect(screen, index, visibleTabs.size(), !hiddenTopTabs(screen).isEmpty());
             if (!tabRect.contains(mouseX, mouseY)) {
                 continue;
             }
-            DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-            PersonalDatabaseScreenLayoutHelper.sendQuery(
-                    screen,
-                    currentQuery.withSingleVisibleTab(tab.id()).withFocusedTabId(tab.id())
-            );
+            PersonalDatabaseScreenTopTabPromptHelper.handleTopTabSelection(screen, scopedTab);
             return true;
         }
         if (!hiddenTopTabs(screen).isEmpty() && moreTabsButtonRect(screen).contains(mouseX, mouseY)) {
             screen.moreTabsExpanded = !screen.moreTabsExpanded;
+            screen.topTabActionPromptExpanded = false;
+            screen.topTabReplaceExpanded = false;
             return true;
         }
         return false;
     }
 
     static boolean handleViewSelectorClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        if (!screen.viewSelectorExpanded) {
-            return false;
-        }
-        if (screen.layout != null && screen.layout.viewSelectorButtonRect().contains(mouseX, mouseY)) {
-            screen.viewSelectorExpanded = false;
-            return true;
-        }
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.viewSelectorRect(screen);
-        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
-            screen.viewSelectorExpanded = false;
-            return true;
-        }
-        if (!panelRect.contains(mouseX, mouseY)) {
-            screen.viewSelectorExpanded = false;
-            return true;
-        }
-        DatabaseQuery query = screen.databaseMenu.viewState().query();
-        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.currentTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            DatabaseTab tab = tabs.get(index);
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
-                    panelRect,
-                    index,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
-            );
-            if (!rowRect.contains(mouseX, mouseY)) {
-                continue;
-            }
-            if (query.visibleTabIds().contains(tab.id())) {
-                if (query.visibleTabIds().size() <= 1) {
-                    return true;
-                }
-                List<String> nextVisibleTabIds = query.visibleTabIds().stream()
-                        .filter(tabId -> !tabId.equals(tab.id()))
-                        .toList();
-                PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.withVisibleTabIds(nextVisibleTabIds));
-                return true;
-            }
-            if (query.visibleTabIds().size() >= DatabaseTabs.MAX_VISIBLE_TAB_COUNT) {
-                return true;
-            }
-            LinkedHashSet<String> nextVisibleTabIds = new LinkedHashSet<>(query.visibleTabIds());
-            nextVisibleTabIds.add(tab.id());
-            PersonalDatabaseScreenLayoutHelper.sendQuery(
-                    screen,
-                    query.withVisibleTabIds(new ArrayList<>(nextVisibleTabIds)).withFocusedTabId(tab.id())
-            );
-            return true;
-        }
-        return true;
+        return PersonalDatabaseScreenViewSelectorHelper.handleViewSelectorClick(screen, mouseX, mouseY);
     }
 
     static boolean handleMoreTabsClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        if (!screen.moreTabsExpanded) {
-            return false;
-        }
-        if (moreTabsButtonRect(screen).contains(mouseX, mouseY)) {
-            screen.moreTabsExpanded = false;
-            return true;
-        }
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
-        if (!panelRect.contains(mouseX, mouseY)) {
-            screen.moreTabsExpanded = false;
-            return true;
-        }
-        List<DatabaseTab> tabs = hiddenTopTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
-                    panelRect.x() + 2,
-                    panelRect.y() + 2 + index * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
-                    panelRect.width() - 4,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
-            );
-            if (!rowRect.contains(mouseX, mouseY)) {
-                continue;
-            }
-            DatabaseTab tab = tabs.get(index);
-            screen.moreTabsExpanded = false;
-            PersonalDatabaseScreenLayoutHelper.sendQuery(
-                    screen,
-                    screen.databaseMenu.viewState().query().withSingleVisibleTab(tab.id()).withFocusedTabId(tab.id())
-            );
-            return true;
-        }
-        return true;
+        return PersonalDatabaseScreenViewSelectorHelper.handleMoreTabsClick(screen, mouseX, mouseY);
+    }
+
+    static boolean handleTopTabActionPromptClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        return PersonalDatabaseScreenTopTabPromptHelper.handleTopTabActionPromptClick(screen, mouseX, mouseY);
+    }
+
+    static boolean handleTopTabReplacePromptClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        return PersonalDatabaseScreenTopTabPromptHelper.handleTopTabReplacePromptClick(screen, mouseX, mouseY);
+    }
+
+    static void applyPrimaryTopTabAction(PersonalDatabaseScreen screen) {
+        PersonalDatabaseScreenTopTabPromptHelper.applyPrimaryTopTabAction(screen);
+    }
+
+    static void closeTopTabPrompt(PersonalDatabaseScreen screen) {
+        PersonalDatabaseScreenTopTabPromptHelper.closeTopTabPrompt(screen);
     }
 
     private static int inlineTabGap(int visibleTabCount, boolean hasMore) {

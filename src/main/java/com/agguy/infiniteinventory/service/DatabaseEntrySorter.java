@@ -14,7 +14,7 @@ public final class DatabaseEntrySorter {
 
     public Comparator<DatabaseSortSnapshot> comparatorFor(DatabaseQuery query) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        return this.comparatorFor(normalizedQuery.tabStateFor(normalizedQuery.focusedTabId()));
+        return this.comparatorFor(normalizedQuery.tabStateFor(normalizedQuery.focusedTab()));
     }
 
     public Comparator<DatabaseSortSnapshot> comparatorFor(DatabaseTabQueryState tabQueryState) {

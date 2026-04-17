@@ -1,6 +1,5 @@
 package com.agguy.infiniteinventory.service;
 
-import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
@@ -38,9 +37,7 @@ final class PersonalDatabaseMenuProvider implements MenuProvider, IMenuProviderE
         if (menu instanceof PersonalDatabaseMenu databaseMenu) {
             PersonalDatabaseOpenState.write(buffer, new PersonalDatabaseOpenState(
                     databaseMenu.sessionId(),
-                    databaseMenu.activeScope(),
-                    databaseMenu.queryForScope(DatabaseScope.PERSONAL),
-                    databaseMenu.queryForScope(DatabaseScope.PUBLIC),
+                    databaseMenu.viewState().query(),
                     databaseMenu.enhancementConfig(),
                     databaseMenu.autoStoreTarget()
             ));

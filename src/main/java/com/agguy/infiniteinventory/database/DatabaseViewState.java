@@ -7,8 +7,6 @@ public record DatabaseViewState(
         int containerId,
         long sessionId,
         DatabaseQuery query,
-        DatabaseQuery personalQuery,
-        DatabaseQuery publicQuery,
         DatabaseEnhancementConfig enhancementConfig,
         DatabaseAutoStoreTarget autoStoreTarget,
         List<DatabaseTab> personalTabs,
@@ -17,13 +15,6 @@ public record DatabaseViewState(
 ) {
     public DatabaseViewState {
         query = query == null ? DatabaseQuery.defaultQuery() : query;
-        personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, personalQuery);
-        publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, publicQuery);
-        if (query.scope() == DatabaseScope.PUBLIC) {
-            publicQuery = query;
-        } else {
-            personalQuery = query;
-        }
         enhancementConfig = enhancementConfig == null ? DatabaseEnhancementConfig.defaultConfig() : enhancementConfig;
         autoStoreTarget = autoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : autoStoreTarget;
         sessionId = Math.max(0L, sessionId);
@@ -45,8 +36,6 @@ public record DatabaseViewState(
                 containerId,
                 sessionId,
                 query,
-                DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
-                DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
                 DatabaseEnhancementConfig.defaultConfig(),
                 DatabaseAutoStoreTarget.defaultTarget(),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
@@ -55,12 +44,20 @@ public record DatabaseViewState(
         );
     }
 
-    public DatabaseQuery queryForScope(DatabaseScope scope) {
-        return DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC ? this.publicQuery : this.personalQuery;
-    }
-
     public List<DatabaseTab> tabsForScope(DatabaseScope scope) {
         return DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC ? this.publicTabs : this.personalTabs;
+    }
+
+    public DatabaseQuery queryForScope(DatabaseScope scope) {
+        return DatabaseQuery.normalizeForScope(scope, this.query);
+    }
+
+    public DatabaseQuery personalQuery() {
+        return this.queryForScope(DatabaseScope.PERSONAL);
+    }
+
+    public DatabaseQuery publicQuery() {
+        return this.queryForScope(DatabaseScope.PUBLIC);
     }
 
     public List<VisibleDatabaseEntry> entries() {
@@ -85,7 +82,7 @@ public record DatabaseViewState(
 
     public DatabasePanelView focusedPanel() {
         for (DatabasePanelView panel : this.panels) {
-            if (panel.tab().id().equals(this.query.focusedTabId())) {
+            if (panel.scopedTab().equals(this.query.focusedTab())) {
                 return panel;
             }
         }
@@ -96,8 +93,6 @@ public record DatabaseViewState(
         int containerId = buffer.readVarInt();
         long sessionId = buffer.readVarLong();
         DatabaseQuery query = DatabaseQuery.read(buffer);
-        DatabaseQuery personalQuery = DatabaseQuery.read(buffer);
-        DatabaseQuery publicQuery = DatabaseQuery.read(buffer);
         DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.read(buffer);
         DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.read(buffer);
         List<DatabaseTab> personalTabs = readTabs(buffer);
@@ -111,8 +106,6 @@ public record DatabaseViewState(
                 containerId,
                 sessionId,
                 query,
-                personalQuery,
-                publicQuery,
                 enhancementConfig,
                 autoStoreTarget,
                 personalTabs,
@@ -125,8 +118,6 @@ public record DatabaseViewState(
         buffer.writeVarInt(this.containerId);
         buffer.writeVarLong(this.sessionId);
         DatabaseQuery.write(buffer, this.query);
-        DatabaseQuery.write(buffer, this.personalQuery);
-        DatabaseQuery.write(buffer, this.publicQuery);
         DatabaseEnhancementConfig.write(buffer, this.enhancementConfig);
         DatabaseAutoStoreTarget.write(buffer, this.autoStoreTarget);
         writeTabs(buffer, this.personalTabs);

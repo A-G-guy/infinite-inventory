@@ -17,6 +17,7 @@ final class PersonalDatabaseTargetSelectorModel {
     static List<Row> buildRows(
             PersonalDatabaseScreen.TargetSelectorMode mode,
             @Nullable DatabaseViewState viewState,
+            @Nullable DatabaseScope sourceScope,
             @Nullable String sourceTabId,
             List<DatabasePanelView> currentPanels
     ) {
@@ -24,11 +25,12 @@ final class PersonalDatabaseTargetSelectorModel {
             return List.of();
         }
         return switch (mode) {
-            case TRANSFER_SELECTION, TRANSFER_TAB -> buildTransferRows(mode, viewState, sourceTabId);
+            case TRANSFER_SELECTION, TRANSFER_TAB -> buildTransferRows(mode, viewState, sourceScope, sourceTabId);
             case AUTO_STORE_TARGET -> buildAutoStoreTargetRows(viewState);
-            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT, DELETE_TAB -> buildFlatRows(
-                    viewState.query().scope(),
-                    candidateTabs(mode, viewState, sourceTabId, currentPanels)
+            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT -> buildDepositTargetRows(viewState, currentPanels);
+            case DELETE_TAB -> buildFlatRows(
+                    DatabaseScope.normalize(sourceScope),
+                    candidateTabs(mode, viewState, DatabaseScope.normalize(sourceScope), sourceTabId, currentPanels)
             );
             case NONE -> List.of();
         };
@@ -37,13 +39,24 @@ final class PersonalDatabaseTargetSelectorModel {
     private static List<Row> buildTransferRows(
             PersonalDatabaseScreen.TargetSelectorMode mode,
             DatabaseViewState viewState,
+            @Nullable DatabaseScope sourceScope,
             @Nullable String sourceTabId
     ) {
-        DatabaseScope sourceScope = viewState.query().scope();
-        DatabaseScope otherScope = sourceScope == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
+        DatabaseScope normalizedSourceScope = DatabaseScope.normalize(sourceScope);
+        DatabaseScope otherScope = normalizedSourceScope == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
         List<Row> rows = new ArrayList<>();
-        appendTransferGroup(rows, sourceScope, true, transferTabsForScope(mode, viewState, sourceScope, sourceTabId));
-        appendTransferGroup(rows, otherScope, false, transferTabsForScope(mode, viewState, otherScope, sourceTabId));
+        appendTransferGroup(
+                rows,
+                normalizedSourceScope,
+                true,
+                transferTabsForScope(mode, viewState, normalizedSourceScope, normalizedSourceScope, sourceTabId)
+        );
+        appendTransferGroup(
+                rows,
+                otherScope,
+                false,
+                transferTabsForScope(mode, viewState, otherScope, normalizedSourceScope, sourceTabId)
+        );
         return List.copyOf(rows);
     }
 
@@ -69,10 +82,43 @@ final class PersonalDatabaseTargetSelectorModel {
         return List.copyOf(rows);
     }
 
+    private static List<Row> buildDepositTargetRows(DatabaseViewState viewState, List<DatabasePanelView> currentPanels) {
+        List<DatabaseTab> personalTabs = candidateTabs(
+                PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                viewState,
+                DatabaseScope.PERSONAL,
+                "",
+                currentPanels
+        );
+        List<DatabaseTab> publicTabs = candidateTabs(
+                PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                viewState,
+                DatabaseScope.PUBLIC,
+                "",
+                currentPanels
+        );
+        boolean hasPersonal = !personalTabs.isEmpty();
+        boolean hasPublic = !publicTabs.isEmpty();
+        if (!hasPersonal && !hasPublic) {
+            return List.of();
+        }
+        if (!hasPersonal) {
+            return buildFlatRows(DatabaseScope.PUBLIC, publicTabs);
+        }
+        if (!hasPublic) {
+            return buildFlatRows(DatabaseScope.PERSONAL, personalTabs);
+        }
+        List<Row> rows = new ArrayList<>();
+        appendTransferGroup(rows, DatabaseScope.PERSONAL, false, personalTabs);
+        appendTransferGroup(rows, DatabaseScope.PUBLIC, false, publicTabs);
+        return List.copyOf(rows);
+    }
+
     private static List<DatabaseTab> transferTabsForScope(
             PersonalDatabaseScreen.TargetSelectorMode mode,
             DatabaseViewState viewState,
             DatabaseScope scope,
+            DatabaseScope sourceScope,
             @Nullable String sourceTabId
     ) {
         String normalizedSourceTabId = sourceTabId == null || sourceTabId.isBlank()
@@ -81,7 +127,7 @@ final class PersonalDatabaseTargetSelectorModel {
         return viewState.tabsForScope(scope).stream()
                 .filter(DatabaseTab::isConcreteTab)
                 .filter(tab -> mode != PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
-                        || scope != viewState.query().scope()
+                        || scope != DatabaseScope.normalize(sourceScope)
                         || normalizedSourceTabId == null
                         || !tab.id().equals(normalizedSourceTabId))
                 .toList();
@@ -101,12 +147,13 @@ final class PersonalDatabaseTargetSelectorModel {
     private static List<DatabaseTab> candidateTabs(
             PersonalDatabaseScreen.TargetSelectorMode mode,
             DatabaseViewState viewState,
+            DatabaseScope targetScope,
             @Nullable String sourceTabId,
             List<DatabasePanelView> currentPanels
     ) {
         return switch (mode) {
-            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT -> visibleConcreteTabs(viewState, currentPanels);
-            case DELETE_TAB -> viewState.tabsForScope(viewState.query().scope()).stream()
+            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT -> visibleConcreteTabs(viewState, targetScope, currentPanels);
+            case DELETE_TAB -> viewState.tabsForScope(targetScope).stream()
                     .filter(DatabaseTab::isConcreteTab)
                     .filter(tab -> !tab.id().equals(sourceTabId == null ? "" : sourceTabId))
                     .toList();
@@ -120,14 +167,18 @@ final class PersonalDatabaseTargetSelectorModel {
                 .toList();
     }
 
-    private static List<DatabaseTab> visibleConcreteTabs(DatabaseViewState viewState, List<DatabasePanelView> currentPanels) {
+    private static List<DatabaseTab> visibleConcreteTabs(
+            DatabaseViewState viewState,
+            DatabaseScope scope,
+            List<DatabasePanelView> currentPanels
+    ) {
         LinkedHashSet<String> visibleConcreteTabIds = new LinkedHashSet<>();
         for (DatabasePanelView panel : currentPanels) {
-            if (panel.tab().isConcreteTab()) {
+            if (panel.scopedTab().scope() == DatabaseScope.normalize(scope) && panel.tab().isConcreteTab()) {
                 visibleConcreteTabIds.add(panel.tab().id());
             }
         }
-        List<DatabaseTab> scopeTabs = viewState.tabsForScope(viewState.query().scope());
+        List<DatabaseTab> scopeTabs = viewState.tabsForScope(scope);
         if (visibleConcreteTabIds.isEmpty()) {
             for (DatabaseTab tab : scopeTabs) {
                 if (tab.isConcreteTab()) {

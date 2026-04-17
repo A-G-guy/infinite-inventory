@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
@@ -133,7 +134,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 continue;
             }
             var query = screen.databaseMenu.viewState().query();
-            Component message = Component.translatable(query.searchTextFor(panel.tab().id()).isEmpty()
+            Component message = Component.translatable(query.searchTextFor(panel.scopedTab()).isEmpty()
                     ? query.scope().emptyTranslationKey()
                     : "screen.infiniteinventory.no_results");
             PersonalDatabaseLayout.Rect gridRect = screen.layout.databaseViewportLayout(panelIndex).gridRect();
@@ -178,7 +179,7 @@ final class PersonalDatabaseScreenRenderHelper {
                     ),
                     titleRect.x(),
                     titleRect.y(),
-                    viewState.query().focusedTabId().equals(panel.tab().id())
+                    viewState.query().focusedTab().equals(panel.scopedTab())
                             ? 0x404040
                             : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                     false
@@ -186,9 +187,15 @@ final class PersonalDatabaseScreenRenderHelper {
         }
 
         int footerMaxWidth = Math.max(0, screen.layout.depositButtonRect().x() - screen.layout.databaseFooterRect().x() - 8);
+        boolean mixedScopeView = viewState.query().visibleTabs().stream()
+                .map(com.agguy.infiniteinventory.database.DatabaseScopedTabRef::scope)
+                .distinct()
+                .count() > 1L;
         Component footerStats = Component.translatable(
                 "screen.infiniteinventory.footer_stats",
-                Component.translatable(viewState.query().scope().translationKey()),
+                Component.translatable(mixedScopeView
+                        ? "screen.infiniteinventory.scope.mixed"
+                        : viewState.query().scope().translationKey()),
                 viewState.totalEntries(),
                 CompactNumberFormatter.format(viewState.totalItems())
         );
@@ -235,6 +242,8 @@ final class PersonalDatabaseScreenRenderHelper {
                 || screen.enhancementPanelExpanded
                 || screen.viewSelectorExpanded
                 || screen.moreTabsExpanded
+                || screen.topTabActionPromptExpanded
+                || screen.topTabReplaceExpanded
                 || screen.tabManagementExpanded
                 || screen.iconPickerExpanded
                 || screen.targetSelectorExpanded) {
@@ -288,11 +297,11 @@ final class PersonalDatabaseScreenRenderHelper {
                 return;
             }
         }
-        DatabaseTab hoveredTab = findHoveredTab(screen, mouseX, mouseY);
+        DatabaseScopedTabRef hoveredTab = findHoveredTab(screen, mouseX, mouseY);
         if (hoveredTab != null) {
             guiGraphics.renderTooltip(
                     screen.screenFont(),
-                    List.of(PersonalDatabaseScreenCommonHelper.tabLabel(screen, hoveredTab)),
+                    List.of(PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, hoveredTab)),
                     ItemStack.EMPTY.getTooltipImage(),
                     mouseX,
                     mouseY
@@ -374,7 +383,12 @@ final class PersonalDatabaseScreenRenderHelper {
         );
         guiGraphics.drawString(
                 screen.screenFont(),
-                Component.translatable(screen.databaseMenu.viewState().query().scope().sectionTranslationKey()),
+                Component.translatable(screen.databaseMenu.viewState().query().visibleTabs().stream()
+                        .map(com.agguy.infiniteinventory.database.DatabaseScopedTabRef::scope)
+                        .distinct()
+                        .count() > 1L
+                        ? "screen.infiniteinventory.database.section.mixed"
+                        : screen.databaseMenu.viewState().query().scope().sectionTranslationKey()),
                 screen.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
                 screen.layout.databasePanelRect().y() - 12,
                 0x404040,
@@ -395,8 +409,8 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
 
-    private static DatabaseTab findHoveredTab(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        List<DatabaseTab> visibleTabs = PersonalDatabaseScreenTabHelper.visibleTopTabs(screen);
+    private static DatabaseScopedTabRef findHoveredTab(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        List<DatabaseScopedTabRef> visibleTabs = PersonalDatabaseScreenTabHelper.visibleTopTabs(screen);
         for (int index = 0; index < visibleTabs.size(); index++) {
             if (PersonalDatabaseScreenTabHelper.topTabRect(
                     screen,

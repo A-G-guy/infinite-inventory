@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
@@ -28,6 +29,24 @@ final class PersonalDatabaseScreenTargetHelper {
             int slotIndex,
             String sourceTabId
     ) {
+        openTargetSelector(
+                screen,
+                mode,
+                panelIndex,
+                slotIndex,
+                screen.databaseMenu.viewState().query().focusedTab().scope(),
+                sourceTabId
+        );
+    }
+
+    static void openTargetSelector(
+            PersonalDatabaseScreen screen,
+            PersonalDatabaseScreen.TargetSelectorMode mode,
+            int panelIndex,
+            int slotIndex,
+            DatabaseScope sourceScope,
+            String sourceTabId
+    ) {
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
         PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
         screen.sortDropdownExpanded = false;
@@ -38,6 +57,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.pendingTargetPanelIndex = panelIndex;
         screen.pendingQuickDepositSlotIndex = slotIndex;
         screen.pendingTargetSourceTabId = sourceTabId == null ? "" : sourceTabId;
+        screen.pendingTargetSourceScope = DatabaseScope.normalize(sourceScope);
         screen.targetSelectorScrollIndex = 0;
         screen.targetSelectorExpanded = true;
     }
@@ -48,6 +68,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.pendingTargetPanelIndex = -1;
         screen.pendingQuickDepositSlotIndex = -1;
         screen.pendingTargetSourceTabId = "";
+        screen.pendingTargetSourceScope = screen.databaseMenu.viewState().query().focusedTab().scope();
         screen.pendingTargetStoresSingle = false;
         screen.targetSelectorScrollIndex = 0;
     }
@@ -62,6 +83,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.enhancementPanelExpanded = false;
         screen.viewSelectorExpanded = false;
         screen.moreTabsExpanded = false;
+        PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
         closeTargetSelector(screen);
         PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
     }
@@ -185,6 +207,7 @@ final class PersonalDatabaseScreenTargetHelper {
         return PersonalDatabaseTargetSelectorModel.buildRows(
                 screen.targetSelectorMode,
                 screen.databaseMenu.viewState(),
+                screen.pendingTargetSourceScope,
                 screen.pendingTargetSourceTabId,
                 PersonalDatabaseScreenCommonHelper.currentPanels(screen)
         );
@@ -214,13 +237,14 @@ final class PersonalDatabaseScreenTargetHelper {
         if (slotIndex < 0 || !hoveredSlot.hasItem() || !isQuickDepositSlot(screen, slotIndex, hoveredSlot)) {
             return false;
         }
-        String directTargetTabId = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTargetTabId(screen);
-        if (directTargetTabId != null) {
+        DatabaseScopedTabRef directTarget = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTarget(screen);
+        if (directTarget != null) {
             PacketDistributor.sendToServer(new DatabaseQuickDepositPayload(
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
                     slotIndex,
-                    directTargetTabId
+                    directTarget.scope(),
+                    directTarget.tabId()
             ));
             return true;
         }
@@ -246,6 +270,7 @@ final class PersonalDatabaseScreenTargetHelper {
             case DEPOSIT_ALL -> PacketDistributor.sendToServer(new DepositAllPayload(
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
+                    targetSelection.scope(),
                     targetTabId
             ));
             case CARRIED_STORE -> PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
@@ -253,16 +278,19 @@ final class PersonalDatabaseScreenTargetHelper {
                     Math.max(0, screen.pendingTargetPanelIndex),
                     0,
                     screen.pendingTargetStoresSingle ? DatabaseClickAction.STORE_SINGLE : DatabaseClickAction.STORE_STACK,
+                    targetSelection.scope(),
                     targetTabId
             );
             case QUICK_DEPOSIT -> PacketDistributor.sendToServer(new DatabaseQuickDepositPayload(
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
                     screen.pendingQuickDepositSlotIndex,
+                    targetSelection.scope(),
                     targetTabId
             ));
             case TRANSFER_TAB -> PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,
+                    screen.pendingTargetSourceScope,
                     DatabaseTabMutationAction.TRANSFER,
                     screen.pendingTargetSourceTabId,
                     targetSelection.scope(),
@@ -279,6 +307,7 @@ final class PersonalDatabaseScreenTargetHelper {
             );
             case DELETE_TAB -> PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,
+                    screen.pendingTargetSourceScope,
                     DatabaseTabMutationAction.DELETE,
                     screen.pendingTargetSourceTabId,
                     targetTabId,
@@ -309,11 +338,16 @@ final class PersonalDatabaseScreenTargetHelper {
             PersonalDatabaseTargetSelectorModel.Row row
     ) {
         Component label = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
+                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL
+                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.CARRIED_STORE
+                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.QUICK_DEPOSIT
                 ? Component.translatable(
                         "screen.infiniteinventory.target_selector.group.target_scope",
                         Component.translatable(row.scope().translationKey())
                 )
-                : row.sourceScopeGroup()
+                : screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
+                        || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION
+                ? row.sourceScopeGroup()
                         ? Component.translatable(
                                 "screen.infiniteinventory.target_selector.group.source_scope",
                                 Component.translatable(row.scope().translationKey())
@@ -321,7 +355,11 @@ final class PersonalDatabaseScreenTargetHelper {
                         : Component.translatable(
                                 "screen.infiniteinventory.target_selector.group.other_scope",
                                 Component.translatable(row.scope().translationKey())
-                        );
+                        )
+                : Component.translatable(
+                        "screen.infiniteinventory.target_selector.group.target_scope",
+                        Component.translatable(row.scope().translationKey())
+                );
         int textX = rowRect.x() + 2;
         int textY = rowRect.y() + 6;
         guiGraphics.drawString(

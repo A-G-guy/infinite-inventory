@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
@@ -35,6 +36,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.sortDropdownExpanded = false;
                             screen.pagePickerExpanded = false;
                             screen.enhancementPanelExpanded = false;
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
                             screen.advancedSearchExpanded = !screen.advancedSearchExpanded;
                         }
                 )
@@ -58,6 +60,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.moreTabsExpanded = false;
                             screen.targetSelectorExpanded = false;
                             screen.tabManagementExpanded = false;
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
                             screen.advancedSearchExpanded = false;
                             screen.enhancementPanelExpanded = !screen.enhancementPanelExpanded;
                         }
@@ -78,6 +81,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.moreTabsExpanded = false;
                             screen.tabManagementExpanded = false;
                             screen.targetSelectorExpanded = false;
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
                             screen.viewSelectorExpanded = !screen.viewSelectorExpanded;
                         }
                 )
@@ -96,6 +100,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.moreTabsExpanded = false;
                             screen.targetSelectorExpanded = false;
                             screen.viewSelectorExpanded = false;
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
                             boolean nextExpanded = !screen.tabManagementExpanded;
                             PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
                             screen.tabManagementExpanded = nextExpanded;
@@ -123,6 +128,8 @@ final class PersonalDatabaseScreenWidgetHelper {
                         personalScopeRect.height()
                 )
                 .build());
+        screen.personalScopeButton.visible = false;
+        screen.personalScopeButton.active = false;
 
         PersonalDatabaseLayout.Rect publicScopeRect = screen.layout.publicScopeButtonRect();
         screen.publicScopeButton = screen.addScreenButton(Button.builder(
@@ -140,12 +147,14 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.sortDropdownExpanded = false;
                             screen.pagePickerExpanded = false;
                             screen.enhancementPanelExpanded = false;
-                            String directTargetTabId = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTargetTabId(screen);
-                            if (directTargetTabId != null) {
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+                            DatabaseScopedTabRef directTarget = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTarget(screen);
+                            if (directTarget != null) {
                                 PacketDistributor.sendToServer(new DepositAllPayload(
                                         screen.databaseMenu.containerId,
                                         screen.databaseMenu.viewState().sessionId(),
-                                        directTargetTabId
+                                        directTarget.scope(),
+                                        directTarget.tabId()
                                 ));
                             } else {
                                 PersonalDatabaseScreenTargetHelper.openTargetSelector(
@@ -173,8 +182,10 @@ final class PersonalDatabaseScreenWidgetHelper {
                             accessoryToggleRect.y(),
                             accessoryToggleRect.width(),
                             accessoryToggleRect.height()
-                    )
-                    .build());
+                )
+                .build());
+        screen.publicScopeButton.visible = false;
+        screen.publicScopeButton.active = false;
         }
         PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
     }
@@ -300,10 +311,12 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
         }
         if (screen.personalScopeButton != null) {
-            screen.personalScopeButton.active = activeScope != DatabaseScope.PERSONAL;
+            screen.personalScopeButton.visible = false;
+            screen.personalScopeButton.active = false;
         }
         if (screen.publicScopeButton != null) {
-            screen.publicScopeButton.active = activeScope != DatabaseScope.PUBLIC;
+            screen.publicScopeButton.visible = false;
+            screen.publicScopeButton.active = false;
         }
         if (screen.accessoriesToggleButton != null) {
             screen.accessoriesToggleButton.visible = PersonalDatabaseScreenLayoutHelper.hasAccessorySlots(screen)

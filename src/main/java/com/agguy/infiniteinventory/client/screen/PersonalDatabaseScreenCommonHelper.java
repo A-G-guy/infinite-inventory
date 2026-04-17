@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
@@ -75,6 +76,17 @@ final class PersonalDatabaseScreenCommonHelper {
         return screen.databaseMenu.viewState().panels();
     }
 
+    static List<DatabaseScopedTabRef> allTopTabs(PersonalDatabaseScreen screen) {
+        java.util.ArrayList<DatabaseScopedTabRef> topTabs = new java.util.ArrayList<>();
+        for (DatabaseTab tab : tabsForScope(screen, DatabaseScope.PERSONAL)) {
+            topTabs.add(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, tab.id()));
+        }
+        for (DatabaseTab tab : tabsForScope(screen, DatabaseScope.PUBLIC)) {
+            topTabs.add(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, tab.id()));
+        }
+        return List.copyOf(topTabs);
+    }
+
     static List<DatabaseTab> currentTabs(PersonalDatabaseScreen screen) {
         return screen.databaseMenu.viewState().tabsForScope(screen.databaseMenu.viewState().query().scope());
     }
@@ -87,10 +99,21 @@ final class PersonalDatabaseScreenCommonHelper {
         return currentTabs(screen).stream().filter(DatabaseTab::isConcreteTab).toList();
     }
 
+    static List<DatabaseTab> concreteTabsForScope(PersonalDatabaseScreen screen, DatabaseScope scope) {
+        return tabsForScope(screen, scope).stream().filter(DatabaseTab::isConcreteTab).toList();
+    }
+
+    static DatabaseTab findTab(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+        if (scopedTab == null) {
+            return DatabaseTabs.defaultConcreteTab();
+        }
+        return findTab(screen, scopedTab.scope(), scopedTab.tabId());
+    }
+
     static int focusedPanelIndex(PersonalDatabaseScreen screen) {
-        String focusedTabId = screen.databaseMenu.viewState().query().focusedTabId();
+        DatabaseScopedTabRef focusedTab = screen.databaseMenu.viewState().query().focusedTab();
         for (int index = 0; index < currentPanels(screen).size(); index++) {
-            if (currentPanels(screen).get(index).tab().id().equals(focusedTabId)) {
+            if (currentPanels(screen).get(index).scopedTab().equals(focusedTab)) {
                 return index;
             }
         }
@@ -140,11 +163,38 @@ final class PersonalDatabaseScreenCommonHelper {
         return Component.literal(tab.id());
     }
 
+    static Component scopeLabel(DatabaseScope scope) {
+        return Component.translatable(DatabaseScope.normalize(scope).translationKey());
+    }
+
+    static boolean shouldShowScopeTag(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+        if (scopedTab == null) {
+            return false;
+        }
+        if (scopedTab.isAllTab()) {
+            return true;
+        }
+        DatabaseScope otherScope = scopedTab.scope() == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
+        return tabsForScope(screen, otherScope).stream().anyMatch(tab -> tab.id().equals(scopedTab.tabId()));
+    }
+
+    static Component scopedTabLabel(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+        DatabaseTab tab = findTab(screen, scopedTab);
+        if (!shouldShowScopeTag(screen, scopedTab)) {
+            return tabLabel(screen, tab);
+        }
+        return Component.empty()
+                .append(tabLabel(screen, tab))
+                .append(Component.literal(" ["))
+                .append(scopeLabel(scopedTab.scope()))
+                .append(Component.literal("]"));
+    }
+
     static Component autoStoreTargetLabel(PersonalDatabaseScreen screen, @Nullable DatabaseAutoStoreTarget autoStoreTarget) {
         DatabaseAutoStoreTarget resolvedTarget = autoStoreTarget == null
                 ? DatabaseAutoStoreTarget.defaultTarget()
                 : autoStoreTarget;
-        Component scopeLabel = Component.translatable(resolvedTarget.scope().translationKey());
+        Component scopeLabel = scopeLabel(resolvedTarget.scope());
         Component tabLabel = tabLabel(screen, findTab(screen, resolvedTarget.scope(), resolvedTarget.tabId()));
         return Component.empty().append(scopeLabel).append(Component.literal(" · ")).append(tabLabel);
     }
@@ -267,12 +317,12 @@ final class PersonalDatabaseScreenCommonHelper {
     }
 
     @Nullable
-    static String resolveSingleStoreTargetTabId(PersonalDatabaseScreen screen) {
+    static DatabaseScopedTabRef resolveSingleStoreTarget(PersonalDatabaseScreen screen) {
         DatabaseQuery query = screen.databaseMenu.viewState().query();
-        if (query.visibleTabIds().size() != 1) {
+        if (query.visibleTabs().size() != 1) {
             return null;
         }
-        String onlyVisibleTabId = query.visibleTabIds().getFirst();
-        return DatabaseTabs.isAllTabId(onlyVisibleTabId) ? null : onlyVisibleTabId;
+        DatabaseScopedTabRef onlyVisibleTab = query.visibleTabs().getFirst();
+        return onlyVisibleTab.isAllTab() ? null : onlyVisibleTab;
     }
 }

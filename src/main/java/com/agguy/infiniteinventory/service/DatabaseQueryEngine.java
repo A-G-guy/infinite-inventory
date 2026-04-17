@@ -4,6 +4,8 @@ import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabasePagination;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseTab;
@@ -40,17 +42,23 @@ public final class DatabaseQueryEngine {
     private DatabaseQueryEngine() {
     }
 
-    public DatabasePage buildPage(StoredItemDatabase database, DatabaseTabDirectory tabDirectory, DatabaseQuery query, String tabId) {
+    public DatabasePage buildPage(
+            StoredItemDatabase database,
+            DatabaseTabDirectory tabDirectory,
+            DatabaseQuery query,
+            DatabaseScopedTabRef scopedTab
+    ) {
         StoredItemDatabase resolvedDatabase = database == null ? new StoredItemDatabase() : database;
         DatabaseTabDirectory resolvedTabDirectory = tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
         DatabaseQuery normalizedQuery = resolvedTabDirectory.sanitizeQuery(query == null ? DatabaseQuery.defaultQuery() : query);
-        String normalizedTabId = normalizeTabId(tabId, resolvedTabDirectory);
+        DatabaseScopedTabRef normalizedScopedTab = normalizeScopedTab(scopedTab, resolvedTabDirectory, normalizedQuery.focusedTab().scope());
+        String normalizedTabId = normalizedScopedTab.tabId();
         CachedQueryResult queryResult = this.resolveQueryResult(
                 this.runtimeIndexFor(resolvedDatabase),
-                normalizedQuery.tabStateFor(normalizedTabId),
+                normalizedQuery.tabStateFor(normalizedScopedTab),
                 normalizedTabId
         );
-        return this.toPage(normalizedQuery, queryResult, resolvedTabDirectory.resolve(normalizedTabId));
+        return this.toPage(normalizedQuery, queryResult, normalizedScopedTab, resolvedTabDirectory.resolve(normalizedTabId));
     }
 
     private synchronized DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database) {
@@ -107,21 +115,25 @@ public final class DatabaseQueryEngine {
         return builtResult;
     }
 
-    private DatabasePage toPage(DatabaseQuery query, CachedQueryResult queryResult, DatabaseTab tab) {
-        String tabId = tab.id();
-        int safePageSize = Math.max(1, query.pageSizeFor(tabId));
+    private DatabasePage toPage(
+            DatabaseQuery query,
+            CachedQueryResult queryResult,
+            DatabaseScopedTabRef scopedTab,
+            DatabaseTab tab
+    ) {
+        int safePageSize = Math.max(1, query.pageSizeFor(scopedTab));
         int totalEntries = queryResult.records().size();
         int totalPages = DatabasePagination.resolveTotalPages(totalEntries, safePageSize);
-        int pageIndex = Math.min(query.pageIndexFor(tabId), totalPages - 1);
+        int pageIndex = Math.min(query.pageIndexFor(scopedTab), totalPages - 1);
         int fromIndex = resolvePageFromIndex(pageIndex, safePageSize, totalEntries);
         int toIndex = resolvePageToIndex(fromIndex, safePageSize, totalEntries);
 
         List<DatabasePageEntry> pageEntries = new ArrayList<>(safePageSize);
         for (int index = fromIndex; index < toIndex; index++) {
             ResolvedQueryRecord record = queryResult.records().get(index);
-            pageEntries.add(record.entryRecord().toPageEntry());
+            pageEntries.add(record.entryRecord().toPageEntry(scopedTab.scope()));
         }
-        return new DatabasePage(tab, pageIndex, safePageSize, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
+        return new DatabasePage(scopedTab, tab, pageIndex, safePageSize, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
     }
 
     private static int resolvePageFromIndex(int pageIndex, int pageSize, int totalEntries) {
@@ -143,6 +155,17 @@ public final class DatabaseQueryEngine {
             return resolvedVisibleTabId;
         }
         return tabDirectory.defaultConcreteTab().id();
+    }
+
+    private static DatabaseScopedTabRef normalizeScopedTab(
+            DatabaseScopedTabRef scopedTab,
+            DatabaseTabDirectory tabDirectory,
+            DatabaseScope fallbackScope
+    ) {
+        if (scopedTab == null) {
+            return DatabaseScopedTabRef.allTab(fallbackScope);
+        }
+        return DatabaseScopedTabRef.concreteTab(scopedTab.scope(), normalizeTabId(scopedTab.tabId(), tabDirectory));
     }
 
     private static long safeAdd(long left, long right) {
@@ -210,10 +233,16 @@ public final class DatabaseQueryEngine {
             );
         }
 
-        private DatabasePageEntry toPageEntry() {
+        private DatabasePageEntry toPageEntry(DatabaseScope scope) {
             return new DatabasePageEntry(
                     this.key,
-                    new VisibleDatabaseEntry(this.displayStack.copyWithCount(1), this.entry.amount(), this.entry.tabId(), this.key.registryName())
+                    new VisibleDatabaseEntry(
+                            scope,
+                            this.displayStack.copyWithCount(1),
+                            this.entry.amount(),
+                            this.entry.tabId(),
+                            this.key.registryName()
+                    )
             );
         }
     }

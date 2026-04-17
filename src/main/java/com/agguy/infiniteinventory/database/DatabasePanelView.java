@@ -4,6 +4,7 @@ import java.util.List;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public record DatabasePanelView(
+        DatabaseScopedTabRef scopedTab,
         DatabaseTab tab,
         int pageIndex,
         int pageSize,
@@ -13,6 +14,7 @@ public record DatabasePanelView(
         List<VisibleDatabaseEntry> entries
 ) {
     public DatabasePanelView {
+        scopedTab = scopedTab == null ? DatabaseScopedTabRef.defaultTab() : scopedTab;
         tab = tab == null ? DatabaseTabs.allTab() : tab;
         pageIndex = Math.max(0, pageIndex);
         pageSize = Math.max(1, pageSize);
@@ -23,6 +25,7 @@ public record DatabasePanelView(
     }
 
     public static DatabasePanelView read(RegistryFriendlyByteBuf buffer) {
+        DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.read(buffer);
         DatabaseTab tab = DatabaseTab.read(buffer);
         int pageIndex = buffer.readVarInt();
         int pageSize = buffer.readVarInt();
@@ -34,10 +37,11 @@ public record DatabasePanelView(
         for (int index = 0; index < entryCount; index++) {
             entries.add(VisibleDatabaseEntry.read(buffer));
         }
-        return new DatabasePanelView(tab, pageIndex, pageSize, totalEntries, totalPages, totalItems, entries);
+        return new DatabasePanelView(scopedTab, tab, pageIndex, pageSize, totalEntries, totalPages, totalItems, entries);
     }
 
     public void write(RegistryFriendlyByteBuf buffer) {
+        this.scopedTab.write(buffer);
         this.tab.write(buffer);
         buffer.writeVarInt(this.pageIndex);
         buffer.writeVarInt(this.pageSize);
