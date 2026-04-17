@@ -1,8 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
-import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseTab;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
@@ -10,8 +8,6 @@ import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
 import com.agguy.infiniteinventory.network.DatabaseQuickDepositPayload;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -93,9 +89,9 @@ final class PersonalDatabaseScreenTargetHelper {
         );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
-        List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
-        List<DatabaseTab> visibleTabs = visibleTargetSelectorTabs(screen, candidateTabs);
-        if (candidateTabs.isEmpty()) {
+        List<PersonalDatabaseTargetSelectorModel.Row> candidateRows = targetSelectorRows(screen);
+        List<PersonalDatabaseTargetSelectorModel.Row> visibleRows = visibleTargetSelectorRows(screen, candidateRows);
+        if (candidateRows.isEmpty()) {
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
                     guiGraphics,
@@ -112,28 +108,24 @@ final class PersonalDatabaseScreenTargetHelper {
         String selectedTargetTabId = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
                 ? screen.databaseMenu.viewState().autoStoreTargetTabId()
                 : "";
-        for (int index = 0; index < visibleTabs.size(); index++) {
-            DatabaseTab tab = visibleTabs.get(index);
+        for (int index = 0; index < visibleRows.size(); index++) {
+            PersonalDatabaseTargetSelectorModel.Row row = visibleRows.get(index);
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
                     panelRect,
                     index,
                     PersonalDatabaseScreen.TARGET_SELECTOR_ROW_HEIGHT
             );
-            boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean selected = selectedTargetTabId.equals(tab.id());
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
-                            screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
-                            Math.max(0, rowRect.width() - 28)
-                    ),
-                    rowRect.x() + 24,
-                    rowRect.y() + 6,
-                    selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
+            if (row.type() == PersonalDatabaseTargetSelectorModel.RowType.HEADER) {
+                renderTargetSelectorGroupHeader(screen, guiGraphics, rowRect, row);
+                continue;
+            }
+            renderTargetSelectorTargetRow(
+                    screen,
+                    guiGraphics,
+                    rowRect,
+                    row,
+                    rowRect.contains(mouseX, mouseY),
+                    selectedTargetTabId.equals(row.tab().id())
             );
         }
         guiGraphics.pose().popPose();
@@ -152,9 +144,9 @@ final class PersonalDatabaseScreenTargetHelper {
             closeTargetSelector(screen);
             return true;
         }
-        List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
-        List<DatabaseTab> visibleTabs = visibleTargetSelectorTabs(screen, candidateTabs);
-        for (int index = 0; index < visibleTabs.size(); index++) {
+        List<PersonalDatabaseTargetSelectorModel.Row> candidateRows = targetSelectorRows(screen);
+        List<PersonalDatabaseTargetSelectorModel.Row> visibleRows = visibleTargetSelectorRows(screen, candidateRows);
+        for (int index = 0; index < visibleRows.size(); index++) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
                     panelRect,
                     index,
@@ -163,7 +155,10 @@ final class PersonalDatabaseScreenTargetHelper {
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;
             }
-            applyTargetSelection(screen, visibleTabs.get(index).id());
+            PersonalDatabaseTargetSelectorModel.TargetSelection targetSelection = visibleRows.get(index).targetSelection();
+            if (targetSelection != null) {
+                applyTargetSelection(screen, targetSelection);
+            }
             return true;
         }
         return true;
@@ -173,7 +168,7 @@ final class PersonalDatabaseScreenTargetHelper {
         if (!screen.targetSelectorExpanded || deltaRows == 0) {
             return false;
         }
-        List<DatabaseTab> candidateTabs = targetSelectorTabs(screen);
+        List<PersonalDatabaseTargetSelectorModel.Row> candidateTabs = targetSelectorRows(screen);
         int maxVisibleRows = maxVisibleRows(screen);
         int maxScrollIndex = Math.max(0, candidateTabs.size() - maxVisibleRows);
         int nextScrollIndex = Math.max(0, Math.min(maxScrollIndex, screen.targetSelectorScrollIndex + deltaRows));
@@ -184,37 +179,13 @@ final class PersonalDatabaseScreenTargetHelper {
         return true;
     }
 
-    static List<DatabaseTab> targetSelectorTabs(PersonalDatabaseScreen screen) {
-        return switch (screen.targetSelectorMode) {
-            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT -> {
-                LinkedHashSet<String> visibleConcreteTabIds = new LinkedHashSet<>();
-                for (DatabasePanelView panel : PersonalDatabaseScreenCommonHelper.currentPanels(screen)) {
-                    if (panel.tab().isConcreteTab()) {
-                        visibleConcreteTabIds.add(panel.tab().id());
-                    }
-                }
-                if (visibleConcreteTabIds.isEmpty()) {
-                    for (DatabaseTab tab : PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen)) {
-                        visibleConcreteTabIds.add(tab.id());
-                    }
-                }
-                List<DatabaseTab> candidateTabs = new ArrayList<>();
-                for (DatabaseTab tab : PersonalDatabaseScreenCommonHelper.currentTabs(screen)) {
-                    if (visibleConcreteTabIds.contains(tab.id())) {
-                        candidateTabs.add(tab);
-                    }
-                }
-                yield List.copyOf(candidateTabs);
-            }
-            case TRANSFER_TAB, DELETE_TAB -> PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen).stream()
-                    .filter(tab -> !tab.id().equals(screen.pendingTargetSourceTabId))
-                    .toList();
-            case TRANSFER_SELECTION -> PersonalDatabaseScreenCommonHelper.currentConcreteTabs(screen);
-            case AUTO_STORE_TARGET -> screen.databaseMenu.viewState().personalTabs().stream()
-                    .filter(DatabaseTab::isConcreteTab)
-                    .toList();
-            case NONE -> List.of();
-        };
+    static List<PersonalDatabaseTargetSelectorModel.Row> targetSelectorRows(PersonalDatabaseScreen screen) {
+        return PersonalDatabaseTargetSelectorModel.buildRows(
+                screen.targetSelectorMode,
+                screen.databaseMenu.viewState(),
+                screen.pendingTargetSourceTabId,
+                PersonalDatabaseScreenCommonHelper.currentPanels(screen)
+        );
     }
 
     static Component targetSelectorTitle(PersonalDatabaseScreen screen) {
@@ -264,7 +235,11 @@ final class PersonalDatabaseScreenTargetHelper {
         return false;
     }
 
-    private static void applyTargetSelection(PersonalDatabaseScreen screen, String targetTabId) {
+    private static void applyTargetSelection(
+            PersonalDatabaseScreen screen,
+            PersonalDatabaseTargetSelectorModel.TargetSelection targetSelection
+    ) {
+        String targetTabId = targetSelection.tabId();
         switch (screen.targetSelectorMode) {
             case DEPOSIT_ALL -> PacketDistributor.sendToServer(new DepositAllPayload(
                     screen.databaseMenu.containerId,
@@ -288,6 +263,7 @@ final class PersonalDatabaseScreenTargetHelper {
                     screen,
                     DatabaseTabMutationAction.TRANSFER,
                     screen.pendingTargetSourceTabId,
+                    targetSelection.scope(),
                     targetTabId,
                     "",
                     ""
@@ -295,6 +271,7 @@ final class PersonalDatabaseScreenTargetHelper {
             case TRANSFER_SELECTION -> PersonalDatabaseScreenSelectionHelper.sendSelectionAction(
                     screen,
                     DatabaseSelectionAction.TRANSFER_TO_TAB,
+                    targetSelection.scope(),
                     targetTabId,
                     0L
             );
@@ -323,7 +300,86 @@ final class PersonalDatabaseScreenTargetHelper {
                 || (slot.container instanceof Inventory && slot.getContainerSlot() >= 0 && slot.getContainerSlot() < 36);
     }
 
-    private static List<DatabaseTab> visibleTargetSelectorTabs(PersonalDatabaseScreen screen, List<DatabaseTab> candidateTabs) {
+    private static void renderTargetSelectorGroupHeader(
+            PersonalDatabaseScreen screen,
+            GuiGraphics guiGraphics,
+            PersonalDatabaseLayout.Rect rowRect,
+            PersonalDatabaseTargetSelectorModel.Row row
+    ) {
+        Component label = row.sourceScopeGroup()
+                ? Component.translatable(
+                        "screen.infiniteinventory.target_selector.group.source_scope",
+                        Component.translatable(row.scope().translationKey())
+                )
+                : Component.translatable(
+                        "screen.infiniteinventory.target_selector.group.other_scope",
+                        Component.translatable(row.scope().translationKey())
+                );
+        int textX = rowRect.x() + 2;
+        int textY = rowRect.y() + 6;
+        guiGraphics.drawString(
+                screen.screenFont(),
+                label,
+                textX,
+                textY,
+                PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
+                false
+        );
+        int dividerX = Math.min(rowRect.right() - 2, textX + screen.screenFont().width(label) + 6);
+        if (dividerX < rowRect.right() - 2) {
+            guiGraphics.fill(dividerX, rowRect.y() + 10, rowRect.right() - 2, rowRect.y() + 11, 0x70A89E8C);
+        }
+    }
+
+    private static void renderTargetSelectorTargetRow(
+            PersonalDatabaseScreen screen,
+            GuiGraphics guiGraphics,
+            PersonalDatabaseLayout.Rect rowRect,
+            PersonalDatabaseTargetSelectorModel.Row row,
+            boolean hovered,
+            boolean selected
+    ) {
+        VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
+        DatabaseTab tab = row.tab();
+        guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
+        int textRight = rowRect.right() - 4;
+        if (usesGroupedTransferRows(screen)) {
+            Component scopeLabel = Component.translatable(row.scope().translationKey());
+            int scopeLabelWidth = screen.screenFont().width(scopeLabel);
+            int scopeLabelX = Math.max(rowRect.x() + 32, rowRect.right() - 6 - scopeLabelWidth);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    scopeLabel,
+                    scopeLabelX,
+                    rowRect.y() + 6,
+                    PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
+                    false
+            );
+            textRight = Math.max(rowRect.x() + 24, scopeLabelX - 8);
+        }
+        guiGraphics.drawString(
+                screen.screenFont(),
+                PersonalDatabaseScreenGeometry.truncateToWidth(
+                        screen,
+                        PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
+                        Math.max(0, textRight - (rowRect.x() + 24))
+                ),
+                rowRect.x() + 24,
+                rowRect.y() + 6,
+                selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                false
+        );
+    }
+
+    private static boolean usesGroupedTransferRows(PersonalDatabaseScreen screen) {
+        return screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
+                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION;
+    }
+
+    private static List<PersonalDatabaseTargetSelectorModel.Row> visibleTargetSelectorRows(
+            PersonalDatabaseScreen screen,
+            List<PersonalDatabaseTargetSelectorModel.Row> candidateTabs
+    ) {
         if (candidateTabs.isEmpty()) {
             return List.of();
         }
