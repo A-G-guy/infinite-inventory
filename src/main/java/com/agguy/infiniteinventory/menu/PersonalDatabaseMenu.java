@@ -13,6 +13,7 @@ import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.network.DatabaseSnapshotPayload;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.agguy.infiniteinventory.service.PersonalDatabaseTransferHelper;
 import java.util.List;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -279,14 +280,24 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     public void handleSelectionAction(
             DatabaseSelectionAction action,
             List<DatabaseSelectionEntry> selectionEntries,
+            @Nullable DatabaseScope targetScope,
             @Nullable String targetTabId
     ) {
-        this.handleSelectionAction(action, selectionEntries, targetTabId, 0L);
+        this.handleSelectionAction(action, selectionEntries, targetScope, targetTabId, 0L);
     }
 
     public void handleSelectionAction(
             DatabaseSelectionAction action,
             List<DatabaseSelectionEntry> selectionEntries,
+            @Nullable String targetTabId
+    ) {
+        this.handleSelectionAction(action, selectionEntries, null, targetTabId, 0L);
+    }
+
+    public void handleSelectionAction(
+            DatabaseSelectionAction action,
+            List<DatabaseSelectionEntry> selectionEntries,
+            @Nullable DatabaseScope targetScope,
             @Nullable String targetTabId,
             long requestedAmount
     ) {
@@ -295,7 +306,13 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
         boolean changed;
         if (action.requiresTargetTab()) {
-            changed = PersonalDatabaseService.INSTANCE.transferSelection(serverPlayer, this.activeScope, selectionEntries, targetTabId);
+            changed = PersonalDatabaseService.INSTANCE.transferSelection(
+                    serverPlayer,
+                    this.activeScope,
+                    targetScope,
+                    selectionEntries,
+                    targetTabId
+            );
         } else {
             changed = PersonalDatabaseService.INSTANCE.extractSelectionToInventory(
                     serverPlayer,
@@ -307,10 +324,26 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
         if (changed) {
             this.broadcastChanges();
-            this.syncAfterDatabaseMutation(serverPlayer);
+            if (action.requiresTargetTab()) {
+                this.syncAfterTransferMutation(serverPlayer, targetScope);
+            } else {
+                this.syncAfterDatabaseMutation(serverPlayer);
+            }
         } else if (this.activeScope == DatabaseScope.PUBLIC) {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
         }
+    }
+
+    private void syncAfterTransferMutation(ServerPlayer player, @Nullable DatabaseScope targetScope) {
+        DatabaseScope normalizedTargetScope = PersonalDatabaseTransferHelper.resolveTargetScope(this.activeScope, targetScope);
+        if (!PersonalDatabaseTransferHelper.affectsPublicScope(this.activeScope, normalizedTargetScope)) {
+            this.syncAfterDatabaseMutation(player);
+            return;
+        }
+        if (this.activeScope != DatabaseScope.PUBLIC) {
+            this.syncViewToClient();
+        }
+        PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
     }
 
     @Override

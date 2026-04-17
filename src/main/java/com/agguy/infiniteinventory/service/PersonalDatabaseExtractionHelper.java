@@ -136,7 +136,7 @@ final class PersonalDatabaseExtractionHelper {
         return changed;
     }
 
-    private static List<DatabaseSelectionEntry> normalizeSelectionEntries(List<DatabaseSelectionEntry> selectionEntries) {
+    static List<DatabaseSelectionEntry> normalizeSelectionEntries(List<DatabaseSelectionEntry> selectionEntries) {
         if (selectionEntries == null || selectionEntries.isEmpty()) {
             return List.of();
         }
@@ -150,7 +150,7 @@ final class PersonalDatabaseExtractionHelper {
         return List.copyOf(normalizedEntries);
     }
 
-    private static StoredStackKey selectionKey(DatabaseSelectionEntry selectionEntry) {
+    static StoredStackKey selectionKey(DatabaseSelectionEntry selectionEntry) {
         if (selectionEntry == null || selectionEntry.isEmpty()) {
             return null;
         }

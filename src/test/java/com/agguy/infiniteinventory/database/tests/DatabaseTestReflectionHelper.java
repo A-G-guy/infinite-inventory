@@ -3,8 +3,11 @@ package com.agguy.infiniteinventory.database.tests;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.database.UnresolvedStoredEntry;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.List;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import sun.misc.Unsafe;
 
@@ -24,6 +27,14 @@ public final class DatabaseTestReflectionHelper {
         Field nextSequenceField = StoredItemDatabase.class.getDeclaredField("nextSequence");
         nextSequenceField.setAccessible(true);
         nextSequenceField.setLong(database, nextSequence);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void forceUnresolvedEntry(StoredItemDatabase database, UnresolvedStoredEntry unresolvedEntry) throws ReflectiveOperationException {
+        Field unresolvedEntriesField = StoredItemDatabase.class.getDeclaredField("unresolvedEntries");
+        unresolvedEntriesField.setAccessible(true);
+        List<UnresolvedStoredEntry> unresolvedEntries = (List<UnresolvedStoredEntry>) unresolvedEntriesField.get(database);
+        unresolvedEntries.add(unresolvedEntry);
     }
 
     public static long readNextSequence(StoredItemDatabase database) throws ReflectiveOperationException {
@@ -61,6 +72,13 @@ public final class DatabaseTestReflectionHelper {
         setField(key, "displayStack", normalizedStack);
         setField(key, "hashCode", ItemStack.hashItemAndComponents(normalizedStack));
         return key;
+    }
+
+    public static CompoundTag invalidStackTag(String itemId) {
+        CompoundTag stackTag = new CompoundTag();
+        stackTag.putString("id", itemId);
+        stackTag.putInt("count", 1);
+        return stackTag;
     }
 
     private static Unsafe unsafe() throws ReflectiveOperationException {

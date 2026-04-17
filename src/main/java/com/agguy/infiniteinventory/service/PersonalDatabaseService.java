@@ -35,7 +35,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.stats.Stats;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 public final class PersonalDatabaseService {
     public static final PersonalDatabaseService INSTANCE = new PersonalDatabaseService();
     private static final int HOTBAR_SLOT_COUNT = 9;
@@ -269,30 +268,24 @@ public final class PersonalDatabaseService {
         return databaseChanged || directoryChanged;
     }
 
-    public boolean transferTab(ServerPlayer player, DatabaseScope scope, String sourceTabId, String targetTabId) {
-        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
-        boolean changed = database.transferTab(sourceTabId, this.resolveConcreteTargetTabId(player, scope, targetTabId));
-        if (changed) {
-            this.markScopeDirty(player, scope);
-        }
-        return changed;
+    public boolean transferTab(
+            ServerPlayer player,
+            DatabaseScope sourceScope,
+            DatabaseScope targetScope,
+            String sourceTabId,
+            String targetTabId
+    ) {
+        return PersonalDatabaseTransferHelper.transferTab(this, player, sourceScope, targetScope, sourceTabId, targetTabId);
     }
 
     public boolean transferSelection(
             ServerPlayer player,
-            DatabaseScope scope,
+            DatabaseScope sourceScope,
+            DatabaseScope targetScope,
             List<DatabaseSelectionEntry> selectionEntries,
             String targetTabId
     ) {
-        boolean changed = PersonalDatabaseExtractionHelper.transferSelection(
-                this.resolveDatabaseForMutation(player, scope),
-                selectionEntries,
-                this.resolveConcreteTargetTabId(player, scope, targetTabId)
-        );
-        if (changed) {
-            this.markScopeDirty(player, scope);
-        }
-        return changed;
+        return PersonalDatabaseTransferHelper.transferSelection(this, player, sourceScope, targetScope, selectionEntries, targetTabId);
     }
 
     public void syncPublicViewers(MinecraftServer server) {
@@ -363,7 +356,7 @@ public final class PersonalDatabaseService {
         return tabDirectory;
     }
 
-    private StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
+    StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());

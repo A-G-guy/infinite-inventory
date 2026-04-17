@@ -141,8 +141,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public boolean transferTab(String sourceTabId, String targetTabId) {
-        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
-        String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
+        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId), normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
         if (normalizedSourceTabId.equals(normalizedTargetTabId)) {
             return false;
         }
@@ -152,17 +151,17 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             changed = entry.tabId().equals(normalizedSourceTabId) && entry.moveToTab(normalizedTargetTabId, sequence) || changed;
         }
         if (!this.unresolvedEntries.isEmpty()) {
-            java.util.ArrayList<UnresolvedStoredEntry> updatedUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
+            java.util.ArrayList<UnresolvedStoredEntry> updatedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
             for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
                 if (unresolvedEntry.tabId().equals(normalizedSourceTabId)) {
-                    updatedUnresolvedEntries.add(unresolvedEntry.withTabId(normalizedTargetTabId, sequence));
+                    updatedEntries.add(unresolvedEntry.withTabId(normalizedTargetTabId, sequence));
                     changed = true;
                 } else {
-                    updatedUnresolvedEntries.add(unresolvedEntry);
+                    updatedEntries.add(unresolvedEntry);
                 }
             }
             this.unresolvedEntries.clear();
-            this.unresolvedEntries.addAll(updatedUnresolvedEntries);
+            this.unresolvedEntries.addAll(updatedEntries);
         }
         if (changed) {
             this.markRuntimeStateDirty();
@@ -175,15 +174,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             return false;
         }
         StoredStackEntry entry = this.entries.get(key);
-        if (entry == null) {
+        if (entry == null || !entry.tabId().equals(DatabaseTabs.normalizeConcreteTarget(sourceTabId))) {
             return false;
         }
-        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
-        if (!entry.tabId().equals(normalizedSourceTabId)) {
-            return false;
-        }
-        long sequence = this.nextSequence();
-        boolean changed = entry.moveToTab(targetTabId, sequence);
+        boolean changed = entry.moveToTab(targetTabId, this.nextSequence());
         if (changed) {
             this.markRuntimeStateDirty();
         }
@@ -467,7 +461,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return left + right;
     }
 
-    private long nextSequence() {
+    long nextSequence() {
         if (this.nextSequence == Long.MAX_VALUE) {
             return Long.MAX_VALUE;
         }
@@ -485,7 +479,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.needsResave = false;
     }
 
-    private void markRuntimeStateDirty() {
+    void markRuntimeStateDirty() {
         if (this.revision < Long.MAX_VALUE) {
             this.revision++;
         }

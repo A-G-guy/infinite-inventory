@@ -7,11 +7,13 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 public record DatabaseTabMutationPayload(
         int containerId,
         long sessionId,
         DatabaseScope scope,
+        @Nullable DatabaseScope targetScope,
         DatabaseTabMutationAction action,
         String tabId,
         String targetTabId,
@@ -25,6 +27,32 @@ public record DatabaseTabMutationPayload(
             DatabaseTabMutationPayload::read
     );
 
+    public DatabaseTabMutationPayload {
+        scope = DatabaseScope.normalize(scope);
+        targetScope = targetScope == null ? null : DatabaseScope.normalize(targetScope);
+        tabId = tabId == null ? "" : tabId;
+        targetTabId = targetTabId == null ? "" : targetTabId;
+        name = name == null ? "" : name;
+        iconItemId = iconItemId == null ? "" : iconItemId;
+    }
+
+    public DatabaseTabMutationPayload(
+            int containerId,
+            long sessionId,
+            DatabaseScope scope,
+            DatabaseTabMutationAction action,
+            String tabId,
+            String targetTabId,
+            String name,
+            String iconItemId
+    ) {
+        this(containerId, sessionId, scope, null, action, tabId, targetTabId, name, iconItemId);
+    }
+
+    public DatabaseScope resolvedTargetScope() {
+        return this.targetScope == null ? this.scope : DatabaseScope.normalize(this.targetScope);
+    }
+
     @Override
     public Type<DatabaseTabMutationPayload> type() {
         return TYPE;
@@ -35,6 +63,7 @@ public record DatabaseTabMutationPayload(
                 buffer.readVarInt(),
                 buffer.readVarLong(),
                 buffer.readEnum(DatabaseScope.class),
+                buffer.readBoolean() ? buffer.readEnum(DatabaseScope.class) : null,
                 buffer.readEnum(DatabaseTabMutationAction.class),
                 buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH),
                 buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH),
@@ -47,6 +76,10 @@ public record DatabaseTabMutationPayload(
         buffer.writeVarInt(payload.containerId);
         buffer.writeVarLong(payload.sessionId);
         buffer.writeEnum(payload.scope);
+        buffer.writeBoolean(payload.targetScope != null);
+        if (payload.targetScope != null) {
+            buffer.writeEnum(payload.targetScope);
+        }
         buffer.writeEnum(payload.action);
         buffer.writeUtf(payload.tabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
         buffer.writeUtf(payload.targetTabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
