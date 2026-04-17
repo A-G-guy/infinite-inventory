@@ -1,9 +1,9 @@
 package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import net.minecraft.network.FriendlyByteBuf;
 
 public record PersonalDatabaseOpenState(
@@ -12,7 +12,7 @@ public record PersonalDatabaseOpenState(
         DatabaseQuery personalQuery,
         DatabaseQuery publicQuery,
         DatabaseEnhancementConfig enhancementConfig,
-        String autoStoreTargetTabId
+        DatabaseAutoStoreTarget autoStoreTarget
 ) {
     public PersonalDatabaseOpenState {
         sessionId = Math.max(0L, sessionId);
@@ -20,7 +20,7 @@ public record PersonalDatabaseOpenState(
         personalQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PERSONAL, personalQuery);
         publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, publicQuery);
         enhancementConfig = enhancementConfig == null ? DatabaseEnhancementConfig.defaultConfig() : enhancementConfig;
-        autoStoreTargetTabId = DatabaseTabs.normalizeConcreteTarget(autoStoreTargetTabId);
+        autoStoreTarget = autoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : autoStoreTarget;
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -34,7 +34,7 @@ public record PersonalDatabaseOpenState(
                 DatabaseQuery.defaultQuery(DatabaseScope.PERSONAL),
                 DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC),
                 DatabaseEnhancementConfig.defaultConfig(),
-                DatabaseTabs.DEFAULT_TAB_ID
+                DatabaseAutoStoreTarget.defaultTarget()
         );
     }
 
@@ -48,7 +48,7 @@ public record PersonalDatabaseOpenState(
                 DatabaseQuery.read(buffer),
                 DatabaseQuery.read(buffer),
                 DatabaseEnhancementConfig.read(buffer),
-                buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH)
+                DatabaseAutoStoreTarget.read(buffer)
         );
     }
 
@@ -59,6 +59,6 @@ public record PersonalDatabaseOpenState(
         DatabaseQuery.write(buffer, normalizedState.personalQuery());
         DatabaseQuery.write(buffer, normalizedState.publicQuery());
         DatabaseEnhancementConfig.write(buffer, normalizedState.enhancementConfig());
-        buffer.writeUtf(normalizedState.autoStoreTargetTabId(), DatabaseQuery.MAX_TAB_ID_LENGTH);
+        DatabaseAutoStoreTarget.write(buffer, normalizedState.autoStoreTarget());
     }
 }

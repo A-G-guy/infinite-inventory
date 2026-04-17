@@ -15,7 +15,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "15";
+    private static final String NETWORK_VERSION = "16";
 
     private ModNetwork() {
     }
@@ -55,7 +55,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.updateEnhancementConfig(payload.enhancementConfig(), payload.autoStoreTargetTabId());
+            menu.updateEnhancementConfig(payload.enhancementConfig(), payload.autoStoreTarget());
         }
     }
 

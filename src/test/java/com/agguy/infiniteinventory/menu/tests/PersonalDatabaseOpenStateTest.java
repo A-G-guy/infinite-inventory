@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.menu.tests;
 
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -42,7 +43,7 @@ class PersonalDatabaseOpenStateTest {
                         com.agguy.infiniteinventory.database.DatabaseSearchConfig.defaultConfig()
                 ),
                 DatabaseEnhancementConfig.defaultConfig().withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true),
-                DatabaseTabs.DEFAULT_TAB_ID
+                new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID)
         );
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
 

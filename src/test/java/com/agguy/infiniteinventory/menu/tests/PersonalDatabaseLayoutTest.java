@@ -121,7 +121,7 @@ class PersonalDatabaseLayoutTest {
         int expectedHeight = PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
                 + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
                 + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
-                + PersonalDatabaseLayout.SLOT_SIZE;
+                + PersonalDatabaseLayout.SLOT_SIZE * 2;
         assertEquals(expectedHeight, layout.accessoriesPanelRect().height());
     }
 
@@ -160,6 +160,20 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
+    void expandedAccessoriesPanelShouldExposeVisibleGroupLayouts() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("back", "accessories.slot.back", 46, 1),
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 47, 2)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
+
+        assertEquals(2, layout.accessoryGroupLayouts().size());
+        assertTrue(layout.accessoryGroupLayouts().stream().allMatch(PersonalDatabaseLayout.AccessoryGroupLayout::visible));
+        assertTrue(layout.accessoryGroupLayouts().getFirst().headerRect().height() == PersonalDatabaseLayout.SLOT_SIZE);
+        assertTrue(layout.accessoryGroupLayouts().get(1).headerRect().y() >= layout.accessoryGroupLayouts().getFirst().bodyRect().bottom());
+    }
+
+    @Test
     void scrollingAccessoriesShouldClampAndRevealLaterRows() {
         List<AccessorySlotGroup> accessoryGroups = List.of(
                 new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 260)
@@ -168,7 +182,8 @@ class PersonalDatabaseLayoutTest {
 
         assertTrue(layout.accessoryMaxScrollRow() > 0);
         assertTrue(layout.accessoryScrollRow() == 1);
-        assertTrue(layout.accessorySlotLayouts().getFirst().visible() == false);
+        assertTrue(layout.accessoryGroupLayouts().getFirst().headerRect().height() == 0);
+        assertTrue(layout.accessorySlotLayouts().getFirst().visible());
         assertTrue(layout.accessorySlotLayouts().stream().anyMatch(slotLayout -> slotLayout.visible() && slotLayout.slotOffset() >= layout.accessoryColumns()));
     }
 }

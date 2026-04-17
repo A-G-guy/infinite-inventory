@@ -29,6 +29,7 @@ public record PersonalDatabaseLayout(
         Rect nextPageButtonRect,
         List<DatabaseViewportLayout> databaseViewportLayouts,
         List<AccessorySlotLayout> accessorySlotLayouts,
+        List<AccessoryGroupLayout> accessoryGroupLayouts,
         int accessoryColumns,
         int accessoryVisibleRows,
         int accessoryTotalRows,
@@ -97,6 +98,7 @@ public record PersonalDatabaseLayout(
         nextPageButtonRect = nextPageButtonRect == null ? Rect.empty() : nextPageButtonRect;
         databaseViewportLayouts = databaseViewportLayouts == null ? List.of() : List.copyOf(databaseViewportLayouts);
         accessorySlotLayouts = accessorySlotLayouts == null ? List.of() : List.copyOf(accessorySlotLayouts);
+        accessoryGroupLayouts = accessoryGroupLayouts == null ? List.of() : List.copyOf(accessoryGroupLayouts);
         accessoryColumns = Math.max(0, accessoryColumns);
         accessoryVisibleRows = Math.max(0, accessoryVisibleRows);
         accessoryTotalRows = Math.max(0, accessoryTotalRows);
@@ -313,6 +315,14 @@ public record PersonalDatabaseLayout(
         public AccessorySlotLayout {
             group = group == null ? new AccessorySlotGroup("", "", -1, 0) : group;
             slotRect = slotRect == null ? hiddenSlotRect() : slotRect;
+        }
+    }
+
+    public record AccessoryGroupLayout(AccessorySlotGroup group, Rect headerRect, Rect bodyRect, boolean visible) {
+        public AccessoryGroupLayout {
+            group = group == null ? new AccessorySlotGroup("", "", -1, 0) : group;
+            headerRect = headerRect == null ? Rect.empty() : headerRect;
+            bodyRect = bodyRect == null ? Rect.empty() : bodyRect;
         }
     }
 

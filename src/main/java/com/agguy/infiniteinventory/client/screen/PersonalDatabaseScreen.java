@@ -32,6 +32,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int OVERLAY_TEXT_COLOR = 0x3D342B;
     static final int OVERLAY_MUTED_TEXT_COLOR = 0x6B6257;
     static final int OVERLAY_ACCENT_TEXT_COLOR = 0x5A4523;
+    static final int TEXT_FIELD_TEXT_COLOR = 0x241A11;
+    static final int TEXT_FIELD_MUTED_TEXT_COLOR = 0x6B5C48;
+    static final int TOP_TAB_ACTIVE_TEXT_COLOR = 0xFFF4D58A;
+    static final int TOP_TAB_INACTIVE_TEXT_COLOR = 0xFFF9F4EA;
     static final int DROPDOWN_ROW_HEIGHT = 20;
     static final int SORT_DROPDOWN_WIDTH = 168;
     static final int CONTEXT_MENU_MIN_WIDTH = 112;
@@ -40,7 +44,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int PAGE_PICKER_MIN_WIDTH = 88;
     static final int PAGE_PICKER_ROW_HEIGHT = 20;
     static final int SEARCH_ICON_SIZE = 9;
-    static final int SEARCH_TEXT_LEFT_PADDING = 18;
+    static final int TEXT_FIELD_LEFT_PADDING = 6;
+    static final int TEXT_FIELD_RIGHT_PADDING = 6;
+    static final int SEARCH_TEXT_LEFT_PADDING = 22;
     static final int ADVANCED_SEARCH_PANEL_WIDTH = 236;
     static final int ADVANCED_SEARCH_PANEL_PADDING = 6;
     static final int ADVANCED_SEARCH_TITLE_HEIGHT = 22;

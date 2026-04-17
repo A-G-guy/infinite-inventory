@@ -131,13 +131,19 @@ final class PersonalDatabaseScreenTabHelper {
             PersonalDatabaseLayout.Rect tabRect = topTabRect(screen, index, visibleTabs.size(), !hiddenTopTabs(screen).isEmpty());
             boolean hovered = tabRect.contains(mouseX, mouseY);
             boolean selected = query.visibleTabIds().contains(tab.id());
+            boolean focused = query.focusedTabId().equals(tab.id());
             VanillaWidgetRenderer.renderTab(guiGraphics, tabRect, selected, hovered);
+            if (focused) {
+                guiGraphics.fill(tabRect.x() + 3, tabRect.bottom() - 3, tabRect.right() - 3, tabRect.bottom() - 1, 0xFFD4B16A);
+            }
             guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), tabRect.x() + PersonalDatabaseScreen.TAB_ICON_LEFT_PADDING, tabRect.y() + 4);
             int labelX = tabRect.x() + PersonalDatabaseScreen.TAB_ICON_LEFT_PADDING
                     + PersonalDatabaseScreen.TAB_ICON_SIZE
                     + PersonalDatabaseScreen.TAB_TEXT_GAP;
             int labelWidth = Math.max(0, tabRect.right() - 4 - labelX);
-            int color = query.focusedTabId().equals(tab.id()) ? 0x404040 : 0xFFFFFF;
+            int color = focused
+                    ? PersonalDatabaseScreen.TOP_TAB_ACTIVE_TEXT_COLOR
+                    : PersonalDatabaseScreen.TOP_TAB_INACTIVE_TEXT_COLOR;
             guiGraphics.drawString(
                     screen.screenFont(),
                     PersonalDatabaseScreenGeometry.truncateToWidth(
@@ -148,7 +154,7 @@ final class PersonalDatabaseScreenTabHelper {
                     labelX,
                     tabRect.y() + 8,
                     color,
-                    false
+                    true
             );
         }
         if (!hiddenTopTabs(screen).isEmpty()) {

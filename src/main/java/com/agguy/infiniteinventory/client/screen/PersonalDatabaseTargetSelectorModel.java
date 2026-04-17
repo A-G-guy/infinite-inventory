@@ -25,8 +25,9 @@ final class PersonalDatabaseTargetSelectorModel {
         }
         return switch (mode) {
             case TRANSFER_SELECTION, TRANSFER_TAB -> buildTransferRows(mode, viewState, sourceTabId);
-            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT, DELETE_TAB, AUTO_STORE_TARGET -> buildFlatRows(
-                    flatRowScope(mode, viewState),
+            case AUTO_STORE_TARGET -> buildAutoStoreTargetRows(viewState);
+            case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT, DELETE_TAB -> buildFlatRows(
+                    viewState.query().scope(),
                     candidateTabs(mode, viewState, sourceTabId, currentPanels)
             );
             case NONE -> List.of();
@@ -61,6 +62,13 @@ final class PersonalDatabaseTargetSelectorModel {
         }
     }
 
+    private static List<Row> buildAutoStoreTargetRows(DatabaseViewState viewState) {
+        List<Row> rows = new ArrayList<>();
+        appendTransferGroup(rows, DatabaseScope.PERSONAL, false, concreteTabsForScope(viewState, DatabaseScope.PERSONAL));
+        appendTransferGroup(rows, DatabaseScope.PUBLIC, false, concreteTabsForScope(viewState, DatabaseScope.PUBLIC));
+        return List.copyOf(rows);
+    }
+
     private static List<DatabaseTab> transferTabsForScope(
             PersonalDatabaseScreen.TargetSelectorMode mode,
             DatabaseViewState viewState,
@@ -77,15 +85,6 @@ final class PersonalDatabaseTargetSelectorModel {
                         || normalizedSourceTabId == null
                         || !tab.id().equals(normalizedSourceTabId))
                 .toList();
-    }
-
-    private static DatabaseScope flatRowScope(
-            PersonalDatabaseScreen.TargetSelectorMode mode,
-            DatabaseViewState viewState
-    ) {
-        return mode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
-                ? DatabaseScope.PERSONAL
-                : viewState.query().scope();
     }
 
     private static List<Row> buildFlatRows(DatabaseScope targetScope, List<DatabaseTab> tabs) {
@@ -111,11 +110,14 @@ final class PersonalDatabaseTargetSelectorModel {
                     .filter(DatabaseTab::isConcreteTab)
                     .filter(tab -> !tab.id().equals(sourceTabId == null ? "" : sourceTabId))
                     .toList();
-            case AUTO_STORE_TARGET -> viewState.personalTabs().stream()
-                    .filter(DatabaseTab::isConcreteTab)
-                    .toList();
-            case NONE, TRANSFER_SELECTION, TRANSFER_TAB -> List.of();
+            case NONE, TRANSFER_SELECTION, TRANSFER_TAB, AUTO_STORE_TARGET -> List.of();
         };
+    }
+
+    private static List<DatabaseTab> concreteTabsForScope(DatabaseViewState viewState, DatabaseScope scope) {
+        return viewState.tabsForScope(scope).stream()
+                .filter(DatabaseTab::isConcreteTab)
+                .toList();
     }
 
     private static List<DatabaseTab> visibleConcreteTabs(DatabaseViewState viewState, List<DatabasePanelView> currentPanels) {

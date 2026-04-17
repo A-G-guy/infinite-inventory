@@ -13,8 +13,8 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 final class PersonalDatabaseScreenManagementHelper {
-    private static final int MANAGEMENT_NAME_TEXT_LEFT_PADDING = 7;
-    private static final int MANAGEMENT_NAME_TEXT_RIGHT_PADDING = 6;
+    private static final int MANAGEMENT_NAME_TEXT_LEFT_PADDING = PersonalDatabaseScreen.TEXT_FIELD_LEFT_PADDING;
+    private static final int MANAGEMENT_NAME_TEXT_RIGHT_PADDING = PersonalDatabaseScreen.TEXT_FIELD_RIGHT_PADDING;
 
     private PersonalDatabaseScreenManagementHelper() {
     }
@@ -31,8 +31,8 @@ final class PersonalDatabaseScreenManagementHelper {
             ));
             screen.managementNameBox.setBordered(false);
             screen.managementNameBox.setMaxLength(DatabaseTabs.MAX_TAB_NAME_LENGTH);
-            screen.managementNameBox.setTextColor(PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR);
-            screen.managementNameBox.setTextColorUneditable(PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR);
+            screen.managementNameBox.setTextColor(PersonalDatabaseScreen.TEXT_FIELD_TEXT_COLOR);
+            screen.managementNameBox.setTextColorUneditable(PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR);
             screen.managementNameBox.visible = false;
         }
         if (screen.iconSearchBox == null) {
@@ -46,8 +46,8 @@ final class PersonalDatabaseScreenManagementHelper {
             ));
             screen.iconSearchBox.setBordered(false);
             screen.iconSearchBox.setMaxLength(64);
-            screen.iconSearchBox.setTextColor(0x303030);
-            screen.iconSearchBox.setTextColorUneditable(0x606060);
+            screen.iconSearchBox.setTextColor(PersonalDatabaseScreen.TEXT_FIELD_TEXT_COLOR);
+            screen.iconSearchBox.setTextColorUneditable(PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR);
             screen.iconSearchBox.setResponder(value -> screen.iconPickerPageIndex = 0);
             screen.iconSearchBox.visible = false;
         }
@@ -85,9 +85,12 @@ final class PersonalDatabaseScreenManagementHelper {
         }
 
         PersonalDatabaseLayout.Rect iconSearchRect = PersonalDatabaseScreenIconPickerGeometry.iconPickerSearchFieldRect(screen);
-        screen.iconSearchBox.setX(iconSearchRect.x() + 4);
+        screen.iconSearchBox.setX(iconSearchRect.x() + PersonalDatabaseScreen.TEXT_FIELD_LEFT_PADDING);
         screen.iconSearchBox.setY(iconSearchRect.y() + 4);
-        screen.iconSearchBox.setWidth(Math.max(1, iconSearchRect.width() - 8));
+        screen.iconSearchBox.setWidth(Math.max(
+                1,
+                iconSearchRect.width() - PersonalDatabaseScreen.TEXT_FIELD_LEFT_PADDING - PersonalDatabaseScreen.TEXT_FIELD_RIGHT_PADDING
+        ));
         screen.iconSearchBox.setHeight(12);
         screen.iconSearchBox.visible = screen.iconPickerExpanded;
         screen.iconSearchBox.active = screen.iconPickerExpanded;

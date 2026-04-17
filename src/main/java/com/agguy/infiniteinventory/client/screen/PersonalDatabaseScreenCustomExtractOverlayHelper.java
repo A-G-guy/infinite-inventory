@@ -220,8 +220,8 @@ final class PersonalDatabaseScreenCustomExtractOverlayHelper {
         );
         screen.customExtractAmountBox.setBordered(false);
         screen.customExtractAmountBox.setMaxLength(Integer.MAX_VALUE);
-        screen.customExtractAmountBox.setTextColor(PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR);
-        screen.customExtractAmountBox.setTextColorUneditable(PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR);
+        screen.customExtractAmountBox.setTextColor(PersonalDatabaseScreen.TEXT_FIELD_TEXT_COLOR);
+        screen.customExtractAmountBox.setTextColorUneditable(PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR);
         screen.customExtractAmountBox.setFilter(PersonalDatabaseScreenCustomExtractOverlayHelper::isAllowedInput);
     }
 
@@ -230,9 +230,12 @@ final class PersonalDatabaseScreenCustomExtractOverlayHelper {
             return;
         }
         PersonalDatabaseLayout.Rect fieldRect = fieldRect(screen);
-        screen.customExtractAmountBox.setX(fieldRect.x() + 4);
+        screen.customExtractAmountBox.setX(fieldRect.x() + PersonalDatabaseScreen.TEXT_FIELD_LEFT_PADDING);
         screen.customExtractAmountBox.setY(fieldRect.y() + 4);
-        screen.customExtractAmountBox.setWidth(Math.max(1, fieldRect.width() - 8));
+        screen.customExtractAmountBox.setWidth(Math.max(
+                1,
+                fieldRect.width() - PersonalDatabaseScreen.TEXT_FIELD_LEFT_PADDING - PersonalDatabaseScreen.TEXT_FIELD_RIGHT_PADDING
+        ));
         screen.customExtractAmountBox.setHeight(12);
     }
 

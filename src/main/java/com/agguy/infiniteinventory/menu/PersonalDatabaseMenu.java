@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -71,8 +72,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         return this.enhancementConfig;
     }
 
-    public String autoStoreTargetTabId() {
-        return this.autoStoreTargetTabId;
+    public DatabaseAutoStoreTarget autoStoreTarget() {
+        return this.autoStoreTarget;
     }
 
     public void initializeFromPreferences(DatabaseViewPreferencesAttachment preferences) {
@@ -85,7 +86,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
                 preferences.queryFor(DatabaseScope.PERSONAL),
                 preferences.queryFor(DatabaseScope.PUBLIC),
                 preferences.enhancementConfig(),
-                preferences.autoStoreTargetTabId()
+                preferences.autoStoreTarget()
         ));
     }
 
@@ -96,7 +97,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.personalQuery = newState.personalQuery();
         this.publicQuery = newState.publicQuery();
         this.enhancementConfig = newState.enhancementConfig();
-        this.autoStoreTargetTabId = newState.autoStoreTargetTabId();
+        this.autoStoreTarget = newState.autoStoreTarget();
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -171,7 +172,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
         this.currentPages = List.copyOf(rebuiltPages);
         this.setActiveQuery(adjustedQuery);
-        this.autoStoreTargetTabId = PersonalDatabaseService.INSTANCE.resolveAutoStoreTargetTabId(serverPlayer);
+        this.autoStoreTarget = PersonalDatabaseService.INSTANCE.resolveAutoStoreTarget(serverPlayer);
         this.persistPreferences(serverPlayer);
         this.viewState = new DatabaseViewState(
                 this.containerId,
@@ -180,7 +181,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
                 this.personalQuery,
                 this.publicQuery,
                 this.enhancementConfig,
-                this.autoStoreTargetTabId,
+                this.autoStoreTarget,
                 PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PERSONAL),
                 PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC),
                 this.currentPages.stream().map(DatabasePage::toPanelView).toList()
@@ -200,9 +201,9 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
     }
 
-    public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig, String newAutoStoreTargetTabId) {
+    public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig, DatabaseAutoStoreTarget newAutoStoreTarget) {
         this.enhancementConfig = newConfig == null ? DatabaseEnhancementConfig.defaultConfig() : newConfig;
-        this.autoStoreTargetTabId = com.agguy.infiniteinventory.database.DatabaseTabs.normalizeConcreteTarget(newAutoStoreTargetTabId);
+        this.autoStoreTarget = newAutoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : newAutoStoreTarget;
         if (this.owner instanceof ServerPlayer serverPlayer) {
             this.persistPreferences(serverPlayer);
         }

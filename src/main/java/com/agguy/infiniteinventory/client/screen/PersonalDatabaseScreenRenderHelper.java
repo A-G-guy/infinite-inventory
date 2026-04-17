@@ -72,45 +72,11 @@ final class PersonalDatabaseScreenRenderHelper {
     }
 
     static void renderAccessoriesPanel(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        if (screen.layout == null || screen.layout.accessoriesPanelRect().height() <= 0) {
-            return;
-        }
-        PersonalDatabaseLayout.Rect panelRect = screen.layout.accessoriesPanelRect();
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 220.0F);
-        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
-        guiGraphics.drawString(
-                screen.screenFont(),
-                Component.translatable("screen.infiniteinventory.accessories_panel"),
-                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
-                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
-                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                false
-        );
-        guiGraphics.fill(
-                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
-                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 1,
-                panelRect.right() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
-                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 2,
-                0x70A89E8C
-        );
-        guiGraphics.pose().popPose();
+        PersonalDatabaseScreenAccessoryPanelHelper.renderAccessoriesPanel(screen, guiGraphics);
     }
 
     static void renderAccessorySlotHover(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.AccessorySlotLayout hoveredSlot = PersonalDatabaseScreenGeometry.findHoveredAccessorySlot(
-                screen,
-                mouseX,
-                mouseY
-        );
-        if (hoveredSlot == null) {
-            return;
-        }
-        PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 230.0F);
-        guiGraphics.fill(slotRect.x(), slotRect.y(), slotRect.x() + 16, slotRect.y() + 16, 0x52000000);
-        guiGraphics.pose().popPose();
+        PersonalDatabaseScreenAccessoryPanelHelper.renderAccessorySlotHover(screen, guiGraphics, mouseX, mouseY);
     }
 
     static void renderDatabaseEntries(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -254,7 +220,7 @@ final class PersonalDatabaseScreenRenderHelper {
                     Component.translatable("screen.infiniteinventory.search_hint"),
                     searchRect.x() + PersonalDatabaseScreen.SEARCH_TEXT_LEFT_PADDING,
                     searchRect.y() + 6,
-                    0x777777,
+                    PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR,
                     false
             );
         }

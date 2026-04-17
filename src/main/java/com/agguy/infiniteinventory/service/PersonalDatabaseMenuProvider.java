@@ -42,7 +42,7 @@ final class PersonalDatabaseMenuProvider implements MenuProvider, IMenuProviderE
                     databaseMenu.queryForScope(DatabaseScope.PERSONAL),
                     databaseMenu.queryForScope(DatabaseScope.PUBLIC),
                     databaseMenu.enhancementConfig(),
-                    databaseMenu.autoStoreTargetTabId()
+                    databaseMenu.autoStoreTarget()
             ));
         } else {
             PersonalDatabaseOpenState.write(buffer, PersonalDatabaseOpenState.defaultState());
