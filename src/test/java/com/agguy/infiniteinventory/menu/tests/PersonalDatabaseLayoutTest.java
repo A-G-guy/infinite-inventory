@@ -201,4 +201,24 @@ class PersonalDatabaseLayoutTest {
         assertTrue(layout.accessorySlotLayouts().getFirst().visible());
         assertTrue(layout.accessorySlotLayouts().stream().anyMatch(slotLayout -> slotLayout.visible() && slotLayout.slotOffset() >= layout.accessoryColumns()));
     }
+
+    @Test
+    void compactLayoutShouldKeepBottomInventoryInsideFrameWhenAccessoriesExist() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 4)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(
+                480,
+                270,
+                INVENTORY_WIDTH,
+                INVENTORY_HEIGHT,
+                INVENTORY_WIDTH,
+                INVENTORY_HEIGHT,
+                accessoryGroups
+        );
+
+        assertTrue(layout.bottomInventoryRect().bottom() <= layout.frameRect().bottom());
+        assertTrue(layout.databaseFooterRect().bottom() <= layout.frameRect().bottom());
+        assertTrue(layout.accessoryToggleRect().bottom() <= layout.bottomInventoryRect().y());
+    }
 }

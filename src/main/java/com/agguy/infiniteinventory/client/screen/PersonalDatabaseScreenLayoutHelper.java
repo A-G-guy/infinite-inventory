@@ -29,7 +29,7 @@ final class PersonalDatabaseScreenLayoutHelper {
     static void rebuildLayout(PersonalDatabaseScreen screen) {
         int visiblePanelCount = Math.max(
                 1,
-                Math.min(DatabaseTabs.MAX_VISIBLE_TAB_COUNT, screen.databaseMenu.viewState().query().visibleTabs().size())
+                Math.min(PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen), screen.databaseMenu.viewState().query().visibleTabs().size())
         );
         screen.layout = PersonalDatabaseLayout.create(
                 screen.screenWidthValue(),
@@ -48,6 +48,9 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void refreshUiStructureIfNeeded(PersonalDatabaseScreen screen) {
+        if (enforceScreenConstraints(screen)) {
+            return;
+        }
         String nextSignature = uiSignature(screen);
         if (nextSignature.equals(screen.lastUiSignature)) {
             return;
@@ -274,6 +277,26 @@ final class PersonalDatabaseScreenLayoutHelper {
         screen.iconSearchBox = null;
         PersonalDatabaseScreenWidgetHelper.buildWidgets(screen);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(screen);
+    }
+
+    private static boolean enforceScreenConstraints(PersonalDatabaseScreen screen) {
+        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
+        java.util.List<DatabaseScopedTabRef> clampedVisibleTabs = PersonalDatabaseScreenCommonHelper.clampVisibleTabsToScreen(
+                screen,
+                currentQuery.visibleTabs(),
+                currentQuery.focusedTab()
+        );
+        if (clampedVisibleTabs.equals(currentQuery.visibleTabs())) {
+            return false;
+        }
+        DatabaseScopedTabRef nextFocusedTab = clampedVisibleTabs.contains(currentQuery.focusedTab())
+                ? currentQuery.focusedTab()
+                : clampedVisibleTabs.getFirst();
+        sendQuery(
+                screen,
+                currentQuery.withVisibleTabs(clampedVisibleTabs).withFocusedTab(nextFocusedTab)
+        );
+        return true;
     }
 
     private static String uiSignature(PersonalDatabaseScreen screen) {

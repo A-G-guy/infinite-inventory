@@ -18,7 +18,45 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 final class PersonalDatabaseScreenRenderHelper {
+    private static final int UNSUPPORTED_NOTICE_WIDTH = 320;
+    private static final int UNSUPPORTED_NOTICE_HEIGHT = 126;
+
     private PersonalDatabaseScreenRenderHelper() {
+    }
+
+    static void renderUnsupportedScreen(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.centeredOverlayRect(
+                screen,
+                UNSUPPORTED_NOTICE_WIDTH,
+                UNSUPPORTED_NOTICE_HEIGHT
+        );
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
+        guiGraphics.drawString(
+                screen.screenFont(),
+                Component.translatable("screen.infiniteinventory.window_too_small.title"),
+                panelRect.x() + 8,
+                panelRect.y() + 8,
+                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                false
+        );
+        guiGraphics.fill(
+                panelRect.x() + 8,
+                panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
+                panelRect.right() - 8,
+                panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
+                0x70A89E8C
+        );
+        guiGraphics.drawWordWrap(
+                screen.screenFont(),
+                Component.translatable("screen.infiniteinventory.window_too_small.description"),
+                panelRect.x() + 8,
+                panelRect.y() + 40,
+                Math.max(1, panelRect.width() - 16),
+                PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR
+        );
+        guiGraphics.pose().popPose();
     }
 
     static void renderBg(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {

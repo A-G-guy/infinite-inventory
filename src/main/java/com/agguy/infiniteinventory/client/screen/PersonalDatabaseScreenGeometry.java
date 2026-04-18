@@ -30,23 +30,34 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
+        PersonalDatabaseScreenFitProfile fitProfile = PersonalDatabaseScreenCommonHelper.fitProfile(screen);
         int rowCount = Math.max(
                 PersonalDatabaseScreenCommonHelper.tabsForScope(screen, com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL).size(),
                 PersonalDatabaseScreenCommonHelper.tabsForScope(screen, com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC).size()
         );
-        int height = PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2
-                + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
-                + 8
-                + 132
-                + 14
-                + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
-                + 6
-                + rowCount * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT;
+        int height = fitProfile.showsViewSelectorPreview()
+                ? PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2
+                        + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                        + 8
+                        + 132
+                        + 14
+                        + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                        + 6
+                        + rowCount * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                : PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2
+                        + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                        + 8
+                        + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                        + 6
+                        + rowCount * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT;
         return centeredOverlayRect(screen, PersonalDatabaseScreen.TAB_SELECTOR_WIDTH, height);
     }
 
     static PersonalDatabaseLayout.Rect viewSelectorPreviewRect(PersonalDatabaseScreen screen) {
         PersonalDatabaseLayout.Rect panelRect = viewSelectorRect(screen);
+        if (!PersonalDatabaseScreenCommonHelper.fitProfile(screen).showsViewSelectorPreview()) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
         return new PersonalDatabaseLayout.Rect(
                 panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
                 panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 8,
@@ -56,10 +67,15 @@ final class PersonalDatabaseScreenGeometry {
     }
 
     static PersonalDatabaseLayout.Rect viewSelectorColumnRect(PersonalDatabaseScreen screen, boolean personalColumn) {
-        PersonalDatabaseLayout.Rect previewRect = viewSelectorPreviewRect(screen);
-        int top = previewRect.bottom() + 14;
-        int width = Math.max(1, (previewRect.width() - 12) / 2);
-        int x = personalColumn ? previewRect.x() : previewRect.x() + width + 12;
+        PersonalDatabaseLayout.Rect panelRect = viewSelectorRect(screen);
+        int top = PersonalDatabaseScreenCommonHelper.fitProfile(screen).showsViewSelectorPreview()
+                ? viewSelectorPreviewRect(screen).bottom() + 14
+                : panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 8;
+        int availableWidth = panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2;
+        int width = Math.max(1, (availableWidth - 12) / 2);
+        int x = personalColumn
+                ? panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                : panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + width + 12;
         return new PersonalDatabaseLayout.Rect(
                 x,
                 top,

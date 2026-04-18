@@ -176,6 +176,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     DatabaseScope topTabScopeFilter = DatabaseScope.PERSONAL;
     @Nullable
     DatabaseScopedTabRef pendingTopTabActionTab;
+    int viewSelectorPersonalScrollIndex;
+    int viewSelectorPublicScrollIndex;
+    int managementPersonalScrollIndex;
+    int managementPublicScrollIndex;
+    int moreTabsScrollIndex;
+    int topTabReplaceScrollIndex;
+    int advancedSearchScrollIndex;
+    int enhancementScrollIndex;
 
     enum TargetSelectorMode {
         NONE,
@@ -228,6 +236,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.customExtractOverlayExpanded = false;
         this.customExtractValidationKey = "";
         this.targetSelectorScrollIndex = 0;
+        this.viewSelectorPersonalScrollIndex = 0;
+        this.viewSelectorPublicScrollIndex = 0;
+        this.managementPersonalScrollIndex = 0;
+        this.managementPublicScrollIndex = 0;
+        this.moreTabsScrollIndex = 0;
+        this.topTabReplaceScrollIndex = 0;
+        this.advancedSearchScrollIndex = 0;
+        this.enhancementScrollIndex = 0;
         this.topTabScopeFilter = this.databaseMenu.viewState().query().focusedTab().scope();
         this.selectionGestureModel.clearSelectionGesture();
         this.selectionGestureModel.releaseDiscardKey();
@@ -251,6 +267,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
+        if (!this.screenFitProfile().supportsFullUi()) {
+            PersonalDatabaseScreenRenderHelper.renderUnsupportedScreen(this, guiGraphics);
+            return;
+        }
         this.suppressVanillaTooltipRender = true;
         try {
             super.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -387,6 +407,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     int screenHeightValue() {
         return this.height;
+    }
+
+    PersonalDatabaseScreenFitProfile screenFitProfile() {
+        return PersonalDatabaseScreenFitProfile.resolve(this.width, this.height);
     }
 
     Button addScreenButton(Button button) {
