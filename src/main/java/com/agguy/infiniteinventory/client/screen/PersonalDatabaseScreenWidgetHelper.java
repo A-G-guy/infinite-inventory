@@ -26,6 +26,8 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.layout == null) {
             return;
         }
+        screen.personalScopeButton = null;
+        screen.publicScopeButton = null;
         buildPanelWidgets(screen);
 
         PersonalDatabaseLayout.Rect advancedSearchRect = screen.layout.advancedSearchButtonRect();
@@ -126,7 +128,13 @@ final class PersonalDatabaseScreenWidgetHelper {
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
                         Component.translatable(DatabaseScope.PERSONAL.translationKey()),
-                        button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PERSONAL)
+                        button -> {
+                            DatabaseScope currentScope = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
+                            DatabaseScope nextScope = currentScope == DatabaseScope.PUBLIC
+                                    ? DatabaseScope.PERSONAL
+                                    : DatabaseScope.PUBLIC;
+                            PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, nextScope);
+                        }
                 )
                 .bounds(
                         personalScopeRect.x(),
@@ -137,12 +145,14 @@ final class PersonalDatabaseScreenWidgetHelper {
                 .build());
 
         PersonalDatabaseLayout.Rect publicScopeRect = screen.layout.publicScopeButtonRect();
-        screen.publicScopeButton = screen.addScreenButton(Button.builder(
-                        Component.translatable(DatabaseScope.PUBLIC.translationKey()),
-                        button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC)
-                )
-                .bounds(publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height())
-                .build());
+        if (publicScopeRect.width() > 0 && publicScopeRect.height() > 0) {
+            screen.publicScopeButton = screen.addScreenButton(Button.builder(
+                            Component.translatable(DatabaseScope.PUBLIC.translationKey()),
+                            button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC)
+                    )
+                    .bounds(publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height())
+                    .build());
+        }
 
         PersonalDatabaseLayout.Rect depositRect = screen.layout.depositButtonRect();
         screen.depositButton = screen.addScreenButton(Button.builder(
@@ -315,8 +325,9 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         if (screen.personalScopeButton != null) {
             screen.personalScopeButton.visible = screen.layout != null && screen.layout.personalScopeButtonRect().width() > 0;
-            screen.personalScopeButton.active = topTabScopeFilter != DatabaseScope.PERSONAL;
-            screen.personalScopeButton.setMessage(Component.translatable(DatabaseScope.PERSONAL.translationKey()));
+            DatabaseScope nextScope = topTabScopeFilter == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
+            screen.personalScopeButton.active = !PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, nextScope).isEmpty();
+            screen.personalScopeButton.setMessage(Component.translatable(topTabScopeFilter.translationKey()));
         }
         if (screen.publicScopeButton != null) {
             screen.publicScopeButton.visible = screen.layout != null && screen.layout.publicScopeButtonRect().width() > 0;

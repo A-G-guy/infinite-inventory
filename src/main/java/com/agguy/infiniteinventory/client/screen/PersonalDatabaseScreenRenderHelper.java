@@ -214,7 +214,7 @@ final class PersonalDatabaseScreenRenderHelper {
                     screen.screenFont(),
                     PersonalDatabaseScreenGeometry.truncateToWidth(
                             screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, panel.tab()).getString(),
+                            PersonalDatabaseScreenCommonHelper.viewTitleLabel(screen, panel.scopedTab()).getString(),
                             titleMaxWidth
                     ),
                     titleRect.x(),
@@ -226,27 +226,27 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
 
-        int footerMaxWidth = Math.max(0, screen.layout.depositButtonRect().x() - screen.layout.databaseFooterRect().x() - 8);
-        boolean mixedScopeView = viewState.query().visibleTabs().stream()
-                .map(com.agguy.infiniteinventory.database.DatabaseScopedTabRef::scope)
-                .distinct()
-                .count() > 1L;
-        Component footerStats = Component.translatable(
-                "screen.infiniteinventory.footer_stats",
-                Component.translatable(mixedScopeView
-                        ? "screen.infiniteinventory.scope.mixed"
-                        : viewState.query().scope().translationKey()),
-                viewState.totalEntries(),
-                CompactNumberFormatter.format(viewState.totalItems())
-        );
-        guiGraphics.drawString(
-                screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(screen, footerStats.getString(), footerMaxWidth),
-                screen.layout.databaseFooterRect().x(),
-                screen.layout.databaseFooterRect().y() + 6,
-                0x404040,
-                false
-        );
+        if (screen.layout.toolbarRect().width() > 0) {
+            String toolbarStats = Component.translatable(
+                    "screen.infiniteinventory.total_entries",
+                    CompactNumberFormatter.format(viewState.totalEntries())
+            ).getString() + "   " + Component.translatable(
+                    "screen.infiniteinventory.total_items",
+                    CompactNumberFormatter.format(viewState.totalItems())
+            ).getString();
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                            screen,
+                            toolbarStats,
+                            screen.layout.toolbarRect().width()
+                    ),
+                    screen.layout.toolbarRect().x(),
+                    screen.layout.toolbarRect().y() + 6,
+                    PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
+                    false
+            );
+        }
     }
 
     static void renderSearchHint(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
@@ -341,7 +341,13 @@ final class PersonalDatabaseScreenRenderHelper {
         if (hoveredTab != null) {
             guiGraphics.renderTooltip(
                     screen.screenFont(),
-                    List.of(PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, hoveredTab)),
+                    List.of(
+                            PersonalDatabaseScreenCommonHelper.tabLabel(
+                                    screen,
+                                    PersonalDatabaseScreenCommonHelper.findTab(screen, hoveredTab)
+                            ),
+                            PersonalDatabaseScreenCommonHelper.scopeLabel(hoveredTab.scope()).copy().withStyle(ChatFormatting.GRAY)
+                    ),
                     ItemStack.EMPTY.getTooltipImage(),
                     mouseX,
                     mouseY
@@ -435,13 +441,6 @@ final class PersonalDatabaseScreenRenderHelper {
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
             VanillaWidgetRenderer.renderPanel(guiGraphics, viewportLayout.panelRect());
         }
-        guiGraphics.fill(
-                screen.layout.databaseFooterRect().x(),
-                screen.layout.databaseFooterRect().y() - 6,
-                screen.layout.databaseFooterRect().right(),
-                screen.layout.databaseFooterRect().y() - 5,
-                0x66FFFFFF
-        );
         guiGraphics.drawString(
                 screen.screenFont(),
                 Component.translatable(screen.databaseMenu.viewState().query().visibleTabs().stream()

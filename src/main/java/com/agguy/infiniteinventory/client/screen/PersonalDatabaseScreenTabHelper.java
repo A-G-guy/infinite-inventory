@@ -139,7 +139,7 @@ final class PersonalDatabaseScreenTabHelper {
             return -1;
         }
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
-            if (screen.layout.databaseViewportLayout(panelIndex).panelRect().contains(mouseX, mouseY)) {
+            if (screen.layout.databaseViewportLayout(panelIndex).gridRect().contains(mouseX, mouseY)) {
                 return panelIndex;
             }
         }
@@ -291,7 +291,10 @@ final class PersonalDatabaseScreenTabHelper {
         PersonalDatabaseLayout.Rect tabBarRect = screen.layout.tabBarRect();
         PersonalDatabaseLayout.Rect personalButtonRect = screen.layout.personalScopeButtonRect();
         PersonalDatabaseLayout.Rect publicButtonRect = screen.layout.publicScopeButtonRect();
-        int left = Math.max(tabBarRect.x(), Math.max(personalButtonRect.right(), publicButtonRect.right()));
+        int left = Math.max(
+                tabBarRect.x(),
+                Math.max(buttonRightInsideTabBar(tabBarRect, personalButtonRect), buttonRightInsideTabBar(tabBarRect, publicButtonRect))
+        );
         if (left > tabBarRect.x()) {
             left = Math.min(tabBarRect.right() - 1, left + PersonalDatabaseLayout.TAB_GAP);
         }
@@ -307,5 +310,15 @@ final class PersonalDatabaseScreenTabHelper {
         return visibleTabCount + (hasMore ? 1 : 0) >= 5
                 ? PersonalDatabaseScreen.INLINE_TAB_TIGHT_GAP
                 : PersonalDatabaseLayout.TAB_GAP;
+    }
+
+    private static int buttonRightInsideTabBar(PersonalDatabaseLayout.Rect tabBarRect, PersonalDatabaseLayout.Rect buttonRect) {
+        if (buttonRect.width() <= 0
+                || buttonRect.height() <= 0
+                || buttonRect.bottom() <= tabBarRect.y()
+                || buttonRect.y() >= tabBarRect.bottom()) {
+            return tabBarRect.x();
+        }
+        return Math.min(tabBarRect.right(), buttonRect.right());
     }
 }
