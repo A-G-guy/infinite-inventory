@@ -3,7 +3,6 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTab;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
 import java.util.List;
@@ -42,8 +41,23 @@ final class PersonalDatabaseScreenManagementPanelHelper {
         );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
-        renderManagementColumn(screen, guiGraphics, mouseX, mouseY, DatabaseScope.PERSONAL, selectedScopedTab);
-        renderManagementColumn(screen, guiGraphics, mouseX, mouseY, DatabaseScope.PUBLIC, selectedScopedTab);
+        PersonalDatabaseScreenManagementCompactHelper.renderCompactScopeSwitchers(screen, guiGraphics, mouseX, mouseY);
+        PersonalDatabaseScreenManagementListHelper.renderManagementColumn(
+                screen,
+                guiGraphics,
+                mouseX,
+                mouseY,
+                DatabaseScope.PERSONAL,
+                selectedScopedTab
+        );
+        PersonalDatabaseScreenManagementListHelper.renderManagementColumn(
+                screen,
+                guiGraphics,
+                mouseX,
+                mouseY,
+                DatabaseScope.PUBLIC,
+                selectedScopedTab
+        );
 
         int editorTop = PersonalDatabaseScreenManagementGeometry.managementEditorTop(screen);
         guiGraphics.drawString(
@@ -174,10 +188,20 @@ final class PersonalDatabaseScreenManagementPanelHelper {
             return true;
         }
 
-        if (handleManagementColumnClick(screen, mouseX, mouseY, DatabaseScope.PERSONAL)) {
+        if (PersonalDatabaseScreenManagementListHelper.handleManagementColumnClick(
+                screen,
+                mouseX,
+                mouseY,
+                DatabaseScope.PERSONAL
+        )) {
             return true;
         }
-        if (handleManagementColumnClick(screen, mouseX, mouseY, DatabaseScope.PUBLIC)) {
+        if (PersonalDatabaseScreenManagementListHelper.handleManagementColumnClick(
+                screen,
+                mouseX,
+                mouseY,
+                DatabaseScope.PUBLIC
+        )) {
             return true;
         }
 
@@ -279,97 +303,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
         return DatabaseScopedTabRef.concreteTab(scope, concreteTabs.getFirst().id());
     }
 
-    private static void renderManagementColumn(
-            PersonalDatabaseScreen screen,
-            GuiGraphics guiGraphics,
-            int mouseX,
-            int mouseY,
-            DatabaseScope scope,
-            DatabaseScopedTabRef selectedScopedTab
-    ) {
-        boolean personalColumn = scope == DatabaseScope.PERSONAL;
-        PersonalDatabaseLayout.Rect headerRect = PersonalDatabaseScreenManagementGeometry.managementScopeHeaderRect(screen, personalColumn);
-        PersonalDatabaseLayout.Rect addRect = PersonalDatabaseScreenManagementGeometry.managementScopeAddButtonRect(screen, personalColumn);
-        guiGraphics.drawString(
-                screen.screenFont(),
-                PersonalDatabaseScreenCommonHelper.scopeLabel(scope),
-                headerRect.x(),
-                headerRect.y() + 6,
-                PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                false
-        );
-        PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
-                screen,
-                guiGraphics,
-                addRect,
-                mouseX,
-                mouseY,
-                Component.translatable("screen.infiniteinventory.management.add"),
-                true
-        );
-
-        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.tabsForScope(screen, scope);
-        for (int index = 0; index < tabs.size(); index++) {
-            DatabaseTab tab = tabs.get(index);
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenManagementGeometry.managementListRowRect(
-                    screen,
-                    personalColumn,
-                    index
-            );
-            boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean selected = selectedScopedTab.scope() == scope && selectedScopedTab.tabId().equals(tab.id());
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
-                            screen,
-                            PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
-                            Math.max(0, rowRect.width() - 28)
-                    ),
-                    rowRect.x() + 24,
-                    rowRect.y() + 6,
-                    selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
-            );
-        }
-    }
-
-    private static boolean handleManagementColumnClick(
-            PersonalDatabaseScreen screen,
-            double mouseX,
-            double mouseY,
-            DatabaseScope scope
-    ) {
-        boolean personalColumn = scope == DatabaseScope.PERSONAL;
-        if (PersonalDatabaseScreenManagementGeometry.managementScopeAddButtonRect(screen, personalColumn).contains(mouseX, mouseY)) {
-            PersonalDatabaseScreenManagementHelper.sendTabMutation(
-                    screen,
-                    scope,
-                    DatabaseTabMutationAction.ADD,
-                    "",
-                    "",
-                    "",
-                    DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID
-            );
-            return true;
-        }
-        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.tabsForScope(screen, scope);
-        for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenManagementGeometry.managementListRowRect(
-                    screen,
-                    personalColumn,
-                    index
-            );
-            if (!rowRect.contains(mouseX, mouseY)) {
-                continue;
-            }
-            PersonalDatabaseScreenManagementHelper.loadManagementDrafts(
-                    screen,
-                    DatabaseScopedTabRef.concreteTab(scope, tabs.get(index).id())
-            );
-            return true;
-        }
-        return false;
+    static boolean scrollManagementList(PersonalDatabaseScreen screen, double mouseX, double mouseY, int deltaRows) {
+        return PersonalDatabaseScreenManagementListHelper.scrollManagementList(screen, mouseX, mouseY, deltaRows);
     }
 }

@@ -96,15 +96,25 @@ final class PersonalDatabaseLayoutFactory {
         int playerColumnX = frameRect.x() + PersonalDatabaseLayout.INNER_PADDING;
         int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         PersonalDatabaseLayout.Rect equipmentPanelRect = new PersonalDatabaseLayout.Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
-        PersonalDatabaseLayout.Rect accessoryToggleRect = accessoryGroups == null || accessoryGroups.isEmpty()
+        boolean hasAccessorySlots = accessoryGroups != null && !accessoryGroups.isEmpty();
+        boolean reserveAccessoryToggleRow = hasAccessorySlots
+                && canReserveAccessoryToggleRow(frameRect, contentTop, equipmentHeight, bottomInventoryHeight);
+        PersonalDatabaseLayout.Rect accessoryToggleRect = !hasAccessorySlots
                 ? PersonalDatabaseLayout.Rect.empty()
-                : new PersonalDatabaseLayout.Rect(
-                        playerColumnX,
-                        equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP,
-                        playerColumnWidth,
-                        PersonalDatabaseLayout.CONTROL_HEIGHT
-                );
-        int bottomInventoryTop = accessoryToggleRect.height() > 0
+                : reserveAccessoryToggleRow
+                        ? new PersonalDatabaseLayout.Rect(
+                                playerColumnX,
+                                equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP,
+                                playerColumnWidth,
+                                PersonalDatabaseLayout.CONTROL_HEIGHT
+                        )
+                        : new PersonalDatabaseLayout.Rect(
+                                equipmentPanelRect.right() - PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH,
+                                equipmentPanelRect.y(),
+                                PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH,
+                                PersonalDatabaseLayout.CONTROL_HEIGHT
+                        );
+        int bottomInventoryTop = reserveAccessoryToggleRow
                 ? accessoryToggleRect.bottom() + PersonalDatabaseLayout.SECTION_GAP
                 : equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP;
         PersonalDatabaseLayout.Rect bottomInventoryRect = new PersonalDatabaseLayout.Rect(
@@ -325,6 +335,21 @@ final class PersonalDatabaseLayoutFactory {
                 databasePanelRect.bottom() - topRight.bottom() - PersonalDatabaseLayout.VIEWPORT_GAP
         );
         return List.of(topLeft, topRight, bottomLeft, bottomRight);
+    }
+
+    private static boolean canReserveAccessoryToggleRow(
+            PersonalDatabaseLayout.Rect frameRect,
+            int contentTop,
+            int equipmentHeight,
+            int bottomInventoryHeight
+    ) {
+        int requiredHeight = equipmentHeight
+                + PersonalDatabaseLayout.SECTION_GAP
+                + PersonalDatabaseLayout.CONTROL_HEIGHT
+                + PersonalDatabaseLayout.SECTION_GAP
+                + bottomInventoryHeight;
+        int availableHeight = Math.max(0, frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING - contentTop);
+        return availableHeight >= requiredHeight;
     }
 
 }

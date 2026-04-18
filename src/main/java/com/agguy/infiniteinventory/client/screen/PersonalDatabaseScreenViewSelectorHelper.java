@@ -50,41 +50,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
     }
 
     static void renderMoreTabsDropdown(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
-        if (panelRect.width() <= 0 || panelRect.height() <= 0) {
-            return;
-        }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 253.0F);
-        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
-        List<DatabaseScopedTabRef> tabs = PersonalDatabaseScreenTabHelper.hiddenTopTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            DatabaseScopedTabRef scopedTab = tabs.get(index);
-            DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, scopedTab);
-            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
-                    panelRect.x() + 2,
-                    panelRect.y() + 2 + index * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
-                    panelRect.width() - 4,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
-            );
-            boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean selected = screen.databaseMenu.viewState().query().focusedTab().equals(scopedTab);
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
-                            screen,
-                            PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, scopedTab).getString(),
-                            Math.max(0, rowRect.width() - 28)
-                    ),
-                    rowRect.x() + 24,
-                    rowRect.y() + 6,
-                    selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
-            );
-        }
-        guiGraphics.pose().popPose();
+        PersonalDatabaseScreenMoreTabsHelper.renderMoreTabsDropdown(screen, guiGraphics, mouseX, mouseY);
     }
 
     static boolean handleViewSelectorClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
@@ -114,34 +80,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
     }
 
     static boolean handleMoreTabsClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        if (!screen.moreTabsExpanded) {
-            return false;
-        }
-        if (PersonalDatabaseScreenTabHelper.moreTabsButtonRect(screen).contains(mouseX, mouseY)) {
-            screen.moreTabsExpanded = false;
-            return true;
-        }
-        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.moreTabsDropdownRect(screen);
-        if (!panelRect.contains(mouseX, mouseY)) {
-            screen.moreTabsExpanded = false;
-            return true;
-        }
-        List<DatabaseScopedTabRef> tabs = PersonalDatabaseScreenTabHelper.hiddenTopTabs(screen);
-        for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
-                    panelRect.x() + 2,
-                    panelRect.y() + 2 + index * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
-                    panelRect.width() - 4,
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
-            );
-            if (!rowRect.contains(mouseX, mouseY)) {
-                continue;
-            }
-            screen.moreTabsExpanded = false;
-            PersonalDatabaseScreenTopTabPromptHelper.handleTopTabSelection(screen, tabs.get(index));
-            return true;
-        }
-        return true;
+        return PersonalDatabaseScreenMoreTabsHelper.handleMoreTabsClick(screen, mouseX, mouseY);
     }
 
     private static void renderViewSelectorPreview(
@@ -151,6 +90,9 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             int mouseY
     ) {
         PersonalDatabaseLayout.Rect previewRect = PersonalDatabaseScreenGeometry.viewSelectorPreviewRect(screen);
+        if (previewRect.width() <= 0 || previewRect.height() <= 0) {
+            return;
+        }
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, previewRect);
         guiGraphics.drawString(
                 screen.screenFont(),
@@ -231,17 +173,25 @@ final class PersonalDatabaseScreenViewSelectorHelper {
         );
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.tabsForScope(screen, scope);
         DatabaseQuery query = screen.databaseMenu.viewState().query();
-        for (int index = 0; index < tabs.size(); index++) {
+        ColumnViewport viewport = columnViewport(screen, personalColumn, tabs.size());
+        PersonalDatabaseScreenListHelper.enableScissor(guiGraphics, viewport.bodyRect());
+        for (int index = viewport.visibleRange().fromIndex(); index < viewport.visibleRange().toIndex(); index++) {
             DatabaseTab tab = tabs.get(index);
             DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(scope, tab.id());
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.viewSelectorScopeRowRect(screen, personalColumn, index);
+            int rowIndex = index - viewport.visibleRange().fromIndex();
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    viewport.bodyRect().x(),
+                    viewport.bodyRect().y() + rowIndex * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
+                    viewport.bodyRect().width(),
+                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
+            );
             boolean selected = query.visibleTabs().contains(scopedTab);
-            boolean enabled = selected || query.visibleTabs().size() < DatabaseTabs.MAX_VISIBLE_TAB_COUNT;
+            boolean enabled = selected || query.visibleTabs().size() < PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen);
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
             guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
             guiGraphics.drawString(
-                    screen.screenFont(),
+                screen.screenFont(),
                     PersonalDatabaseScreenGeometry.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, scopedTab).getString(),
@@ -267,6 +217,8 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                     enabled ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR
             );
         }
+        guiGraphics.disableScissor();
+        PersonalDatabaseScreenListHelper.renderScrollIndicators(screen, guiGraphics, viewport.bodyRect(), viewport.visibleRange());
     }
 
     private static boolean handleViewSelectorColumnClick(
@@ -274,11 +226,18 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             double mouseX,
             double mouseY,
             boolean personalColumn
-    ) {
+        ) {
         DatabaseScope scope = personalColumn ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
         List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.tabsForScope(screen, scope);
-        for (int index = 0; index < tabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.viewSelectorScopeRowRect(screen, personalColumn, index);
+        ColumnViewport viewport = columnViewport(screen, personalColumn, tabs.size());
+        for (int index = viewport.visibleRange().fromIndex(); index < viewport.visibleRange().toIndex(); index++) {
+            int rowIndex = index - viewport.visibleRange().fromIndex();
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    viewport.bodyRect().x(),
+                    viewport.bodyRect().y() + rowIndex * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
+                    viewport.bodyRect().width(),
+                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
+            );
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;
             }
@@ -300,7 +259,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.withVisibleTabs(nextVisibleTabs));
             return;
         }
-        if (query.visibleTabs().size() >= DatabaseTabs.MAX_VISIBLE_TAB_COUNT) {
+        if (query.visibleTabs().size() >= PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen)) {
             return;
         }
         LinkedHashSet<DatabaseScopedTabRef> nextVisibleTabs = new LinkedHashSet<>(query.visibleTabs());
@@ -309,6 +268,20 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                 screen,
                 query.withVisibleTabs(new ArrayList<>(nextVisibleTabs)).withFocusedTab(scopedTab)
         );
+    }
+
+    static boolean scrollViewSelectorColumn(PersonalDatabaseScreen screen, double mouseX, double mouseY, int deltaRows) {
+        if (!screen.viewSelectorExpanded || deltaRows == 0) {
+            return false;
+        }
+        if (adjustColumnScroll(screen, mouseX, mouseY, true, deltaRows)) {
+            return true;
+        }
+        return adjustColumnScroll(screen, mouseX, mouseY, false, deltaRows);
+    }
+
+    static boolean scrollMoreTabsDropdown(PersonalDatabaseScreen screen, double mouseX, double mouseY, int deltaRows) {
+        return PersonalDatabaseScreenMoreTabsHelper.scrollMoreTabsDropdown(screen, mouseX, mouseY, deltaRows);
     }
 
     private static List<PersonalDatabaseLayout.Rect> previewPanelRects(PersonalDatabaseLayout.Rect previewRect, int visiblePanelCount) {
@@ -383,5 +356,65 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                 bottomLeft.height()
         );
         return List.of(topLeft, topRight, bottomLeft, bottomRight);
+    }
+
+    private static boolean adjustColumnScroll(
+            PersonalDatabaseScreen screen,
+            double mouseX,
+            double mouseY,
+            boolean personalColumn,
+            int deltaRows
+    ) {
+        ColumnViewport viewport = columnViewport(
+                screen,
+                personalColumn,
+                PersonalDatabaseScreenCommonHelper.tabsForScope(
+                        screen,
+                        personalColumn ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC
+                ).size()
+        );
+        if (!viewport.bodyRect().contains(mouseX, mouseY)) {
+            return false;
+        }
+        int currentScrollIndex = personalColumn ? screen.viewSelectorPersonalScrollIndex : screen.viewSelectorPublicScrollIndex;
+        int nextScrollIndex = PersonalDatabaseScreenListHelper.clampScrollIndex(viewport.visibleRange(), deltaRows);
+        if (nextScrollIndex == currentScrollIndex) {
+            return false;
+        }
+        if (personalColumn) {
+            screen.viewSelectorPersonalScrollIndex = nextScrollIndex;
+        } else {
+            screen.viewSelectorPublicScrollIndex = nextScrollIndex;
+        }
+        return true;
+    }
+
+    private static ColumnViewport columnViewport(PersonalDatabaseScreen screen, boolean personalColumn, int totalRows) {
+        PersonalDatabaseLayout.Rect headerRect = PersonalDatabaseScreenGeometry.viewSelectorScopeHeaderRect(screen, personalColumn);
+        PersonalDatabaseLayout.Rect columnRect = PersonalDatabaseScreenGeometry.viewSelectorColumnRect(screen, personalColumn);
+        PersonalDatabaseLayout.Rect bodyRect = new PersonalDatabaseLayout.Rect(
+                columnRect.x(),
+                headerRect.bottom() + 6,
+                columnRect.width(),
+                Math.max(0, columnRect.bottom() - (headerRect.bottom() + 6))
+        );
+        int currentScrollIndex = personalColumn ? screen.viewSelectorPersonalScrollIndex : screen.viewSelectorPublicScrollIndex;
+        PersonalDatabaseScreenListHelper.VisibleRange visibleRange = PersonalDatabaseScreenListHelper.visibleRange(
+                totalRows,
+                currentScrollIndex,
+                PersonalDatabaseScreenListHelper.maxVisibleRows(bodyRect, PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT)
+        );
+        if (personalColumn) {
+            screen.viewSelectorPersonalScrollIndex = visibleRange.scrollIndex();
+        } else {
+            screen.viewSelectorPublicScrollIndex = visibleRange.scrollIndex();
+        }
+        return new ColumnViewport(bodyRect, visibleRange);
+    }
+
+    private record ColumnViewport(
+            PersonalDatabaseLayout.Rect bodyRect,
+            PersonalDatabaseScreenListHelper.VisibleRange visibleRange
+    ) {
     }
 }

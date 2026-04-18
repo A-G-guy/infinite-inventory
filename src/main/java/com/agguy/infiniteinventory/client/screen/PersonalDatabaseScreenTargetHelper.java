@@ -132,6 +132,14 @@ final class PersonalDatabaseScreenTargetHelper {
         DatabaseAutoStoreTarget selectedTarget = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
                 ? screen.databaseMenu.viewState().autoStoreTarget()
                 : null;
+        PersonalDatabaseLayout.Rect bodyRect = selectorBodyRect(panelRect);
+        PersonalDatabaseScreenListHelper.VisibleRange visibleRange = PersonalDatabaseScreenListHelper.visibleRange(
+                candidateRows.size(),
+                screen.targetSelectorScrollIndex,
+                PersonalDatabaseScreenListHelper.maxVisibleRows(bodyRect, PersonalDatabaseScreen.TARGET_SELECTOR_ROW_HEIGHT)
+        );
+        screen.targetSelectorScrollIndex = visibleRange.scrollIndex();
+        PersonalDatabaseScreenListHelper.enableScissor(guiGraphics, bodyRect);
         for (int index = 0; index < visibleRows.size(); index++) {
             PersonalDatabaseTargetSelectorModel.Row row = visibleRows.get(index);
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.selectorRowRect(
@@ -152,6 +160,8 @@ final class PersonalDatabaseScreenTargetHelper {
                     isSelectedAutoStoreTarget(selectedTarget, row)
             );
         }
+        guiGraphics.disableScissor();
+        PersonalDatabaseScreenListHelper.renderScrollIndicators(screen, guiGraphics, bodyRect, visibleRange);
         guiGraphics.pose().popPose();
     }
 
@@ -449,12 +459,23 @@ final class PersonalDatabaseScreenTargetHelper {
 
     private static int maxVisibleRows(PersonalDatabaseScreen screen) {
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenGeometry.targetSelectorRect(screen);
+        return PersonalDatabaseScreenListHelper.maxVisibleRows(
+                selectorBodyRect(panelRect),
+                PersonalDatabaseScreen.TARGET_SELECTOR_ROW_HEIGHT
+        );
+    }
+
+    private static PersonalDatabaseLayout.Rect selectorBodyRect(PersonalDatabaseLayout.Rect panelRect) {
         int contentTop = panelRect.y()
                 + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
                 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
                 + 8;
         int contentBottom = panelRect.bottom() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING;
-        int availableHeight = Math.max(0, contentBottom - contentTop);
-        return Math.max(1, availableHeight / PersonalDatabaseScreen.TARGET_SELECTOR_ROW_HEIGHT);
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
+                contentTop,
+                Math.max(0, panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2),
+                Math.max(0, contentBottom - contentTop)
+        );
     }
 }

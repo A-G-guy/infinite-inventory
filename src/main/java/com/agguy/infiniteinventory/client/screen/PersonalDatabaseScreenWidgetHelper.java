@@ -82,7 +82,12 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.tabManagementExpanded = false;
                             screen.targetSelectorExpanded = false;
                             PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            screen.viewSelectorExpanded = !screen.viewSelectorExpanded;
+                            boolean nextExpanded = !screen.viewSelectorExpanded;
+                            if (nextExpanded) {
+                                screen.viewSelectorPersonalScrollIndex = 0;
+                                screen.viewSelectorPublicScrollIndex = 0;
+                            }
+                            screen.viewSelectorExpanded = nextExpanded;
                         }
                 )
                 .bounds(viewSelectorRect.x(), viewSelectorRect.y(), viewSelectorRect.width(), viewSelectorRect.height())
@@ -104,6 +109,8 @@ final class PersonalDatabaseScreenWidgetHelper {
                             boolean nextExpanded = !screen.tabManagementExpanded;
                             PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
                             screen.tabManagementExpanded = nextExpanded;
+                            screen.managementPersonalScrollIndex = 0;
+                            screen.managementPublicScrollIndex = 0;
                             PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
                             if (screen.tabManagementExpanded) {
                                 PersonalDatabaseScreenManagementHelper.loadManagementDrafts(

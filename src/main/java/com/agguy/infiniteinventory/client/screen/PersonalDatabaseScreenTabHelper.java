@@ -232,7 +232,11 @@ final class PersonalDatabaseScreenTabHelper {
             return true;
         }
         if (!hiddenTopTabs(screen).isEmpty() && moreTabsButtonRect(screen).contains(mouseX, mouseY)) {
-            screen.moreTabsExpanded = !screen.moreTabsExpanded;
+            boolean nextExpanded = !screen.moreTabsExpanded;
+            if (nextExpanded) {
+                screen.moreTabsScrollIndex = 0;
+            }
+            screen.moreTabsExpanded = nextExpanded;
             screen.topTabActionPromptExpanded = false;
             screen.topTabReplaceExpanded = false;
             return true;

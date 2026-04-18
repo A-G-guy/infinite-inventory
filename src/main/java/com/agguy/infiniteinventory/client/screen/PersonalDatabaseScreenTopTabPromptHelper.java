@@ -40,7 +40,8 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
                 0x70A89E8C
         );
 
-        boolean canJoin = screen.databaseMenu.viewState().query().visibleTabs().size() < DatabaseTabs.MAX_VISIBLE_TAB_COUNT;
+        boolean canJoin = screen.databaseMenu.viewState().query().visibleTabs().size()
+                < PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen);
         List<Component> options = topTabActionLabels();
         for (int index = 0; index < options.size(); index++) {
             PersonalDatabaseLayout.Rect rowRect = topTabActionRowRect(panelRect, index);
@@ -85,10 +86,24 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
         );
 
         List<DatabaseScopedTabRef> visibleTabs = screen.databaseMenu.viewState().query().visibleTabs();
-        for (int index = 0; index < visibleTabs.size(); index++) {
+        PersonalDatabaseLayout.Rect bodyRect = replacePromptBodyRect(panelRect);
+        PersonalDatabaseScreenListHelper.VisibleRange visibleRange = PersonalDatabaseScreenListHelper.visibleRange(
+                visibleTabs.size(),
+                screen.topTabReplaceScrollIndex,
+                PersonalDatabaseScreenListHelper.maxVisibleRows(bodyRect, PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT)
+        );
+        screen.topTabReplaceScrollIndex = visibleRange.scrollIndex();
+        PersonalDatabaseScreenListHelper.enableScissor(guiGraphics, bodyRect);
+        for (int index = visibleRange.fromIndex(); index < visibleRange.toIndex(); index++) {
             DatabaseScopedTabRef scopedTab = visibleTabs.get(index);
             DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, scopedTab);
-            PersonalDatabaseLayout.Rect rowRect = topTabActionRowRect(panelRect, index);
+            int rowIndex = index - visibleRange.fromIndex();
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    bodyRect.x(),
+                    bodyRect.y() + rowIndex * PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT,
+                    bodyRect.width(),
+                    PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT - 1
+            );
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
             guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
@@ -105,6 +120,8 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
                     false
             );
         }
+        guiGraphics.disableScissor();
+        PersonalDatabaseScreenListHelper.renderScrollIndicators(screen, guiGraphics, bodyRect, visibleRange);
         guiGraphics.pose().popPose();
     }
 
@@ -121,7 +138,8 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
             closeTopTabPrompt(screen);
             return true;
         }
-        boolean canJoin = screen.databaseMenu.viewState().query().visibleTabs().size() < DatabaseTabs.MAX_VISIBLE_TAB_COUNT;
+        boolean canJoin = screen.databaseMenu.viewState().query().visibleTabs().size()
+                < PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen);
         for (int index = 0; index < 3; index++) {
             PersonalDatabaseLayout.Rect rowRect = topTabActionRowRect(panelRect, index);
             if (!rowRect.contains(mouseX, mouseY)) {
@@ -134,6 +152,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
             } else if (index == 2) {
                 screen.topTabActionPromptExpanded = false;
                 screen.topTabReplaceExpanded = true;
+                screen.topTabReplaceScrollIndex = 0;
             }
             return true;
         }
@@ -154,8 +173,21 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
             return true;
         }
         List<DatabaseScopedTabRef> visibleTabs = screen.databaseMenu.viewState().query().visibleTabs();
-        for (int index = 0; index < visibleTabs.size(); index++) {
-            PersonalDatabaseLayout.Rect rowRect = topTabActionRowRect(panelRect, index);
+        PersonalDatabaseLayout.Rect bodyRect = replacePromptBodyRect(panelRect);
+        PersonalDatabaseScreenListHelper.VisibleRange visibleRange = PersonalDatabaseScreenListHelper.visibleRange(
+                visibleTabs.size(),
+                screen.topTabReplaceScrollIndex,
+                PersonalDatabaseScreenListHelper.maxVisibleRows(bodyRect, PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT)
+        );
+        screen.topTabReplaceScrollIndex = visibleRange.scrollIndex();
+        for (int index = visibleRange.fromIndex(); index < visibleRange.toIndex(); index++) {
+            int rowIndex = index - visibleRange.fromIndex();
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    bodyRect.x(),
+                    bodyRect.y() + rowIndex * PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT,
+                    bodyRect.width(),
+                    PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT - 1
+            );
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;
             }
@@ -175,6 +207,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
         screen.topTabActionPromptExpanded = false;
         screen.topTabReplaceExpanded = false;
         screen.pendingTopTabActionTab = null;
+        screen.topTabReplaceScrollIndex = 0;
     }
 
     static void handleTopTabSelection(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
@@ -196,6 +229,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
         screen.pendingTopTabActionTab = scopedTab;
         screen.topTabActionPromptExpanded = true;
         screen.topTabReplaceExpanded = false;
+        screen.topTabReplaceScrollIndex = 0;
         screen.moreTabsExpanded = false;
         screen.viewSelectorExpanded = false;
     }
@@ -250,6 +284,41 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
                         + index * PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT,
                 panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2,
                 PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT - 1
+        );
+    }
+
+    static boolean scrollTopTabReplacePrompt(PersonalDatabaseScreen screen, double mouseX, double mouseY, int deltaRows) {
+        if (!screen.topTabReplaceExpanded || deltaRows == 0) {
+            return false;
+        }
+        PersonalDatabaseLayout.Rect bodyRect = replacePromptBodyRect(PersonalDatabaseScreenGeometry.topTabReplacePromptRect(screen));
+        if (!bodyRect.contains(mouseX, mouseY)) {
+            return false;
+        }
+        PersonalDatabaseScreenListHelper.VisibleRange visibleRange = PersonalDatabaseScreenListHelper.visibleRange(
+                screen.databaseMenu.viewState().query().visibleTabs().size(),
+                screen.topTabReplaceScrollIndex,
+                PersonalDatabaseScreenListHelper.maxVisibleRows(bodyRect, PersonalDatabaseScreen.TOP_TAB_ACTION_ROW_HEIGHT)
+        );
+        int maxScrollIndex = Math.max(0, visibleRange.totalRows() - visibleRange.maxVisibleRows());
+        int nextScrollIndex = Math.max(0, Math.min(maxScrollIndex, visibleRange.scrollIndex() + deltaRows));
+        if (nextScrollIndex == screen.topTabReplaceScrollIndex) {
+            return false;
+        }
+        screen.topTabReplaceScrollIndex = nextScrollIndex;
+        return true;
+    }
+
+    private static PersonalDatabaseLayout.Rect replacePromptBodyRect(PersonalDatabaseLayout.Rect panelRect) {
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
+                panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                        + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                        + 8,
+                panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2,
+                Math.max(0, panelRect.bottom() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                        - (panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                        + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 8))
         );
     }
 }

@@ -76,7 +76,73 @@ final class PersonalDatabaseScreenCommonHelper {
     }
 
     static List<DatabasePanelView> currentPanels(PersonalDatabaseScreen screen) {
-        return screen.databaseMenu.viewState().panels();
+        List<DatabasePanelView> panels = screen.databaseMenu.viewState().panels();
+        int maxVisiblePanels = Math.max(1, maxVisiblePanels(screen));
+        if (panels.size() <= maxVisiblePanels) {
+            return panels;
+        }
+        return panels.subList(0, maxVisiblePanels);
+    }
+
+    static PersonalDatabaseScreenFitProfile fitProfile(PersonalDatabaseScreen screen) {
+        return screen.screenFitProfile();
+    }
+
+    static boolean supportsFullUi(PersonalDatabaseScreen screen) {
+        return fitProfile(screen).supportsFullUi();
+    }
+
+    static int maxVisiblePanels(PersonalDatabaseScreen screen) {
+        return fitProfile(screen).maxVisiblePanels();
+    }
+
+    static List<DatabaseScopedTabRef> clampVisibleTabsToScreen(
+            PersonalDatabaseScreen screen,
+            List<DatabaseScopedTabRef> visibleTabs,
+            @Nullable DatabaseScopedTabRef focusedTab
+    ) {
+        return clampVisibleTabs(visibleTabs, focusedTab, maxVisiblePanels(screen));
+    }
+
+    static List<DatabaseScopedTabRef> clampVisibleTabs(
+            List<DatabaseScopedTabRef> visibleTabs,
+            @Nullable DatabaseScopedTabRef focusedTab,
+            int maxVisiblePanels
+    ) {
+        int resolvedMaxVisiblePanels = Math.max(1, maxVisiblePanels);
+        DatabaseScopedTabRef fallbackFocusedTab = focusedTab == null
+                ? DatabaseScopedTabRef.defaultTab()
+                : focusedTab;
+        if (visibleTabs == null || visibleTabs.isEmpty()) {
+            return List.of(fallbackFocusedTab);
+        }
+        java.util.LinkedHashSet<DatabaseScopedTabRef> clampedTabs = new java.util.LinkedHashSet<>();
+        for (DatabaseScopedTabRef visibleTab : visibleTabs) {
+            clampedTabs.add(visibleTab == null ? fallbackFocusedTab : visibleTab);
+            if (clampedTabs.size() >= resolvedMaxVisiblePanels) {
+                break;
+            }
+        }
+        if (!clampedTabs.contains(fallbackFocusedTab) && visibleTabs.contains(fallbackFocusedTab)) {
+            java.util.ArrayList<DatabaseScopedTabRef> orderedTabs = new java.util.ArrayList<>(clampedTabs);
+            if (orderedTabs.isEmpty()) {
+                orderedTabs.add(fallbackFocusedTab);
+            } else {
+                orderedTabs.set(orderedTabs.size() - 1, fallbackFocusedTab);
+            }
+            clampedTabs.clear();
+            clampedTabs.addAll(orderedTabs);
+        }
+        java.util.ArrayList<DatabaseScopedTabRef> orderedVisibleTabs = new java.util.ArrayList<>(clampedTabs.size());
+        for (DatabaseScopedTabRef visibleTab : visibleTabs) {
+            if (clampedTabs.contains(visibleTab) && !orderedVisibleTabs.contains(visibleTab)) {
+                orderedVisibleTabs.add(visibleTab);
+            }
+        }
+        if (orderedVisibleTabs.isEmpty()) {
+            orderedVisibleTabs.add(fallbackFocusedTab);
+        }
+        return List.copyOf(orderedVisibleTabs);
     }
 
     static List<DatabaseScopedTabRef> allTopTabs(PersonalDatabaseScreen screen) {

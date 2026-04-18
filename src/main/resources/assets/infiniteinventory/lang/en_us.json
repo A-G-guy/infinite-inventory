@@ -145,6 +145,8 @@
   "screen.infiniteinventory.icon_picker.search": "Search items or IDs",
   "screen.infiniteinventory.icon_picker.selected": "Selected: %s",
   "screen.infiniteinventory.icon_picker.empty": "No matching items",
+  "screen.infiniteinventory.window_too_small.title": "Window Too Small",
+  "screen.infiniteinventory.window_too_small.description": "The scaled GUI size is too small, so the database screen has switched to a safe notice view. Enlarge the game window or lower the GUI scale before using Infinite Inventory.",
   "screen.infiniteinventory.common.apply": "Apply",
   "screen.infiniteinventory.common.cancel": "Cancel",
   "key.categories.infiniteinventory": "Infinite Inventory",
