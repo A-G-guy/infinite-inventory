@@ -36,10 +36,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int OVERLAY_ACCENT_TEXT_COLOR = 0x5A4523;
     static final int TEXT_FIELD_TEXT_COLOR = 0x241A11;
     static final int TEXT_FIELD_MUTED_TEXT_COLOR = 0x6B5C48;
+    static final int SORT_BUTTON_TEXT_COLOR = 0x3F3F3F;
     static final int TOP_TAB_ACTIVE_TEXT_COLOR = 0xFFF4D58A;
     static final int TOP_TAB_INACTIVE_TEXT_COLOR = 0xFFF9F4EA;
     static final int DROPDOWN_ROW_HEIGHT = 20;
-    static final int SORT_DROPDOWN_WIDTH = 168;
+    static final int SORT_DROPDOWN_MIN_WIDTH = 168;
+    static final int SORT_DROPDOWN_SECTION_GAP = 6;
+    static final int SORT_DIRECTION_BUTTON_GAP = 4;
     static final int CONTEXT_MENU_MIN_WIDTH = 112;
     static final int CONTEXT_MENU_ROW_HEIGHT = 20;
     static final int CONTEXT_MENU_MARGIN = 4;

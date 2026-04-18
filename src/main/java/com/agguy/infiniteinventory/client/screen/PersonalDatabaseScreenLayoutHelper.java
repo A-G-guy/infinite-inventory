@@ -136,12 +136,16 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query) {
+        sendQuery(screen, query, false);
+    }
+
+    static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query, boolean keepSortDropdownExpanded) {
         if (query.equals(screen.databaseMenu.viewState().query())) {
             return;
         }
         screen.pendingLayoutQuery = null;
         PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
-        prepareForServerQuery(screen);
+        prepareForServerQuery(screen, keepSortDropdownExpanded);
         dispatchQuery(screen, query);
     }
 
@@ -211,6 +215,23 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void prepareForServerQuery(PersonalDatabaseScreen screen) {
+        prepareForServerQuery(screen, false);
+    }
+
+    static void prepareForServerQuery(PersonalDatabaseScreen screen, boolean keepSortDropdownExpanded) {
+        if (keepSortDropdownExpanded) {
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
+            screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
+            screen.enhancementPanelExpanded = false;
+            screen.viewSelectorExpanded = false;
+            screen.moreTabsExpanded = false;
+            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+            PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
+            PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
+            return;
+        }
         PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
     }
 

@@ -117,4 +117,22 @@ final class VanillaWidgetRenderer {
         guiGraphics.fill(centerX - 1, centerY + 1, centerX + 2, centerY + 2, color);
         guiGraphics.fill(centerX, centerY + 2, centerX + 1, centerY + 3, color);
     }
+
+    static void renderSortDirectionIndicator(
+            GuiGraphics guiGraphics,
+            int centerX,
+            int centerY,
+            boolean ascending,
+            int color
+    ) {
+        if (ascending) {
+            guiGraphics.fill(centerX, centerY - 3, centerX + 1, centerY + 1, color);
+            guiGraphics.fill(centerX - 1, centerY - 2, centerX + 2, centerY - 1, color);
+            guiGraphics.fill(centerX - 2, centerY - 1, centerX + 3, centerY, color);
+            return;
+        }
+        guiGraphics.fill(centerX, centerY - 1, centerX + 1, centerY + 3, color);
+        guiGraphics.fill(centerX - 1, centerY + 1, centerX + 2, centerY + 2, color);
+        guiGraphics.fill(centerX - 2, centerY + 2, centerX + 3, centerY + 3, color);
+    }
 }

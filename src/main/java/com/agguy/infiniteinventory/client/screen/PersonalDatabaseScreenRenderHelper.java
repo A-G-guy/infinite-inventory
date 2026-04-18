@@ -2,6 +2,8 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
+import com.agguy.infiniteinventory.database.DatabaseSortDirection;
+import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
@@ -320,9 +322,30 @@ final class PersonalDatabaseScreenRenderHelper {
             VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFF6D6D6D);
 
             PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
+            DatabaseSortOption sortOption = PersonalDatabaseScreenCommonHelper.sortOptionForPanel(screen, panelIndex);
+            String sortLabel = PersonalDatabaseScreenGeometry.truncateToWidth(
+                    screen,
+                    PersonalDatabaseScreenCommonHelper.sortButtonLabel(sortOption).getString(),
+                    Math.max(0, sortRect.width() - 26)
+            );
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    sortLabel,
+                    sortRect.x() + 6,
+                    sortRect.y() + 6,
+                    PersonalDatabaseScreen.SORT_BUTTON_TEXT_COLOR,
+                    false
+            );
+            VanillaWidgetRenderer.renderSortDirectionIndicator(
+                    guiGraphics,
+                    sortRect.right() - 18,
+                    sortRect.y() + sortRect.height() / 2,
+                    sortOption.direction() == DatabaseSortDirection.ASC,
+                    0xFF3F3F3F
+            );
             VanillaWidgetRenderer.renderDropdownIndicator(
                     guiGraphics,
-                    sortRect.right() - 10,
+                    sortRect.right() - 9,
                     sortRect.y() + sortRect.height() / 2,
                     0xFF3F3F3F
             );

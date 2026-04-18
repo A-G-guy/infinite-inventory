@@ -7,6 +7,9 @@ import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
+import com.agguy.infiniteinventory.database.DatabaseSortDirection;
+import com.agguy.infiniteinventory.database.DatabaseSortMethod;
+import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
@@ -266,6 +269,28 @@ final class PersonalDatabaseScreenCommonHelper {
             case LAST -> Component.translatable("screen.infiniteinventory.page_picker.last", totalPages);
             case PAGE -> Component.literal(Integer.toString(option.pageIndex() + 1));
         };
+    }
+
+    static DatabaseSortOption sortOptionForPanel(PersonalDatabaseScreen screen, int panelIndex) {
+        if (panelIndex >= 0 && panelIndex < currentPanels(screen).size()) {
+            return screen.databaseMenu.viewState().query().sortOptionFor(currentPanels(screen).get(panelIndex).scopedTab());
+        }
+        return screen.databaseMenu.viewState().query().sortOption();
+    }
+
+    static Component sortMethodLabel(DatabaseSortMethod method) {
+        DatabaseSortMethod resolvedMethod = method == null ? DatabaseSortMethod.RECENTLY_CHANGED : method;
+        return Component.translatable(resolvedMethod.translationKey());
+    }
+
+    static Component sortButtonLabel(DatabaseSortOption sortOption) {
+        DatabaseSortOption resolvedOption = sortOption == null ? DatabaseSortOption.RECENTLY_CHANGED : sortOption;
+        return Component.translatable(resolvedOption.method().buttonTranslationKey());
+    }
+
+    static Component sortDirectionLabel(DatabaseSortDirection direction) {
+        DatabaseSortDirection resolvedDirection = direction == null ? DatabaseSortDirection.DESC : direction;
+        return Component.translatable(resolvedDirection.translationKey());
     }
 
     static int selectedEntryCount(PersonalDatabaseScreen screen) {

@@ -6,6 +6,8 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
+import com.agguy.infiniteinventory.database.DatabaseSortDirection;
+import com.agguy.infiniteinventory.database.DatabaseSortMethod;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.util.List;
@@ -225,34 +227,48 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
     }
 
     static void renderSortDropdown(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenGeometry.sortDropdownRect(screen);
+        PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenSortDropdownGeometry.dropdownRect(screen);
         if (dropdownRect == null) {
             return;
         }
         int panelIndex = PersonalDatabaseScreenCommonHelper.activeSortPanelIndex(screen);
-        DatabaseSortOption currentSort = panelIndex >= 0 && panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()
-                ? screen.databaseMenu.viewState().query().sortOptionFor(
-                        PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).tab().id()
-                )
-                : screen.databaseMenu.viewState().query().sortOption();
+        DatabaseSortOption currentSort = PersonalDatabaseScreenCommonHelper.sortOptionForPanel(screen, panelIndex);
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 250.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, dropdownRect);
-        List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
-        for (int index = 0; index < sortOptions.size(); index++) {
-            DatabaseSortOption option = sortOptions.get(index);
-            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
-                    dropdownRect.x() + 2,
-                    dropdownRect.y() + index * PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT + 2,
-                    dropdownRect.width() - 4,
-                    PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT - 1
+        for (DatabaseSortDirection direction : DatabaseSortDirection.values()) {
+            PersonalDatabaseLayout.Rect buttonRect = PersonalDatabaseScreenSortDropdownGeometry.directionButtonRect(screen, direction);
+            boolean hovered = buttonRect.contains(mouseX, mouseY);
+            boolean selected = currentSort.direction() == direction;
+            VanillaWidgetRenderer.renderOverlayChip(guiGraphics, buttonRect, hovered, selected, true);
+            Component label = PersonalDatabaseScreenCommonHelper.sortDirectionLabel(direction);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    label,
+                    buttonRect.x() + Math.max(4, (buttonRect.width() - screen.screenFont().width(label)) / 2),
+                    buttonRect.y() + 5,
+                    selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                    false
             );
+        }
+        int dividerY = dropdownRect.y() + 2 + PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT + 2;
+        guiGraphics.fill(
+                dropdownRect.x() + 6,
+                dividerY,
+                dropdownRect.right() - 6,
+                dividerY + 1,
+                0x70A89E8C
+        );
+        List<DatabaseSortMethod> sortMethods = DatabaseSortDropdownModel.methodOptions();
+        for (int index = 0; index < sortMethods.size(); index++) {
+            DatabaseSortMethod method = sortMethods.get(index);
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenSortDropdownGeometry.methodRowRect(screen, index);
             boolean hovered = rowRect.contains(mouseX, mouseY);
-            boolean selected = currentSort == option;
+            boolean selected = currentSort.method() == method;
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
             Component label = selected
-                    ? Component.translatable(option.translationKey()).withStyle(ChatFormatting.GOLD)
-                    : Component.translatable(option.translationKey());
+                    ? PersonalDatabaseScreenCommonHelper.sortMethodLabel(method).copy().withStyle(ChatFormatting.GOLD)
+                    : PersonalDatabaseScreenCommonHelper.sortMethodLabel(method);
             guiGraphics.drawString(
                     screen.screenFont(),
                     label,

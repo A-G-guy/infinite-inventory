@@ -2,6 +2,8 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
+import com.agguy.infiniteinventory.database.DatabaseSortDirection;
+import com.agguy.infiniteinventory.database.DatabaseSortMethod;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
@@ -13,7 +15,6 @@ import org.lwjgl.glfw.GLFW;
 final class PersonalDatabaseScreenInteractionHelper {
     private PersonalDatabaseScreenInteractionHelper() {
     }
-
     static boolean mouseClicked(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
         if (screen.customExtractOverlayExpanded
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
@@ -207,7 +208,7 @@ final class PersonalDatabaseScreenInteractionHelper {
     }
 
     private static boolean handleSortDropdownClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenGeometry.sortDropdownRect(screen);
+        PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenSortDropdownGeometry.dropdownRect(screen);
         if (dropdownRect == null) {
             return false;
         }
@@ -218,23 +219,45 @@ final class PersonalDatabaseScreenInteractionHelper {
             return false;
         }
         DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
-        java.util.List<DatabaseSortOption> sortOptions = DatabaseSortOption.orderedValues();
-        for (int index = 0; index < sortOptions.size(); index++) {
-            int rowY = dropdownRect.y() + index * PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT;
-            if (mouseX < dropdownRect.x()
-                    || mouseX >= dropdownRect.right()
-                    || mouseY < rowY
-                    || mouseY >= rowY + PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT) {
+        DatabaseSortOption currentSort = screen.databaseMenu.viewState().query().sortOptionFor(panel.scopedTab());
+        for (DatabaseSortDirection direction : DatabaseSortDirection.values()) {
+            if (!PersonalDatabaseScreenSortDropdownGeometry.directionButtonRect(screen, direction).contains(mouseX, mouseY)) {
                 continue;
             }
-            PersonalDatabaseScreenLayoutHelper.sendQuery(
-                    screen,
-                    screen.databaseMenu.viewState().query()
-                            .withSortOption(panel.tab().id(), sortOptions.get(index))
-                            .withFocusedTabId(panel.tab().id())
-            );
-            screen.sortDropdownExpanded = false;
-            screen.activeSortPanelIndex = -1;
+            DatabaseSortDropdownModel.SortAction action = DatabaseSortDropdownModel.actionForDirection(currentSort, direction);
+            if (action.nextSort() != currentSort) {
+                PersonalDatabaseScreenLayoutHelper.sendQuery(
+                        screen,
+                        screen.databaseMenu.viewState().query()
+                                .withSortOption(panel.scopedTab(), action.nextSort())
+                                .withFocusedTab(panel.scopedTab()),
+                        true
+                );
+            }
+            return true;
+        }
+        java.util.List<DatabaseSortMethod> sortMethods = DatabaseSortDropdownModel.methodOptions();
+        for (int index = 0; index < sortMethods.size(); index++) {
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenSortDropdownGeometry.methodRowRect(screen, index);
+            if (!rowRect.contains(mouseX, mouseY)) {
+                continue;
+            }
+            DatabaseSortDropdownModel.SortAction action = DatabaseSortDropdownModel.actionForMethod(currentSort, sortMethods.get(index));
+            if (action.nextSort() != currentSort) {
+                PersonalDatabaseScreenLayoutHelper.sendQuery(
+                        screen,
+                        screen.databaseMenu.viewState().query()
+                                .withSortOption(panel.scopedTab(), action.nextSort())
+                                .withFocusedTab(panel.scopedTab())
+                );
+            }
+            if (action.closeMenu()) {
+                screen.sortDropdownExpanded = false;
+                screen.activeSortPanelIndex = -1;
+            }
+            return true;
+        }
+        if (dropdownRect.contains(mouseX, mouseY)) {
             return true;
         }
         if (!PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex).contains(mouseX, mouseY)) {
