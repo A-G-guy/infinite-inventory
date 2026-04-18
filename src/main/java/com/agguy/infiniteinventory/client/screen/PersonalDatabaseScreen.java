@@ -170,6 +170,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean pendingTargetStoresSingle;
     TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
     int targetSelectorScrollIndex;
+    DatabaseScope topTabScopeFilter = DatabaseScope.PERSONAL;
     @Nullable
     DatabaseScopedTabRef pendingTopTabActionTab;
 
@@ -224,6 +225,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.customExtractOverlayExpanded = false;
         this.customExtractValidationKey = "";
         this.targetSelectorScrollIndex = 0;
+        this.topTabScopeFilter = this.databaseMenu.viewState().query().focusedTab().scope();
         this.selectionGestureModel.clearSelectionGesture();
         this.selectionGestureModel.releaseDiscardKey();
         PersonalDatabaseScreenContextHelper.closeContextMenu(this);

@@ -78,11 +78,16 @@ final class PersonalDatabaseScreenCommonHelper {
 
     static List<DatabaseScopedTabRef> allTopTabs(PersonalDatabaseScreen screen) {
         java.util.ArrayList<DatabaseScopedTabRef> topTabs = new java.util.ArrayList<>();
-        for (DatabaseTab tab : tabsForScope(screen, DatabaseScope.PERSONAL)) {
-            topTabs.add(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, tab.id()));
-        }
-        for (DatabaseTab tab : tabsForScope(screen, DatabaseScope.PUBLIC)) {
-            topTabs.add(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, tab.id()));
+        topTabs.addAll(topTabsForScope(screen, DatabaseScope.PERSONAL));
+        topTabs.addAll(topTabsForScope(screen, DatabaseScope.PUBLIC));
+        return List.copyOf(topTabs);
+    }
+
+    static List<DatabaseScopedTabRef> topTabsForScope(PersonalDatabaseScreen screen, DatabaseScope scope) {
+        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
+        java.util.ArrayList<DatabaseScopedTabRef> topTabs = new java.util.ArrayList<>();
+        for (DatabaseTab tab : tabsForScope(screen, normalizedScope)) {
+            topTabs.add(DatabaseScopedTabRef.concreteTab(normalizedScope, tab.id()));
         }
         return List.copyOf(topTabs);
     }

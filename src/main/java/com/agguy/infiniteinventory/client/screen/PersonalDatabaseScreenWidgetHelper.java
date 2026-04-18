@@ -119,7 +119,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
                         Component.translatable(DatabaseScope.PERSONAL.translationKey()),
-                        button -> PersonalDatabaseScreenLayoutHelper.switchScope(screen, DatabaseScope.PERSONAL)
+                        button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PERSONAL)
                 )
                 .bounds(
                         personalScopeRect.x(),
@@ -128,13 +128,11 @@ final class PersonalDatabaseScreenWidgetHelper {
                         personalScopeRect.height()
                 )
                 .build());
-        screen.personalScopeButton.visible = false;
-        screen.personalScopeButton.active = false;
 
         PersonalDatabaseLayout.Rect publicScopeRect = screen.layout.publicScopeButtonRect();
         screen.publicScopeButton = screen.addScreenButton(Button.builder(
                         Component.translatable(DatabaseScope.PUBLIC.translationKey()),
-                        button -> PersonalDatabaseScreenLayoutHelper.switchScope(screen, DatabaseScope.PUBLIC)
+                        button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC)
                 )
                 .bounds(publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height())
                 .build());
@@ -182,10 +180,8 @@ final class PersonalDatabaseScreenWidgetHelper {
                             accessoryToggleRect.y(),
                             accessoryToggleRect.width(),
                             accessoryToggleRect.height()
-                )
-                .build());
-        screen.publicScopeButton.visible = false;
-        screen.publicScopeButton.active = false;
+                    )
+                    .build());
         }
         PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
     }
@@ -293,7 +289,7 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncWidgetsFromState(PersonalDatabaseScreen screen) {
         DatabaseViewState viewState = screen.databaseMenu.viewState();
         DatabaseQuery query = viewState.query();
-        DatabaseScope activeScope = query.scope();
+        DatabaseScope topTabScopeFilter = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
         syncPanelWidgets(screen, viewState, query);
         if (screen.advancedSearchButton != null) {
             screen.advancedSearchButton.setMessage(Component.translatable("screen.infiniteinventory.search_advanced_button"));
@@ -311,12 +307,14 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
         }
         if (screen.personalScopeButton != null) {
-            screen.personalScopeButton.visible = false;
-            screen.personalScopeButton.active = false;
+            screen.personalScopeButton.visible = screen.layout != null && screen.layout.personalScopeButtonRect().width() > 0;
+            screen.personalScopeButton.active = topTabScopeFilter != DatabaseScope.PERSONAL;
+            screen.personalScopeButton.setMessage(Component.translatable(DatabaseScope.PERSONAL.translationKey()));
         }
         if (screen.publicScopeButton != null) {
-            screen.publicScopeButton.visible = false;
-            screen.publicScopeButton.active = false;
+            screen.publicScopeButton.visible = screen.layout != null && screen.layout.publicScopeButtonRect().width() > 0;
+            screen.publicScopeButton.active = topTabScopeFilter != DatabaseScope.PUBLIC;
+            screen.publicScopeButton.setMessage(Component.translatable(DatabaseScope.PUBLIC.translationKey()));
         }
         if (screen.accessoriesToggleButton != null) {
             screen.accessoriesToggleButton.visible = PersonalDatabaseScreenLayoutHelper.hasAccessorySlots(screen)

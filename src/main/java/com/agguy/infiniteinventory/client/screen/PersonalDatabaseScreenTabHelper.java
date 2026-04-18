@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.util.ArrayList;
@@ -14,15 +15,43 @@ final class PersonalDatabaseScreenTabHelper {
     private PersonalDatabaseScreenTabHelper() {
     }
 
+    static DatabaseScope syncTopTabScopeFilter(PersonalDatabaseScreen screen) {
+        DatabaseScope resolvedScope = resolvedTopTabScopeFilter(screen);
+        screen.topTabScopeFilter = resolvedScope;
+        return resolvedScope;
+    }
+
+    static void switchTopTabScopeFilter(PersonalDatabaseScreen screen, DatabaseScope scope) {
+        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
+        if (syncTopTabScopeFilter(screen) == normalizedScope) {
+            return;
+        }
+        PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+        screen.advancedSearchExpanded = false;
+        screen.topTabScopeFilter = normalizedScope;
+    }
+
+    static List<DatabaseScopedTabRef> filterTopTabsByScope(List<DatabaseScopedTabRef> tabs, DatabaseScope scope) {
+        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
+        return tabs.stream().filter(tab -> tab.scope() == normalizedScope).toList();
+    }
+
+    static List<DatabaseScopedTabRef> currentTopTabs(PersonalDatabaseScreen screen) {
+        return filterTopTabsByScope(
+                PersonalDatabaseScreenCommonHelper.allTopTabs(screen),
+                syncTopTabScopeFilter(screen)
+        );
+    }
+
     static List<DatabaseScopedTabRef> visibleTopTabs(PersonalDatabaseScreen screen) {
-        List<DatabaseScopedTabRef> tabs = PersonalDatabaseScreenCommonHelper.allTopTabs(screen);
+        List<DatabaseScopedTabRef> tabs = currentTopTabs(screen);
         if (screen.layout == null || tabs.size() <= 1) {
             return tabs;
         }
         int gapWithoutMore = inlineTabGap(tabs.size(), false);
         int maxVisibleWithoutMore = Math.max(
                 1,
-                (screen.layout.tabBarRect().width() + gapWithoutMore)
+                (topTabContentRect(screen).width() + gapWithoutMore)
                         / (PersonalDatabaseScreen.INLINE_TAB_MIN_WIDTH + gapWithoutMore)
         );
         if (tabs.size() <= maxVisibleWithoutMore) {
@@ -30,7 +59,7 @@ final class PersonalDatabaseScreenTabHelper {
         }
 
         int gap = inlineTabGap(tabs.size(), true);
-        int availableWidth = Math.max(1, screen.layout.tabBarRect().width() - PersonalDatabaseScreen.INLINE_TAB_MORE_WIDTH - gap);
+        int availableWidth = Math.max(1, topTabContentRect(screen).width() - PersonalDatabaseScreen.INLINE_TAB_MORE_WIDTH - gap);
         int maxVisibleWithMore = Math.max(
                 1,
                 (availableWidth + gap) / (PersonalDatabaseScreen.INLINE_TAB_MIN_WIDTH_WITH_MORE + gap)
@@ -46,7 +75,7 @@ final class PersonalDatabaseScreenTabHelper {
         }
 
         DatabaseScopedTabRef focusedTab = screen.databaseMenu.viewState().query().focusedTab();
-        if (!visibleTabs.contains(focusedTab)) {
+        if (tabs.contains(focusedTab) && !visibleTabs.contains(focusedTab)) {
             List<DatabaseScopedTabRef> orderedTabs = new ArrayList<>(visibleTabs);
             if (!orderedTabs.isEmpty()) {
                 orderedTabs.set(orderedTabs.size() - 1, focusedTab);
@@ -67,7 +96,7 @@ final class PersonalDatabaseScreenTabHelper {
     static List<DatabaseScopedTabRef> hiddenTopTabs(PersonalDatabaseScreen screen) {
         LinkedHashSet<DatabaseScopedTabRef> visibleTabs = new LinkedHashSet<>(visibleTopTabs(screen));
         List<DatabaseScopedTabRef> hiddenTabs = new ArrayList<>();
-        for (DatabaseScopedTabRef tab : PersonalDatabaseScreenCommonHelper.allTopTabs(screen)) {
+        for (DatabaseScopedTabRef tab : currentTopTabs(screen)) {
             if (!visibleTabs.contains(tab)) {
                 hiddenTabs.add(tab);
             }
@@ -84,7 +113,7 @@ final class PersonalDatabaseScreenTabHelper {
         if (screen.layout == null || visibleTabCount <= 0) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        PersonalDatabaseLayout.Rect barRect = screen.layout.tabBarRect();
+        PersonalDatabaseLayout.Rect barRect = topTabContentRect(screen);
         int gap = inlineTabGap(visibleTabCount, hasMore);
         int availableWidth = Math.max(1, barRect.width() - (hasMore ? PersonalDatabaseScreen.INLINE_TAB_MORE_WIDTH + gap : 0));
         int totalGap = Math.max(0, visibleTabCount - 1) * gap;
@@ -98,7 +127,7 @@ final class PersonalDatabaseScreenTabHelper {
         if (screen.layout == null || hiddenTopTabs(screen).isEmpty()) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        PersonalDatabaseLayout.Rect barRect = screen.layout.tabBarRect();
+        PersonalDatabaseLayout.Rect barRect = topTabContentRect(screen);
         int gap = inlineTabGap(visibleTopTabs(screen).size(), true);
         int availableWidth = Math.max(1, barRect.width() - PersonalDatabaseScreen.INLINE_TAB_MORE_WIDTH - gap);
         int x = barRect.x() + availableWidth + gap;
@@ -233,6 +262,41 @@ final class PersonalDatabaseScreenTabHelper {
 
     static void closeTopTabPrompt(PersonalDatabaseScreen screen) {
         PersonalDatabaseScreenTopTabPromptHelper.closeTopTabPrompt(screen);
+    }
+
+    private static DatabaseScope resolvedTopTabScopeFilter(PersonalDatabaseScreen screen) {
+        DatabaseScope requestedScope = DatabaseScope.normalize(screen.topTabScopeFilter);
+        if (!PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, requestedScope).isEmpty()) {
+            return requestedScope;
+        }
+        DatabaseScope focusedScope = screen.databaseMenu.viewState().query().focusedTab().scope();
+        if (!PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, focusedScope).isEmpty()) {
+            return focusedScope;
+        }
+        DatabaseScope alternateScope = focusedScope == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
+        if (!PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, alternateScope).isEmpty()) {
+            return alternateScope;
+        }
+        return focusedScope;
+    }
+
+    private static PersonalDatabaseLayout.Rect topTabContentRect(PersonalDatabaseScreen screen) {
+        if (screen.layout == null) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        PersonalDatabaseLayout.Rect tabBarRect = screen.layout.tabBarRect();
+        PersonalDatabaseLayout.Rect personalButtonRect = screen.layout.personalScopeButtonRect();
+        PersonalDatabaseLayout.Rect publicButtonRect = screen.layout.publicScopeButtonRect();
+        int left = Math.max(tabBarRect.x(), Math.max(personalButtonRect.right(), publicButtonRect.right()));
+        if (left > tabBarRect.x()) {
+            left = Math.min(tabBarRect.right() - 1, left + PersonalDatabaseLayout.TAB_GAP);
+        }
+        return new PersonalDatabaseLayout.Rect(
+                left,
+                tabBarRect.y(),
+                Math.max(1, tabBarRect.right() - left),
+                tabBarRect.height()
+        );
     }
 
     private static int inlineTabGap(int visibleTabCount, boolean hasMore) {
