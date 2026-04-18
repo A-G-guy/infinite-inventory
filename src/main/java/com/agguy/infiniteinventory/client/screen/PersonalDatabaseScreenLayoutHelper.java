@@ -17,8 +17,11 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenLayoutHelper {
+    private static final int SEARCH_SYNC_DELAY_TICKS = 6;
+
     private PersonalDatabaseScreenLayoutHelper() {
     }
 
@@ -116,11 +119,60 @@ final class PersonalDatabaseScreenLayoutHelper {
             return;
         }
         DatabaseScopedTabRef scopedTab = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab();
-        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
-        if (currentQuery.searchTextFor(scopedTab).equals(value)) {
+        String normalizedValue = value == null ? "" : value;
+        screen.activeSearchTab = scopedTab;
+        screen.pendingSearchTexts.put(scopedTab, normalizedValue);
+        screen.dispatchedSearchTexts.remove(scopedTab);
+        screen.searchSyncCooldownTicks = SEARCH_SYNC_DELAY_TICKS;
+    }
+
+    static void tickSearchSync(PersonalDatabaseScreen screen) {
+        reconcilePendingSearchState(screen);
+        if (screen.pendingSearchTexts.isEmpty()) {
+            screen.searchSyncCooldownTicks = 0;
             return;
         }
-        sendQuery(screen, currentQuery.withSearchText(scopedTab, value).withFocusedTab(scopedTab));
+        if (screen.searchSyncCooldownTicks > 0) {
+            screen.searchSyncCooldownTicks--;
+            return;
+        }
+        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
+        DatabaseQuery nextQuery = currentQuery;
+        boolean changed = false;
+        for (Map.Entry<DatabaseScopedTabRef, String> entry : screen.pendingSearchTexts.entrySet()) {
+            DatabaseScopedTabRef scopedTab = entry.getKey();
+            String pendingText = entry.getValue();
+            if (currentQuery.searchTextFor(scopedTab).equals(pendingText)
+                    || pendingText.equals(screen.dispatchedSearchTexts.get(scopedTab))) {
+                continue;
+            }
+            nextQuery = nextQuery.withSearchText(scopedTab, pendingText);
+            screen.dispatchedSearchTexts.put(scopedTab, pendingText);
+            changed = true;
+        }
+        if (!changed) {
+            return;
+        }
+        DatabaseScopedTabRef searchFocusTab = resolveActiveSearchTab(screen);
+        if (searchFocusTab != null) {
+            nextQuery = nextQuery.withFocusedTab(searchFocusTab);
+        }
+        sendQuery(screen, nextQuery);
+    }
+
+    static void updateSearchFocusFromClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (screen.layout == null) {
+            screen.activeSearchTab = null;
+            return;
+        }
+        for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
+            if (!PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex).contains(mouseX, mouseY)) {
+                continue;
+            }
+            screen.activeSearchTab = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab();
+            return;
+        }
+        screen.activeSearchTab = null;
     }
 
     static void changePanelPage(PersonalDatabaseScreen screen, int panelIndex, int delta) {
@@ -300,7 +352,9 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     private static void rebuildWidgets(PersonalDatabaseScreen screen) {
-        DatabaseScopedTabRef focusedSearchTab = focusedSearchTab(screen);
+        DatabaseScopedTabRef focusedSearchTab = screen.activeSearchTab != null
+                ? screen.activeSearchTab
+                : focusedSearchTab(screen);
         screen.clearScreenWidgets();
         screen.panelSearchBoxes.clear();
         screen.panelSortButtons.clear();
@@ -376,5 +430,26 @@ final class PersonalDatabaseScreenLayoutHelper {
             searchBox.setFocused(true);
             return;
         }
+    }
+
+    private static void reconcilePendingSearchState(PersonalDatabaseScreen screen) {
+        DatabaseQuery currentQuery = screen.databaseMenu.viewState().query();
+        java.util.Iterator<Map.Entry<DatabaseScopedTabRef, String>> iterator = screen.pendingSearchTexts.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<DatabaseScopedTabRef, String> entry = iterator.next();
+            if (!currentQuery.searchTextFor(entry.getKey()).equals(entry.getValue())) {
+                continue;
+            }
+            iterator.remove();
+            screen.dispatchedSearchTexts.remove(entry.getKey());
+        }
+    }
+
+    @Nullable
+    private static DatabaseScopedTabRef resolveActiveSearchTab(PersonalDatabaseScreen screen) {
+        if (screen.activeSearchTab != null) {
+            return screen.activeSearchTab;
+        }
+        return focusedSearchTab(screen);
     }
 }

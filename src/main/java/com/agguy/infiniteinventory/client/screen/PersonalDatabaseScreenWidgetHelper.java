@@ -441,11 +441,18 @@ final class PersonalDatabaseScreenWidgetHelper {
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
             String tabId = panel.tab().id();
+            var scopedTab = panel.scopedTab();
             EditBox searchBox = panelIndex < screen.panelSearchBoxes.size() ? screen.panelSearchBoxes.get(panelIndex) : null;
-            if (searchBox != null && !searchBox.isFocused() && !searchBox.getValue().equals(query.searchTextFor(tabId))) {
+            String pendingSearchText = screen.pendingSearchTexts.get(scopedTab);
+            String resolvedSearchText = pendingSearchText == null ? query.searchTextFor(tabId) : pendingSearchText;
+            if (searchBox != null && !searchBox.getValue().equals(resolvedSearchText) && (!searchBox.isFocused() || pendingSearchText == null)) {
                 screen.syncingSearchBox = true;
-                searchBox.setValue(query.searchTextFor(tabId));
+                searchBox.setValue(resolvedSearchText);
                 screen.syncingSearchBox = false;
+            }
+            if (searchBox != null && scopedTab.equals(screen.activeSearchTab) && !searchBox.isFocused()) {
+                screen.focusScreen(searchBox);
+                searchBox.setFocused(true);
             }
             Button sortButton = panelIndex < screen.panelSortButtons.size() ? screen.panelSortButtons.get(panelIndex) : null;
             if (sortButton != null) {
