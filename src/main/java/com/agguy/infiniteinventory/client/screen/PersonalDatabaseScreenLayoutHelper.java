@@ -107,7 +107,7 @@ final class PersonalDatabaseScreenLayoutHelper {
         }
         DatabaseQuery adjustedQuery = currentQuery.withPanelLayout(nextPageIndexes, nextPageSizes);
         screen.pendingLayoutQuery = adjustedQuery;
-        prepareForServerQuery(screen);
+        prepareForServerQuery(screen, false, screen.viewSelectorExpanded);
         dispatchQuery(screen, adjustedQuery);
     }
 
@@ -191,11 +191,11 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query) {
-        sendQuery(screen, query, false, false);
+        sendQuery(screen, query, false, screen.viewSelectorExpanded);
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query, boolean keepSortDropdownExpanded) {
-        sendQuery(screen, query, keepSortDropdownExpanded, false);
+        sendQuery(screen, query, keepSortDropdownExpanded, screen.viewSelectorExpanded);
     }
 
     static void sendQueryKeepingViewSelector(PersonalDatabaseScreen screen, DatabaseQuery query) {
