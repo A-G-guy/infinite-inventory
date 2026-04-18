@@ -26,7 +26,7 @@ final class PersonalDatabaseMenuSyncHelper {
         java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabs().size());
         DatabaseQuery adjustedQuery = activeQuery;
         for (DatabaseScopedTabRef visibleTab : activeQuery.visibleTabs()) {
-            DatabasePage page = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, adjustedQuery, visibleTab);
+            DatabasePage page = PersonalDatabaseService.INSTANCE.buildPage(serverPlayer, adjustedQuery, visibleTab, menu.viewerLanguage());
             rebuiltPages.add(page);
             adjustedQuery = adjustedQuery
                     .withPageIndex(page.scopedTab(), page.pageIndex())

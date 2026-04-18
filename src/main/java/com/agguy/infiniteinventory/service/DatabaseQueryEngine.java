@@ -10,12 +10,13 @@ import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
-import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.DatabaseTabQueryState;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.service.search.DatabaseItemSearchResolver;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchEvaluator;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
@@ -37,7 +38,7 @@ public final class DatabaseQueryEngine {
 
     private final DatabaseEntrySorter entrySorter = DatabaseEntrySorter.INSTANCE;
     private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
-    private final Map<StoredItemDatabase, DatabaseRuntimeIndex> runtimeIndexes = new WeakHashMap<>();
+    private final Map<StoredItemDatabase, LocalizedRuntimeIndexes> runtimeIndexes = new WeakHashMap<>();
 
     private DatabaseQueryEngine() {
     }
@@ -48,26 +49,47 @@ public final class DatabaseQueryEngine {
             DatabaseQuery query,
             DatabaseScopedTabRef scopedTab
     ) {
+        return this.buildPage(database, tabDirectory, query, scopedTab, ViewerLanguage.defaultLanguage());
+    }
+
+    public DatabasePage buildPage(
+            StoredItemDatabase database,
+            DatabaseTabDirectory tabDirectory,
+            DatabaseQuery query,
+            DatabaseScopedTabRef scopedTab,
+            ViewerLanguage viewerLanguage
+    ) {
         StoredItemDatabase resolvedDatabase = database == null ? new StoredItemDatabase() : database;
         DatabaseTabDirectory resolvedTabDirectory = tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
         DatabaseQuery normalizedQuery = resolvedTabDirectory.sanitizeQuery(query == null ? DatabaseQuery.defaultQuery() : query);
         DatabaseScopedTabRef normalizedScopedTab = normalizeScopedTab(scopedTab, resolvedTabDirectory, normalizedQuery.focusedTab().scope());
         String normalizedTabId = normalizedScopedTab.tabId();
         CachedQueryResult queryResult = this.resolveQueryResult(
-                this.runtimeIndexFor(resolvedDatabase),
+                this.runtimeIndexFor(resolvedDatabase, viewerLanguage),
                 normalizedQuery.tabStateFor(normalizedScopedTab),
                 normalizedTabId
         );
         return this.toPage(normalizedQuery, queryResult, normalizedScopedTab, resolvedTabDirectory.resolve(normalizedTabId));
     }
 
-    private synchronized DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database) {
-        DatabaseRuntimeIndex cachedIndex = this.runtimeIndexes.get(database);
-        if (cachedIndex != null && cachedIndex.revision() == database.revision()) {
-            return cachedIndex;
+    private synchronized DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
+        ViewerLanguage normalizedLanguage = viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage;
+        LocalizedRuntimeIndexes cachedIndexes = this.runtimeIndexes.get(database);
+        if (cachedIndexes != null && cachedIndexes.revision() == database.revision()) {
+            DatabaseRuntimeIndex cachedIndex = cachedIndexes.indexFor(normalizedLanguage);
+            if (cachedIndex != null) {
+                return cachedIndex;
+            }
         }
-        DatabaseRuntimeIndex rebuiltIndex = DatabaseRuntimeIndex.build(database);
-        this.runtimeIndexes.put(database, rebuiltIndex);
+
+        LocalizedRuntimeIndexes activeIndexes = cachedIndexes;
+        if (activeIndexes == null || activeIndexes.revision() != database.revision()) {
+            activeIndexes = new LocalizedRuntimeIndexes(database.revision());
+            this.runtimeIndexes.put(database, activeIndexes);
+        }
+
+        DatabaseRuntimeIndex rebuiltIndex = DatabaseRuntimeIndex.build(database, normalizedLanguage);
+        activeIndexes.put(normalizedLanguage, rebuiltIndex);
         return rebuiltIndex;
     }
 
@@ -142,7 +164,7 @@ public final class DatabaseQueryEngine {
     }
 
     private static int resolvePageToIndex(int fromIndex, int pageSize, int totalEntries) {
-        long endIndex = Math.min((long) Math.max(0, totalEntries), (long) Math.max(0, fromIndex) + Math.max(1L, pageSize));
+        long endIndex = Math.min((long) Math.max(0L, totalEntries), (long) Math.max(0L, fromIndex) + Math.max(1L, pageSize));
         return (int) endIndex;
     }
 
@@ -211,9 +233,9 @@ public final class DatabaseQueryEngine {
             DatabaseSearchIndex searchIndex,
             DatabaseSortSnapshot baseSortSnapshot
     ) {
-        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry) {
+        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, ViewerLanguage viewerLanguage) {
             ItemStack displayStack = key.displayStack();
-            DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key);
+            DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage);
             return new DatabaseRuntimeEntryRecord(
                     key,
                     entry,
@@ -270,10 +292,6 @@ public final class DatabaseQueryEngine {
             this.tabTotals = tabTotals;
         }
 
-        private long revision() {
-            return this.revision;
-        }
-
         private List<DatabaseRuntimeEntryRecord> recordsFor(String tabId) {
             return this.tabBuckets.getOrDefault(normalizeTabId(tabId, null), List.of());
         }
@@ -300,14 +318,14 @@ public final class DatabaseQueryEngine {
             this.searchCache.put(fingerprint, result);
         }
 
-        private static DatabaseRuntimeIndex build(StoredItemDatabase database) {
+        private static DatabaseRuntimeIndex build(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
             Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets = new LinkedHashMap<>();
             Map<String, Long> tabTotals = new LinkedHashMap<>();
             tabBuckets.put(DatabaseTabs.ALL_TAB_ID, new ArrayList<>());
             tabTotals.put(DatabaseTabs.ALL_TAB_ID, 0L);
 
             for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
-                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue());
+                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue(), viewerLanguage);
                 String tabId = DatabaseTabs.normalizeConcreteTarget(record.entry().tabId());
                 tabBuckets.computeIfAbsent(tabId, ignored -> new ArrayList<>()).add(record);
                 tabBuckets.get(DatabaseTabs.ALL_TAB_ID).add(record);
@@ -320,6 +338,27 @@ public final class DatabaseQueryEngine {
                 immutableBuckets.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
             return new DatabaseRuntimeIndex(database.revision(), Map.copyOf(immutableBuckets), Map.copyOf(tabTotals));
+        }
+    }
+
+    private static final class LocalizedRuntimeIndexes {
+        private final long revision;
+        private final java.util.EnumMap<ViewerLanguage, DatabaseRuntimeIndex> localizedIndexes = new java.util.EnumMap<>(ViewerLanguage.class);
+
+        private LocalizedRuntimeIndexes(long revision) {
+            this.revision = Math.max(0L, revision);
+        }
+
+        private long revision() {
+            return this.revision;
+        }
+
+        private DatabaseRuntimeIndex indexFor(ViewerLanguage viewerLanguage) {
+            return this.localizedIndexes.get(viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage);
+        }
+
+        private void put(ViewerLanguage viewerLanguage, DatabaseRuntimeIndex runtimeIndex) {
+            this.localizedIndexes.put(viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage, runtimeIndex);
         }
     }
 }

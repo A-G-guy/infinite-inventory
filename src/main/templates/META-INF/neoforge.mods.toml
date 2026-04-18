@@ -46,7 +46,9 @@ authors="agguy"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
+Infinite Inventory / 无限库存
 A personal infinite inventory database for each player, with full-screen search, sorting and categorized storage.
+为每位玩家提供全屏检索、排序与分类存储的个人无限库存数据库。
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

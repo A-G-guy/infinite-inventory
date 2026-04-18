@@ -10,6 +10,7 @@ import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.network.DatabaseSnapshotPayload;
@@ -61,6 +62,10 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
 
     public long sessionId() {
         return this.sessionId;
+    }
+
+    public ViewerLanguage viewerLanguage() {
+        return this.currentViewerLanguage();
     }
 
     public List<com.agguy.infiniteinventory.compat.AccessorySlotGroup> accessorySlotGroups() {
@@ -162,6 +167,12 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
 
     public void updateEnhancementConfig(DatabaseEnhancementConfig newConfig, DatabaseAutoStoreTarget newAutoStoreTarget) {
         PersonalDatabaseMenuSyncHelper.updateEnhancementConfig(this, newConfig, newAutoStoreTarget);
+    }
+
+    public void updateViewerLanguage(ViewerLanguage viewerLanguage) {
+        if (this.setViewerLanguage(viewerLanguage)) {
+            this.syncViewToClient();
+        }
     }
 
     public void depositAllFromMainInventory(@Nullable DatabaseScope targetScope, String targetTabId) {

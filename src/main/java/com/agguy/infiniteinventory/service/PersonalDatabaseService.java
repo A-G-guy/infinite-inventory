@@ -19,6 +19,7 @@ import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
@@ -191,13 +192,14 @@ public final class PersonalDatabaseService {
         );
     }
 
-    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, DatabaseScopedTabRef scopedTab) {
+    public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, DatabaseScopedTabRef scopedTab, ViewerLanguage viewerLanguage) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
         return this.queryEngine.buildPage(
                 this.resolveDatabaseForView(player, scopedTab.scope()),
                 this.resolveTabsForView(player, scopedTab.scope()),
                 normalizedQuery,
-                scopedTab
+                scopedTab,
+                viewerLanguage
         );
     }
 

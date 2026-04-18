@@ -86,7 +86,13 @@ public final class DatabaseSearchEvaluator {
 
     private TokenMatch matchField(DatabaseSearchField field, String term, DatabaseSearchIndex index, DatabaseSearchWeight weight) {
         TokenMatch matched = switch (field) {
-            case DISPLAY_NAME -> this.matchNaturalField(term, weight, index.displayNameTokens(), index.displayNameNormalized(), index.displayNameCompact());
+            case DISPLAY_NAME -> this.matchNaturalField(
+                    term,
+                    weight,
+                    index.displayNameTokens(),
+                    index.displayNameSearchNormalizedTexts(),
+                    index.displayNameSearchCompactTexts()
+            );
             case ITEM_ID -> this.matchIdentifierField(term, weight, index.registryNameNormalized(), index.registryNameCompact(), index.registryPathTokens(), index.registryPathNormalized(), index.registryPathCompact());
             case PINYIN -> this.matchPinyinField(term, weight, index.pinyinTokens(), index.pinyinFull(), index.pinyinInitials());
             case MOD_NAMESPACE -> this.matchCompactField(term, weight, index.modNamespace());
@@ -99,14 +105,14 @@ public final class DatabaseSearchEvaluator {
             String term,
             DatabaseSearchWeight weight,
             List<String> tokens,
-            String normalizedText,
-            String compactText
+            List<String> normalizedTexts,
+            List<String> compactTexts
     ) {
         String compactTerm = SearchTextNormalizer.compactNaturalText(term);
         if (compactTerm.isEmpty()) {
             return TokenMatch.noMatch();
         }
-        return this.matchNormalizedCandidates(compactTerm, weight, tokens, normalizedText, compactText);
+        return this.matchNormalizedCandidates(compactTerm, weight, tokens, normalizedTexts, compactTexts);
     }
 
     private TokenMatch matchIdentifierField(
@@ -133,7 +139,13 @@ public final class DatabaseSearchEvaluator {
             return bestMatch;
         }
 
-        bestMatch = bestMatch.betterOf(this.matchNormalizedCandidates(compactIdentifier, weight, pathTokens, registryPath, registryPathCompact));
+        bestMatch = bestMatch.betterOf(this.matchNormalizedCandidates(
+                compactIdentifier,
+                weight,
+                pathTokens,
+                List.of(registryPath),
+                List.of(registryPathCompact)
+        ));
         bestMatch = bestMatch.betterOf(this.matchCompactField(compactIdentifier, weight, registryNameCompact));
         return bestMatch;
     }
@@ -143,7 +155,7 @@ public final class DatabaseSearchEvaluator {
         if (compactTerm.isEmpty()) {
             return TokenMatch.noMatch();
         }
-        TokenMatch bestMatch = this.matchNormalizedCandidates(compactTerm, weight, tokens, fullPinyin, fullPinyin);
+        TokenMatch bestMatch = this.matchNormalizedCandidates(compactTerm, weight, tokens, List.of(fullPinyin), List.of(fullPinyin));
         return bestMatch.betterOf(this.matchCompactField(compactTerm, weight, initials));
     }
 
@@ -170,12 +182,16 @@ public final class DatabaseSearchEvaluator {
             String term,
             DatabaseSearchWeight weight,
             List<String> tokens,
-            String normalizedText,
-            String compactText
+            List<String> normalizedTexts,
+            List<String> compactTexts
     ) {
-        TokenMatch exactMatch = TokenMatch.noMatch()
-                .betterOf(this.matchExact(term, weight, normalizedText, EXACT_BASE_SCORE))
-                .betterOf(this.matchExact(term, weight, compactText, EXACT_BASE_SCORE));
+        TokenMatch exactMatch = TokenMatch.noMatch();
+        for (String normalizedText : normalizedTexts) {
+            exactMatch = exactMatch.betterOf(this.matchExact(term, weight, normalizedText, EXACT_BASE_SCORE));
+        }
+        for (String compactText : compactTexts) {
+            exactMatch = exactMatch.betterOf(this.matchExact(term, weight, compactText, EXACT_BASE_SCORE));
+        }
         for (String token : tokens) {
             exactMatch = exactMatch.betterOf(this.matchExact(term, weight, token, EXACT_BASE_SCORE));
         }
@@ -183,9 +199,13 @@ public final class DatabaseSearchEvaluator {
             return exactMatch;
         }
 
-        TokenMatch prefixMatch = TokenMatch.noMatch()
-                .betterOf(this.matchPrefix(term, weight, normalizedText, PREFIX_BASE_SCORE))
-                .betterOf(this.matchPrefix(term, weight, compactText, PREFIX_BASE_SCORE));
+        TokenMatch prefixMatch = TokenMatch.noMatch();
+        for (String normalizedText : normalizedTexts) {
+            prefixMatch = prefixMatch.betterOf(this.matchPrefix(term, weight, normalizedText, PREFIX_BASE_SCORE));
+        }
+        for (String compactText : compactTexts) {
+            prefixMatch = prefixMatch.betterOf(this.matchPrefix(term, weight, compactText, PREFIX_BASE_SCORE));
+        }
         for (String token : tokens) {
             prefixMatch = prefixMatch.betterOf(this.matchPrefix(term, weight, token, PREFIX_BASE_SCORE));
         }
@@ -193,15 +213,31 @@ public final class DatabaseSearchEvaluator {
             return prefixMatch;
         }
 
-        TokenMatch containsMatch = this.matchContains(term, weight, compactText.isEmpty() ? normalizedText : compactText, CONTAINS_BASE_SCORE);
+        TokenMatch containsMatch = TokenMatch.noMatch();
+        for (String compactText : compactTexts) {
+            containsMatch = containsMatch.betterOf(this.matchContains(term, weight, compactText, CONTAINS_BASE_SCORE));
+        }
+        for (String normalizedText : normalizedTexts) {
+            containsMatch = containsMatch.betterOf(this.matchContains(term, weight, normalizedText, CONTAINS_BASE_SCORE));
+        }
         if (containsMatch.matched()) {
             return containsMatch;
         }
 
-        return this.matchFuzzy(term, weight, compactText.isEmpty() ? normalizedText : compactText);
+        TokenMatch fuzzyMatch = TokenMatch.noMatch();
+        for (String compactText : compactTexts) {
+            fuzzyMatch = fuzzyMatch.betterOf(this.matchFuzzy(term, weight, compactText));
+        }
+        for (String normalizedText : normalizedTexts) {
+            fuzzyMatch = fuzzyMatch.betterOf(this.matchFuzzy(term, weight, normalizedText));
+        }
+        return fuzzyMatch;
     }
 
     private TokenMatch matchExact(String term, DatabaseSearchWeight weight, String candidate, int baseScore) {
+        if (candidate == null || candidate.isEmpty()) {
+            return TokenMatch.noMatch();
+        }
         if (!term.equals(candidate)) {
             return TokenMatch.noMatch();
         }
@@ -209,6 +245,9 @@ public final class DatabaseSearchEvaluator {
     }
 
     private TokenMatch matchPrefix(String term, DatabaseSearchWeight weight, String candidate, int baseScore) {
+        if (candidate == null || candidate.isEmpty()) {
+            return TokenMatch.noMatch();
+        }
         if (!candidate.startsWith(term) || term.equals(candidate)) {
             return TokenMatch.noMatch();
         }
@@ -216,6 +255,9 @@ public final class DatabaseSearchEvaluator {
     }
 
     private TokenMatch matchContains(String term, DatabaseSearchWeight weight, String candidate, int baseScore) {
+        if (candidate == null || candidate.isEmpty()) {
+            return TokenMatch.noMatch();
+        }
         int position = candidate.indexOf(term);
         if (position < 0 || position == 0 && term.length() == candidate.length()) {
             return TokenMatch.noMatch();
@@ -224,7 +266,7 @@ public final class DatabaseSearchEvaluator {
     }
 
     private TokenMatch matchFuzzy(String term, DatabaseSearchWeight weight, String candidate) {
-        if (term.length() < 3 || candidate.isEmpty() || !SearchTextNormalizer.isSubsequence(candidate, term)) {
+        if (candidate == null || candidate.isEmpty() || term.length() < 3 || !SearchTextNormalizer.isSubsequence(candidate, term)) {
             return TokenMatch.noMatch();
         }
         int fuzzyScore = FUZZY_SCORE.score(candidate, term);
@@ -266,12 +308,37 @@ public final class DatabaseSearchEvaluator {
             List<String> terms
     ) {
         return switch (field) {
-            case DISPLAY_NAME -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.displayNameNormalized(), index.displayNameCompact(), index.displayNameTokens());
+            case DISPLAY_NAME -> this.phraseBonusForTexts(
+                    weight,
+                    normalizedPhrase,
+                    compactPhrase,
+                    index.displayNameSearchNormalizedTexts(),
+                    index.displayNameSearchCompactTexts(),
+                    index.displayNameTokens()
+            );
             case ITEM_ID -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.registryPathNormalized(), index.registryPathCompact(), index.registryPathTokens());
             case PINYIN -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.pinyinFull(), index.pinyinFull(), index.pinyinTokens());
             case MOD_NAMESPACE -> this.phraseBonusForCompact(weight, compactPhrase, index.modNamespace());
             case COUNT_BOOST -> 0.0D;
         };
+    }
+
+    private double phraseBonusForTexts(
+            DatabaseSearchWeight weight,
+            String normalizedPhrase,
+            String compactPhrase,
+            List<String> normalizedTexts,
+            List<String> compactTexts,
+            List<String> tokens
+    ) {
+        double bestBonus = 0.0D;
+        for (String normalizedText : normalizedTexts) {
+            bestBonus = Math.max(bestBonus, this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, normalizedText, "", tokens));
+        }
+        for (String compactText : compactTexts) {
+            bestBonus = Math.max(bestBonus, this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, "", compactText, tokens));
+        }
+        return bestBonus;
     }
 
     private double phraseBonusForText(
@@ -288,10 +355,10 @@ public final class DatabaseSearchEvaluator {
         if (!compactPhrase.isEmpty() && compactPhrase.equals(compactText)) {
             return PHRASE_EXACT_BONUS * weight.multiplier();
         }
-        if (!normalizedPhrase.isEmpty() && normalizedText.startsWith(normalizedPhrase)) {
+        if (!normalizedPhrase.isEmpty() && !normalizedText.isEmpty() && normalizedText.startsWith(normalizedPhrase)) {
             return PHRASE_PREFIX_BONUS * weight.multiplier();
         }
-        if (!compactPhrase.isEmpty() && compactText.startsWith(compactPhrase)) {
+        if (!compactPhrase.isEmpty() && !compactText.isEmpty() && compactText.startsWith(compactPhrase)) {
             return PHRASE_PREFIX_BONUS * weight.multiplier();
         }
         if (this.containsAdjacentTokens(tokens, SearchTextNormalizer.splitTerms(normalizedPhrase))) {

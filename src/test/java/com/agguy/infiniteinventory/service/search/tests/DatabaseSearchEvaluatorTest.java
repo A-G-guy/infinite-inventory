@@ -260,6 +260,8 @@ class DatabaseSearchEvaluatorTest {
                 SearchTextNormalizer.normalizeNaturalText(displayName),
                 SearchTextNormalizer.compactNaturalText(displayName),
                 SearchTextNormalizer.tokenizeNaturalText(displayName),
+                List.of(SearchTextNormalizer.normalizeNaturalText(displayName)),
+                List.of(SearchTextNormalizer.compactNaturalText(displayName)),
                 SearchTextNormalizer.normalizeIdentifierText(registryName),
                 SearchTextNormalizer.compactIdentifierText(registryName),
                 SearchTextNormalizer.normalizeIdentifierText(registryPath),
