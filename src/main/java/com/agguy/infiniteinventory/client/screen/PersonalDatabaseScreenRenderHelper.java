@@ -58,7 +58,6 @@ final class PersonalDatabaseScreenRenderHelper {
         );
         guiGraphics.pose().popPose();
     }
-
     static void renderBg(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         if (screen.layout == null) {
             return;
@@ -92,7 +91,6 @@ final class PersonalDatabaseScreenRenderHelper {
         renderEmptyState(screen, guiGraphics);
         renderFrameText(screen, guiGraphics);
     }
-
     static void renderSlot(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, Slot slot) {
         PersonalDatabaseLayout.AccessorySlotLayout accessorySlotLayout = PersonalDatabaseScreenGeometry.resolveAccessorySlotLayout(
                 screen,
@@ -107,19 +105,15 @@ final class PersonalDatabaseScreenRenderHelper {
             guiGraphics.fill(slotRect.right(), slotRect.y(), slotRect.right() + 1, slotRect.bottom(), 0x90382E24);
         }
     }
-
     static boolean shouldSkipSlotHighlight(PersonalDatabaseScreen screen, Slot slot) {
         return PersonalDatabaseScreenGeometry.resolveAccessorySlotLayout(screen, slot) != null;
     }
-
     static void renderAccessoriesPanel(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseScreenAccessoryPanelHelper.renderAccessoriesPanel(screen, guiGraphics);
     }
-
     static void renderAccessorySlotHover(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseScreenAccessoryPanelHelper.renderAccessorySlotHover(screen, guiGraphics, mouseX, mouseY);
     }
-
     static void renderDatabaseEntries(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (screen.layout == null) {
             return;
@@ -163,7 +157,6 @@ final class PersonalDatabaseScreenRenderHelper {
             }
         }
     }
-
     static void renderEmptyState(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
@@ -190,19 +183,18 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
     }
-
     static void renderFrameText(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
         }
         var viewState = screen.databaseMenu.viewState();
-        guiGraphics.drawString(
-                screen.screenFont(),
-                screen.databaseScreenTitle,
+        renderFrameBadgeText(
+                screen,
+                guiGraphics,
+                screen.databaseScreenTitle.getString(),
                 screen.layout.titleRect().x(),
-                screen.layout.titleRect().y() + 6,
-                0x404040,
-                false
+                screen.layout.titleRect().y() + 5,
+                PersonalDatabaseScreen.FRAME_TEXT_COLOR
         );
 
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
@@ -220,7 +212,7 @@ final class PersonalDatabaseScreenRenderHelper {
                     titleRect.x(),
                     titleRect.y(),
                     viewState.query().focusedTab().equals(panel.scopedTab())
-                            ? 0x404040
+                            ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
                             : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                     false
             );
@@ -234,21 +226,20 @@ final class PersonalDatabaseScreenRenderHelper {
                     "screen.infiniteinventory.total_items",
                     CompactNumberFormatter.format(viewState.totalItems())
             ).getString();
-            guiGraphics.drawString(
-                    screen.screenFont(),
+            renderFrameBadgeText(
+                    screen,
+                    guiGraphics,
                     PersonalDatabaseScreenGeometry.truncateToWidth(
                             screen,
                             toolbarStats,
                             screen.layout.toolbarRect().width()
                     ),
                     screen.layout.toolbarRect().x(),
-                    screen.layout.toolbarRect().y() + 6,
-                    PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                    false
+                    screen.layout.toolbarRect().y() + 5,
+                    PersonalDatabaseScreen.FRAME_MUTED_TEXT_COLOR
             );
         }
     }
-
     static void renderSearchHint(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
@@ -272,7 +263,6 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
     }
-
     static void renderScreenTooltips(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (screen.customExtractOverlayExpanded
                 || screen.contextMenuExpanded
@@ -354,7 +344,6 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
     }
-
     static void renderToolbarOverlays(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
@@ -431,7 +420,6 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
     }
-
     static void renderDatabaseScaffold(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
@@ -441,21 +429,20 @@ final class PersonalDatabaseScreenRenderHelper {
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
             VanillaWidgetRenderer.renderPanel(guiGraphics, viewportLayout.panelRect());
         }
-        guiGraphics.drawString(
-                screen.screenFont(),
+        renderFrameBadgeText(
+                screen,
+                guiGraphics,
                 Component.translatable(screen.databaseMenu.viewState().query().visibleTabs().stream()
                         .map(com.agguy.infiniteinventory.database.DatabaseScopedTabRef::scope)
                         .distinct()
                         .count() > 1L
                         ? "screen.infiniteinventory.database.section.mixed"
-                        : screen.databaseMenu.viewState().query().scope().sectionTranslationKey()),
+                        : screen.databaseMenu.viewState().query().scope().sectionTranslationKey()).getString(),
                 screen.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
-                screen.layout.databasePanelRect().y() - 12,
-                0x404040,
-                false
+                screen.layout.databasePanelRect().y() - 14,
+                PersonalDatabaseScreen.FRAME_TEXT_COLOR
         );
     }
-
     static void renderDatabaseSlots(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
             return;
@@ -468,7 +455,6 @@ final class PersonalDatabaseScreenRenderHelper {
             }
         }
     }
-
     private static DatabaseScopedTabRef findHoveredTab(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         List<DatabaseScopedTabRef> visibleTabs = PersonalDatabaseScreenTabHelper.visibleTopTabs(screen);
         for (int index = 0; index < visibleTabs.size(); index++) {
@@ -483,12 +469,31 @@ final class PersonalDatabaseScreenRenderHelper {
         }
         return null;
     }
-
     private static void renderPanelTextFields(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         for (int panelIndex = 0; panelIndex < screen.panelSearchBoxes.size(); panelIndex++) {
             PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
             boolean focused = screen.panelSearchBoxes.get(panelIndex).isFocused();
             VanillaWidgetRenderer.renderTextField(guiGraphics, searchRect, focused);
         }
+    }
+    private static void renderFrameBadgeText(
+            PersonalDatabaseScreen screen,
+            GuiGraphics guiGraphics,
+            String text,
+            int x,
+            int y,
+            int textColor
+    ) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        int textWidth = screen.screenFont().width(text);
+        int left = x - 4;
+        int top = y - 3;
+        int right = x + textWidth + 4;
+        int bottom = y + screen.screenFont().lineHeight + 3;
+        guiGraphics.fill(left, top, right, bottom, PersonalDatabaseScreen.FRAME_TEXT_BACKDROP_COLOR);
+        guiGraphics.fill(left, bottom - 1, right, bottom, PersonalDatabaseScreen.FRAME_TEXT_OUTLINE_COLOR);
+        guiGraphics.drawString(screen.screenFont(), text, x, y, textColor, true);
     }
 }

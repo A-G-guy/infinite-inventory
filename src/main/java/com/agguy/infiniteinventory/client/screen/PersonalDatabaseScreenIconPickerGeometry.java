@@ -13,11 +13,11 @@ final class PersonalDatabaseScreenIconPickerGeometry {
         }
         int width = Math.min(
                 PersonalDatabaseScreen.ICON_PICKER_WIDTH,
-                screen.layout.frameRect().width() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 4
+                Math.max(1, screen.layout.frameRect().width() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 2)
         );
         int height = Math.min(
                 PersonalDatabaseScreen.ICON_PICKER_HEIGHT,
-                screen.layout.frameRect().height() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 4
+                Math.max(1, screen.layout.frameRect().height() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 2)
         );
         return PersonalDatabaseScreenGeometry.centeredOverlayRect(screen, width, height);
     }
@@ -60,9 +60,35 @@ final class PersonalDatabaseScreenIconPickerGeometry {
         if (row >= layout.rows()) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        int x = layout.gridRect().x() + column * (layout.cellSize() + layout.cellGap());
-        int y = layout.gridRect().y() + row * (layout.cellSize() + layout.cellGap());
-        return new PersonalDatabaseLayout.Rect(x, y, layout.cellSize(), layout.cellSize());
+        int x = layout.gridRect().x() + column * (layout.cellWidth() + layout.cellGap());
+        int y = layout.gridRect().y() + row * (layout.cellHeight() + layout.cellGap());
+        return new PersonalDatabaseLayout.Rect(x, y, layout.cellWidth(), layout.cellHeight());
+    }
+
+    static PersonalDatabaseLayout.Rect iconPickerCellIconRect(PersonalDatabaseScreen screen, int index) {
+        PersonalDatabaseLayout.Rect cellRect = iconPickerCellRect(screen, index);
+        if (cellRect.width() <= 0 || cellRect.height() <= 0) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        return new PersonalDatabaseLayout.Rect(
+                cellRect.x() + Math.max(0, (cellRect.width() - 16) / 2),
+                cellRect.y() + 5,
+                16,
+                16
+        );
+    }
+
+    static PersonalDatabaseLayout.Rect iconPickerCellLabelRect(PersonalDatabaseScreen screen, int index) {
+        PersonalDatabaseLayout.Rect cellRect = iconPickerCellRect(screen, index);
+        if (cellRect.width() <= 0 || cellRect.height() <= 0) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        return new PersonalDatabaseLayout.Rect(
+                cellRect.x() + 4,
+                cellRect.y() + 25,
+                Math.max(1, cellRect.width() - 8),
+                Math.max(1, cellRect.height() - 29)
+        );
     }
 
     static PersonalDatabaseLayout.Rect iconPickerSelectedPreviewRect(PersonalDatabaseScreen screen) {
@@ -97,13 +123,13 @@ final class PersonalDatabaseScreenIconPickerGeometry {
         int padding = PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING;
         PersonalDatabaseLayout.Rect searchRect = new PersonalDatabaseLayout.Rect(
                 panelRect.x() + padding,
-                panelRect.y() + padding + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 10,
+                panelRect.y() + padding + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 8,
                 panelRect.width() - padding * 2,
                 20
         );
         PersonalDatabaseLayout.Rect categoryRowRect = new PersonalDatabaseLayout.Rect(
                 searchRect.x(),
-                searchRect.bottom() + 10,
+                searchRect.bottom() + 8,
                 searchRect.width(),
                 20
         );
@@ -146,16 +172,17 @@ final class PersonalDatabaseScreenIconPickerGeometry {
                 Math.max(1, previousRect.x() - panelRect.x() - padding - 12),
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
-        int cellSize = 44;
-        int cellGap = 6;
-        int gridTop = categoryRowRect.bottom() + 10;
-        int gridBottom = footerY - 12;
+        int gridTop = categoryRowRect.bottom() + 8;
+        int gridBottom = footerY - 8;
         int gridHeight = Math.max(1, gridBottom - gridTop);
         int gridWidth = Math.max(1, searchRect.width());
-        int columns = Math.max(1, (gridWidth + cellGap) / (cellSize + cellGap));
-        int rows = Math.max(1, (gridHeight + cellGap) / (cellSize + cellGap));
-        int contentWidth = columns * cellSize + Math.max(0, columns - 1) * cellGap;
-        int contentHeight = rows * cellSize + Math.max(0, rows - 1) * cellGap;
+        IconPickerGridSpec gridSpec = resolveGridSpec(
+                gridWidth,
+                gridHeight,
+                PersonalDatabaseScreenCommonHelper.fitProfile(screen).compactLayout()
+        );
+        int contentWidth = gridSpec.columns() * gridSpec.cellWidth() + Math.max(0, gridSpec.columns() - 1) * gridSpec.cellGap();
+        int contentHeight = gridSpec.rows() * gridSpec.cellHeight() + Math.max(0, gridSpec.rows() - 1) * gridSpec.cellGap();
         PersonalDatabaseLayout.Rect gridRect = new PersonalDatabaseLayout.Rect(
                 searchRect.x() + Math.max(0, (gridWidth - contentWidth) / 2),
                 gridTop + Math.max(0, (gridHeight - contentHeight) / 2),
@@ -166,10 +193,11 @@ final class PersonalDatabaseScreenIconPickerGeometry {
                 searchRect,
                 categoryRowRect,
                 gridRect,
-                columns,
-                rows,
-                cellSize,
-                cellGap,
+                gridSpec.columns(),
+                gridSpec.rows(),
+                gridSpec.cellWidth(),
+                gridSpec.cellHeight(),
+                gridSpec.cellGap(),
                 previewRect,
                 previousRect,
                 pageRect,
@@ -179,13 +207,29 @@ final class PersonalDatabaseScreenIconPickerGeometry {
         );
     }
 
+    static IconPickerGridSpec resolveGridSpec(int gridWidth, int gridHeight, boolean compactLayout) {
+        int columns = compactLayout
+                ? PersonalDatabaseScreen.COMPACT_ICON_PICKER_COLUMNS
+                : PersonalDatabaseScreen.STANDARD_ICON_PICKER_COLUMNS;
+        int rows = PersonalDatabaseScreen.ICON_PICKER_ROWS;
+        int cellGap = PersonalDatabaseScreen.ICON_PICKER_CELL_GAP;
+        int cellWidth = Math.max(1, (gridWidth - Math.max(0, columns - 1) * cellGap) / columns);
+        int maxCellHeight = Math.max(1, (gridHeight - Math.max(0, rows - 1) * cellGap) / rows);
+        int cellHeight = Math.min(PersonalDatabaseScreen.ICON_PICKER_CELL_MAX_HEIGHT, maxCellHeight);
+        if (maxCellHeight >= PersonalDatabaseScreen.ICON_PICKER_CELL_MIN_HEIGHT) {
+            cellHeight = Math.max(PersonalDatabaseScreen.ICON_PICKER_CELL_MIN_HEIGHT, cellHeight);
+        }
+        return new IconPickerGridSpec(columns, rows, cellWidth, cellHeight, cellGap);
+    }
+
     private record IconPickerLayout(
             PersonalDatabaseLayout.Rect searchRect,
             PersonalDatabaseLayout.Rect categoryRowRect,
             PersonalDatabaseLayout.Rect gridRect,
             int columns,
             int rows,
-            int cellSize,
+            int cellWidth,
+            int cellHeight,
             int cellGap,
             PersonalDatabaseLayout.Rect previewRect,
             PersonalDatabaseLayout.Rect previousRect,
@@ -196,7 +240,10 @@ final class PersonalDatabaseScreenIconPickerGeometry {
     ) {
         private static IconPickerLayout empty() {
             PersonalDatabaseLayout.Rect empty = PersonalDatabaseLayout.Rect.empty();
-            return new IconPickerLayout(empty, empty, empty, 1, 1, 44, 6, empty, empty, empty, empty, empty, empty);
+            return new IconPickerLayout(empty, empty, empty, 1, 1, 44, 44, 6, empty, empty, empty, empty, empty, empty);
         }
+    }
+
+    record IconPickerGridSpec(int columns, int rows, int cellWidth, int cellHeight, int cellGap) {
     }
 }

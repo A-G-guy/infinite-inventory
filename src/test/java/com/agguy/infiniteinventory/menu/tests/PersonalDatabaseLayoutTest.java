@@ -6,6 +6,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PersonalDatabaseLayoutTest {
@@ -29,6 +30,7 @@ class PersonalDatabaseLayoutTest {
 
         assertTrue(largeLayout.databaseSlotCount(0) >= compactLayout.databaseSlotCount(0));
         assertTrue(largeLayout.databaseSlotCount(0) > 112);
+        assertTrue(largeLayout.databaseViewportLayout(0).rows() > 16);
     }
 
     @Test
@@ -92,6 +94,9 @@ class PersonalDatabaseLayoutTest {
         assertTrue(layout.tabManagementButtonRect().x() >= layout.viewSelectorButtonRect().right());
         assertTrue(layout.tabManagementButtonRect().right() <= layout.frameRect().right());
         assertTrue(layout.viewSelectorButtonRect().y() == layout.titleRect().y());
+        assertEquals(layout.viewSelectorButtonRect().width(), layout.tabManagementButtonRect().width());
+        assertEquals(layout.viewSelectorButtonRect().width(), layout.enhancementButtonRect().width());
+        assertEquals(layout.viewSelectorButtonRect().width(), layout.advancedSearchButtonRect().width());
     }
 
     @Test
@@ -104,7 +109,8 @@ class PersonalDatabaseLayoutTest {
 
         assertTrue(layout.accessoryToggleRect().height() == PersonalDatabaseLayout.CONTROL_HEIGHT);
         assertTrue(layout.accessoriesPanelRect().height() == 0);
-        assertTrue(layout.bottomInventoryRect().y() == layout.accessoryToggleRect().bottom() + PersonalDatabaseLayout.SECTION_GAP);
+        assertTrue(layout.bottomInventoryRect().bottom() <= layout.frameRect().bottom());
+        assertTrue(layout.accessoryToggleRect().bottom() <= layout.bottomInventoryRect().y());
         assertTrue(layout.accessorySlotLayouts().stream().noneMatch(PersonalDatabaseLayout.AccessorySlotLayout::visible));
     }
 
@@ -117,9 +123,11 @@ class PersonalDatabaseLayoutTest {
         PersonalDatabaseLayout expandedLayout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
 
         assertTrue(expandedLayout.accessoriesPanelRect().height() > 0);
-        assertTrue(expandedLayout.accessoriesPanelRect().x() >= collapsedLayout.bottomInventoryRect().right() + PersonalDatabaseLayout.SECTION_GAP);
+        assertEquals(expandedLayout.equipmentPanelRect().x(), expandedLayout.accessoriesPanelRect().x());
+        assertTrue(expandedLayout.accessoriesPanelRect().right() <= expandedLayout.bottomInventoryRect().right());
         assertTrue(expandedLayout.bottomInventoryRect().y() == collapsedLayout.bottomInventoryRect().y());
-        assertTrue(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
+        assertTrue(expandedLayout.accessoriesPanelRect().bottom() <= expandedLayout.bottomInventoryRect().y() - PersonalDatabaseLayout.SECTION_GAP);
+        assertFalse(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
     }
 
     @Test
@@ -144,7 +152,7 @@ class PersonalDatabaseLayoutTest {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
 
         assertTrue(layout.visibleDatabaseSlotCount() > 0);
-        assertTrue(layout.visibleDatabaseSlotCount() < layout.databaseSlotCount(0));
+        assertEquals(layout.databaseSlotCount(0), layout.visibleDatabaseSlotCount());
         for (int slotIndex = 0; slotIndex < layout.visibleDatabaseSlotCount(); slotIndex++) {
             assertTrue(!layout.accessoriesPanelRect().intersects(layout.visibleDatabaseSlotBounds(slotIndex)));
         }
@@ -216,5 +224,28 @@ class PersonalDatabaseLayoutTest {
         assertTrue(layout.bottomInventoryRect().bottom() <= layout.frameRect().bottom());
         assertTrue(layout.databaseFooterRect().bottom() <= layout.frameRect().bottom());
         assertTrue(layout.accessoryToggleRect().bottom() <= layout.bottomInventoryRect().y());
+    }
+
+    @Test
+    void compactExpandedAccessoriesShouldStayInPlayerColumnWithoutTouchingDatabase() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 24)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(
+                480,
+                270,
+                INVENTORY_WIDTH,
+                INVENTORY_HEIGHT,
+                INVENTORY_WIDTH,
+                INVENTORY_HEIGHT,
+                accessoryGroups,
+                true,
+                0
+        );
+
+        assertTrue(layout.accessoriesPanelRect().height() > 0);
+        assertEquals(layout.equipmentPanelRect().x(), layout.accessoriesPanelRect().x());
+        assertTrue(layout.accessoriesPanelRect().right() <= layout.bottomInventoryRect().right());
+        assertFalse(layout.accessoriesPanelRect().intersects(layout.databasePanelRect()));
     }
 }

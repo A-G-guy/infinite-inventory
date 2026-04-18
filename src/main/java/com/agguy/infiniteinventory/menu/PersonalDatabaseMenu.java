@@ -405,8 +405,9 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         } else if (this.mainInventorySlotRange.contains(slotIndex) || this.hotbarSlotRange.contains(slotIndex)) {
             moved = this.tryMoveToAccessorySlots(rawStack);
             if (!rawStack.isEmpty() && equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
-                int armorSlotIndex = this.armorSlotRange.firstIndex() + (3 - equipmentSlot.getIndex());
-                if (!this.slots.get(armorSlotIndex).hasItem()) {
+                int armorSlotOffset = armorSlotOffset(equipmentSlot);
+                int armorSlotIndex = this.armorSlotRange.firstIndex() + armorSlotOffset;
+                if (armorSlotOffset >= 0 && !this.slots.get(armorSlotIndex).hasItem()) {
                     moved = this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false) || moved;
                 }
             } else if (!rawStack.isEmpty() && equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(this.offhandSlotIndex).hasItem()) {

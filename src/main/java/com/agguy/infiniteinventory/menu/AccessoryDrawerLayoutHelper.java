@@ -10,9 +10,13 @@ final class AccessoryDrawerLayoutHelper {
 
     static PersonalDatabaseLayout.Rect createAccessoriesPanelRect(
             PersonalDatabaseLayout.Rect frameRect,
+            PersonalDatabaseLayout.Rect equipmentPanelRect,
             PersonalDatabaseLayout.Rect accessoryToggleRect,
+            PersonalDatabaseLayout.Rect bottomInventoryRect,
+            int playerColumnWidth,
             List<AccessorySlotGroup> accessoryGroups,
-            boolean accessoriesExpanded
+            boolean accessoriesExpanded,
+            boolean compactOverlayFallback
     ) {
         if (!accessoriesExpanded || accessoryToggleRect.height() <= 0) {
             return PersonalDatabaseLayout.Rect.empty();
@@ -21,13 +25,13 @@ final class AccessoryDrawerLayoutHelper {
         if (totalSlotCount <= 0) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        int drawerX = accessoryToggleRect.right() + PersonalDatabaseLayout.SECTION_GAP;
-        int drawerY = accessoryToggleRect.bottom() + PersonalDatabaseLayout.ACCESSORY_DRAWER_TOP_GAP;
-        int maxDrawerWidth = Math.max(1, frameRect.right() - PersonalDatabaseLayout.INNER_PADDING - drawerX);
-        int drawerWidth = Math.min(
-                maxDrawerWidth,
-                Math.max(accessoryToggleRect.width(), PersonalDatabaseLayout.ACCESSORY_DRAWER_MIN_WIDTH)
-        );
+        boolean inlineToggle = accessoryToggleRect.y() <= equipmentPanelRect.y() + 1;
+        boolean overlayMode = compactOverlayFallback || inlineToggle;
+        int drawerX = equipmentPanelRect.x();
+        int drawerY = overlayMode
+                ? equipmentPanelRect.bottom() + PersonalDatabaseLayout.ACCESSORY_DRAWER_TOP_GAP
+                : accessoryToggleRect.bottom() + PersonalDatabaseLayout.ACCESSORY_DRAWER_TOP_GAP;
+        int drawerWidth = Math.max(1, playerColumnWidth);
         int contentWidth = Math.max(
                 PersonalDatabaseLayout.SLOT_SIZE,
                 drawerWidth - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
@@ -36,10 +40,9 @@ final class AccessoryDrawerLayoutHelper {
         int totalRows = calculateAccessoryContentRows(accessoryGroups, columns);
         int maxDrawerBottom = Math.max(
                 drawerY + 1,
-                frameRect.bottom()
-                        - PersonalDatabaseLayout.INNER_PADDING
-                        - PersonalDatabaseLayout.FOOTER_HEIGHT
-                        - PersonalDatabaseLayout.SECTION_GAP
+                overlayMode
+                        ? frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING
+                        : bottomInventoryRect.y() - PersonalDatabaseLayout.SECTION_GAP
         );
         int maxGridHeight = Math.max(
                 0,
@@ -49,6 +52,9 @@ final class AccessoryDrawerLayoutHelper {
                         - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
                         - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
         );
+        if (maxGridHeight < PersonalDatabaseLayout.SLOT_SIZE) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
         int visibleRows = Math.max(1, Math.min(totalRows, maxGridHeight / PersonalDatabaseLayout.SLOT_SIZE));
         int drawerHeight = PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
                 + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
