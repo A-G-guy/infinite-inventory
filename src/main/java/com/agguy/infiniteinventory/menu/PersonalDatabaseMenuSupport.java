@@ -44,12 +44,7 @@ import org.jetbrains.annotations.Nullable;
 
 abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput, CraftingRecipe> {
     protected static final AtomicLong NEXT_SESSION_ID = new AtomicLong(1L);
-    protected static final EquipmentSlot[] ARMOR_ORDER = {
-            EquipmentSlot.FEET,
-            EquipmentSlot.LEGS,
-            EquipmentSlot.CHEST,
-            EquipmentSlot.HEAD
-    };
+    protected static final EquipmentSlot[] ARMOR_ORDER = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
     protected static final int TOP_SECTION_RESULT_X = 154;
     protected static final int TOP_SECTION_RESULT_Y = 28;
     protected static final int TOP_SECTION_CRAFT_X = 98;
@@ -122,7 +117,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         int start = this.slots.size();
         for (int index = 0; index < ARMOR_ORDER.length; index++) {
             EquipmentSlot equipmentSlot = ARMOR_ORDER[index];
-            int inventoryIndex = 39 - index;
+            int inventoryIndex = armorInventoryIndex(equipmentSlot);
             int x = TOP_SECTION_ARMOR_X;
             int y = TOP_SECTION_ARMOR_Y + index * PersonalDatabaseLayout.SLOT_SIZE;
             ResourceLocation icon = switch (equipmentSlot) {
@@ -135,6 +130,26 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
             this.addTrackedSlot(new EquipmentDisplaySlot(playerInventory, owner, equipmentSlot, inventoryIndex, x, y, icon));
         }
         return MenuSlotRange.of(start, this.slots.size() - start);
+    }
+
+    protected static int armorSlotOffset(EquipmentSlot equipmentSlot) {
+        return switch (equipmentSlot) {
+            case HEAD -> 0;
+            case CHEST -> 1;
+            case LEGS -> 2;
+            case FEET -> 3;
+            default -> -1;
+        };
+    }
+
+    protected static int armorInventoryIndex(EquipmentSlot equipmentSlot) {
+        return switch (equipmentSlot) {
+            case HEAD -> 39;
+            case CHEST -> 38;
+            case LEGS -> 37;
+            case FEET -> 36;
+            default -> -1;
+        };
     }
 
     protected MenuSlotRange addMainInventorySlots(Inventory playerInventory) {

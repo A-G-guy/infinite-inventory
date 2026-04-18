@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -71,7 +72,7 @@ final class PersonalDatabaseScreenIconPickerHelper {
                     Component.translatable("screen.infiniteinventory.icon_picker.search"),
                     searchFieldRect.x() + 6,
                     searchFieldRect.y() + 6,
-                    0x777777,
+                    PersonalDatabaseScreen.TEXT_FIELD_MUTED_TEXT_COLOR,
                     false
             );
         }
@@ -100,7 +101,9 @@ final class PersonalDatabaseScreenIconPickerHelper {
             boolean hovered = cellRect.contains(mouseX, mouseY);
             boolean selected = screen.pendingIconItemId.equals(choice.itemId());
             VanillaWidgetRenderer.renderOverlayChip(guiGraphics, cellRect, hovered, selected, true);
-            guiGraphics.renderItem(choice.previewStack(), cellRect.x() + (cellRect.width() - 16) / 2, cellRect.y() + 8);
+            PersonalDatabaseLayout.Rect iconRect = PersonalDatabaseScreenIconPickerGeometry.iconPickerCellIconRect(screen, index);
+            guiGraphics.renderItem(choice.previewStack(), iconRect.x(), iconRect.y());
+            renderIconChoiceLabel(screen, guiGraphics, choice, index, selected);
             if (hovered) {
                 hoveredChoice = choice;
             }
@@ -123,13 +126,13 @@ final class PersonalDatabaseScreenIconPickerHelper {
             guiGraphics.renderTooltip(
                     screen.screenFont(),
                     List.of(
-                            Component.literal(hoveredChoice.itemId()),
-                            hoveredChoice.previewStack().getHoverName().copy().withStyle(ChatFormatting.GRAY)
+                            hoveredChoice.previewStack().getHoverName(),
+                            Component.literal(hoveredChoice.itemId()).withStyle(ChatFormatting.GRAY)
                     ),
                     hoveredChoice.previewStack().getTooltipImage(),
                     mouseX,
                     mouseY
-            );
+                );
         }
         guiGraphics.pose().popPose();
     }
@@ -290,6 +293,77 @@ final class PersonalDatabaseScreenIconPickerHelper {
                 rect.y() + 6,
                 enabled ? PersonalDatabaseScreen.OVERLAY_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR
         );
+    }
+
+    private static void renderIconChoiceLabel(
+            PersonalDatabaseScreen screen,
+            GuiGraphics guiGraphics,
+            PersonalDatabaseScreen.IconChoice choice,
+            int index,
+            boolean selected
+    ) {
+        PersonalDatabaseLayout.Rect labelRect = PersonalDatabaseScreenIconPickerGeometry.iconPickerCellLabelRect(screen, index);
+        if (labelRect.width() <= 0 || labelRect.height() <= 0) {
+            return;
+        }
+        List<String> lines = wrapLabelLines(
+                screen.screenFont(),
+                choice.previewStack().getHoverName().getString(),
+                labelRect.width(),
+                PersonalDatabaseScreen.ICON_PICKER_LABEL_LINES
+        );
+        int totalTextHeight = lines.size() * screen.screenFont().lineHeight;
+        int textY = labelRect.y() + Math.max(0, (labelRect.height() - totalTextHeight) / 2);
+        int textColor = selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR;
+        for (int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
+            String line = lines.get(lineIndex);
+            int textX = labelRect.x() + Math.max(0, (labelRect.width() - screen.screenFont().width(line)) / 2);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    line,
+                    textX,
+                    textY + lineIndex * screen.screenFont().lineHeight,
+                    textColor,
+                    false
+            );
+        }
+    }
+
+    private static List<String> wrapLabelLines(Font font, String text, int maxWidth, int maxLines) {
+        String resolvedText = text == null || text.isBlank() ? "?" : text;
+        int resolvedMaxWidth = Math.max(1, maxWidth);
+        int resolvedMaxLines = Math.max(1, maxLines);
+        List<String> lines = new ArrayList<>(resolvedMaxLines);
+        int cursor = 0;
+        while (cursor < resolvedText.length() && lines.size() < resolvedMaxLines) {
+            boolean lastLine = lines.size() == resolvedMaxLines - 1;
+            int nextCursor = cursor;
+            while (nextCursor < resolvedText.length()) {
+                String candidate = resolvedText.substring(cursor, nextCursor + 1);
+                String measured = lastLine && nextCursor + 1 < resolvedText.length() ? candidate + "..." : candidate;
+                if (font.width(measured) > resolvedMaxWidth) {
+                    break;
+                }
+                nextCursor++;
+            }
+            if (nextCursor == cursor) {
+                nextCursor = Math.min(resolvedText.length(), cursor + 1);
+            }
+            boolean truncated = nextCursor < resolvedText.length();
+            String line = resolvedText.substring(cursor, nextCursor);
+            if (lastLine && truncated) {
+                while (!line.isEmpty() && font.width(line + "...") > resolvedMaxWidth) {
+                    line = line.substring(0, line.length() - 1);
+                }
+                line = line.isEmpty() ? "..." : line + "...";
+            }
+            lines.add(line);
+            cursor = nextCursor;
+        }
+        if (lines.isEmpty()) {
+            lines.add("?");
+        }
+        return List.copyOf(lines);
     }
 
     private static List<PersonalDatabaseScreen.IconChoice> filteredChoices(PersonalDatabaseScreen screen) {

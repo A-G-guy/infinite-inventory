@@ -8,9 +8,9 @@ import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenGeometry {
-    private static final int PANEL_HEADER_TITLE_HEIGHT = 14;
-    private static final int PANEL_HEADER_ROW_GAP = 4;
-    private static final int PANEL_SORT_BUTTON_WIDTH = 108;
+    private static final int PANEL_HEADER_TITLE_HEIGHT = 12;
+    private static final int PANEL_HEADER_ROW_GAP = 2;
+    private static final int PANEL_SORT_BUTTON_WIDTH = 100;
     private static final int OVERLAY_CLOSE_BUTTON_SIZE = PersonalDatabaseLayout.CONTROL_HEIGHT;
     private static final int OVERLAY_CLOSE_BUTTON_MARGIN = 4;
 

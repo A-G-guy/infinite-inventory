@@ -54,7 +54,14 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderTextField(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean focused) {
-        guiGraphics.blitSprite(focused ? TEXT_FIELD_HIGHLIGHTED_SPRITE : TEXT_FIELD_SPRITE, rect.x(), rect.y(), rect.width(), rect.height());
+        int outlineColor = focused ? 0xFFBE9760 : 0xFF685848;
+        int innerOutlineColor = focused ? 0xFFE4C89B : 0xFFCCBBA2;
+        int fillColor = focused ? 0xFFF8F3E9 : 0xFFF2EBDE;
+        int topEdgeColor = focused ? 0xA0FFFDF8 : 0x70FFFDF8;
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), outlineColor);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, innerOutlineColor);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.bottom() - 2, fillColor);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, topEdgeColor);
     }
 
     static void renderSlotHighlight(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {

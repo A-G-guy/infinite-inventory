@@ -45,25 +45,29 @@ final class PersonalDatabaseScreenListHelper {
         if (clipRect.width() <= 0 || clipRect.height() <= 0) {
             return;
         }
-        if (visibleRange.hasRowsAbove()) {
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    "^",
-                    clipRect.right() - 8,
-                    clipRect.y() + 2,
-                    PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                    false
-            );
+        if (!visibleRange.hasRowsAbove() && !visibleRange.hasRowsBelow()) {
+            return;
         }
-        if (visibleRange.hasRowsBelow()) {
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    "v",
-                    clipRect.right() - 8,
-                    clipRect.bottom() - 10,
-                    PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
-                    false
-            );
+        int trackWidth = 4;
+        int trackLeft = clipRect.right() - trackWidth - 1;
+        int trackTop = clipRect.y() + 2;
+        int trackBottom = clipRect.bottom() - 2;
+        int trackHeight = Math.max(1, trackBottom - trackTop);
+        guiGraphics.fill(trackLeft, trackTop, trackLeft + trackWidth, trackBottom, PersonalDatabaseScreen.SCROLLBAR_TRACK_COLOR);
+        int maxScrollIndex = Math.max(1, visibleRange.totalRows() - visibleRange.maxVisibleRows());
+        int thumbHeight = Math.max(10, trackHeight * visibleRange.maxVisibleRows() / Math.max(1, visibleRange.totalRows()));
+        thumbHeight = Math.min(trackHeight, thumbHeight);
+        int thumbTravel = Math.max(0, trackHeight - thumbHeight);
+        int thumbTop = trackTop + thumbTravel * visibleRange.scrollIndex() / maxScrollIndex;
+        guiGraphics.fill(
+                trackLeft,
+                thumbTop,
+                trackLeft + trackWidth,
+                thumbTop + thumbHeight,
+                PersonalDatabaseScreen.SCROLLBAR_THUMB_COLOR
+        );
+        if (thumbHeight >= 12) {
+            guiGraphics.fill(trackLeft, thumbTop, trackLeft + trackWidth, thumbTop + 1, PersonalDatabaseScreen.SCROLLBAR_THUMB_HOVERED_COLOR);
         }
     }
 

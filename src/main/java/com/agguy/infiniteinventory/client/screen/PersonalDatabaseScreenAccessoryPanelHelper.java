@@ -41,6 +41,36 @@ final class PersonalDatabaseScreenAccessoryPanelHelper {
             renderAccessoryGroupBody(guiGraphics, groupLayout.bodyRect(), index);
             renderAccessoryGroupHeader(screen, guiGraphics, groupLayout.group(), groupLayout.headerRect());
         }
+        PersonalDatabaseLayout.Rect bodyClipRect = new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                panelRect.y()
+                        + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING
+                        + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
+                        + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP,
+                Math.max(1, panelRect.width() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2),
+                Math.max(
+                        1,
+                        panelRect.height()
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
+                )
+        );
+        PersonalDatabaseScreenListHelper.renderScrollIndicators(
+                screen,
+                guiGraphics,
+                bodyClipRect,
+                new PersonalDatabaseScreenListHelper.VisibleRange(
+                        screen.layout.accessoryScrollRow(),
+                        Math.min(
+                                screen.layout.accessoryTotalRows(),
+                                screen.layout.accessoryScrollRow() + screen.layout.accessoryVisibleRows()
+                        ),
+                        screen.layout.accessoryScrollRow(),
+                        Math.max(1, screen.layout.accessoryVisibleRows()),
+                        Math.max(1, screen.layout.accessoryTotalRows())
+                )
+        );
         guiGraphics.pose().popPose();
     }
 
