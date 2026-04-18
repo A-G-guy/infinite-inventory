@@ -33,6 +33,21 @@ class DatabaseEntrySorterTest {
     }
 
     @Test
+    void recentlyChangedAscendingSortShouldPreferOlderEntriesFirst() {
+        List<DatabaseSortSnapshot> sorted = this.sort(
+                this.query(DatabaseSortOption.RECENTLY_CHANGED_ASC, ""),
+                this.snapshot("stone", "minecraft:stone", 16L, 1L, 10L, 1),
+                this.snapshot("apple", "minecraft:apple", 64L, 2L, 10L, 2),
+                this.snapshot("dirt", "minecraft:dirt", 1L, 3L, 20L, 3)
+        );
+
+        assertEquals(
+                List.of("minecraft:stone", "minecraft:apple", "minecraft:dirt"),
+                sorted.stream().map(DatabaseSortSnapshot::registryName).toList()
+        );
+    }
+
+    @Test
     void countSortShouldUseLastModifiedAsTieBreaker() {
         List<DatabaseSortSnapshot> sorted = this.sort(
                 this.query(DatabaseSortOption.COUNT_DESC, ""),
@@ -103,6 +118,21 @@ class DatabaseEntrySorterTest {
 
         assertEquals(
                 List.of("minecraft:apple", "minecraft:dirt", "minecraft:stone"),
+                sorted.stream().map(DatabaseSortSnapshot::registryName).toList()
+        );
+    }
+
+    @Test
+    void recentlyAddedAscendingSortShouldPreferEarliestInsertFirst() {
+        List<DatabaseSortSnapshot> sorted = this.sort(
+                this.query(DatabaseSortOption.RECENTLY_ADDED_ASC, ""),
+                this.snapshot("stone", "minecraft:stone", 32L, 5L, 10L, 1),
+                this.snapshot("apple", "minecraft:apple", 16L, 9L, 10L, 2),
+                this.snapshot("dirt", "minecraft:dirt", 8L, 7L, 7L, 3)
+        );
+
+        assertEquals(
+                List.of("minecraft:stone", "minecraft:dirt", "minecraft:apple"),
                 sorted.stream().map(DatabaseSortSnapshot::registryName).toList()
         );
     }

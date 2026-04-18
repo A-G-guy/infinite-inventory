@@ -363,22 +363,6 @@ final class PersonalDatabaseScreenGeometry {
     }
 
     @Nullable
-    static PersonalDatabaseLayout.Rect sortDropdownRect(PersonalDatabaseScreen screen) {
-        if (screen.layout == null || !screen.sortDropdownExpanded || screen.activeSortPanelIndex < 0) {
-            return null;
-        }
-        PersonalDatabaseLayout.Rect sortButtonRect = panelSortButtonRect(screen, screen.activeSortPanelIndex);
-        int width = Math.max(PersonalDatabaseScreen.SORT_DROPDOWN_WIDTH, sortButtonRect.width());
-        int height = com.agguy.infiniteinventory.database.DatabaseSortOption.orderedValues().size()
-                * PersonalDatabaseScreen.DROPDOWN_ROW_HEIGHT;
-        int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
-        int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int x = Mth.clamp(sortButtonRect.x(), minX, maxX);
-        int y = anchoredPopupY(screen.layout.frameRect(), sortButtonRect, height, 2);
-        return new PersonalDatabaseLayout.Rect(x, y, width, height);
-    }
-
-    @Nullable
     static PersonalDatabaseLayout.Rect pagePickerRect(PersonalDatabaseScreen screen) {
         if (screen.layout == null || !screen.pagePickerExpanded || screen.activePagePickerPanelIndex < 0) {
             return null;

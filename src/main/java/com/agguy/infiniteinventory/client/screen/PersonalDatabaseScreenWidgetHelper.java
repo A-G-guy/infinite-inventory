@@ -431,7 +431,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             }
             Button sortButton = panelIndex < screen.panelSortButtons.size() ? screen.panelSortButtons.get(panelIndex) : null;
             if (sortButton != null) {
-                sortButton.setMessage(Component.translatable(query.sortOptionFor(tabId).translationKey()));
+                sortButton.setMessage(Component.empty());
             }
             Button previousButton = panelIndex < screen.panelPreviousPageButtons.size()
                     ? screen.panelPreviousPageButtons.get(panelIndex)
