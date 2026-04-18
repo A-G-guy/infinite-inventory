@@ -300,6 +300,7 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     private static void rebuildWidgets(PersonalDatabaseScreen screen) {
+        DatabaseScopedTabRef focusedSearchTab = focusedSearchTab(screen);
         screen.clearScreenWidgets();
         screen.panelSearchBoxes.clear();
         screen.panelSortButtons.clear();
@@ -313,6 +314,7 @@ final class PersonalDatabaseScreenLayoutHelper {
         screen.iconSearchBox = null;
         PersonalDatabaseScreenWidgetHelper.buildWidgets(screen);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(screen);
+        restoreFocusedSearchBox(screen, focusedSearchTab);
     }
 
     private static boolean enforceScreenConstraints(PersonalDatabaseScreen screen) {
@@ -341,7 +343,6 @@ final class PersonalDatabaseScreenLayoutHelper {
         signatureParts.add(Integer.toString(screen.screenWidthValue()));
         signatureParts.add(Integer.toString(screen.screenHeightValue()));
         signatureParts.add(Boolean.toString(screen.accessoriesExpanded));
-        signatureParts.add(query.focusedTab().scope().name() + ":" + query.focusedTab().tabId());
         for (DatabaseScopedTabRef visibleTab : query.visibleTabs()) {
             signatureParts.add(visibleTab.scope().name() + ":" + visibleTab.tabId());
         }
@@ -349,5 +350,31 @@ final class PersonalDatabaseScreenLayoutHelper {
             signatureParts.add(panel.scopedTab().scope().name() + ":" + panel.scopedTab().tabId());
         }
         return String.join("|", signatureParts);
+    }
+
+    private static DatabaseScopedTabRef focusedSearchTab(PersonalDatabaseScreen screen) {
+        int panelCount = Math.min(screen.panelSearchBoxes.size(), PersonalDatabaseScreenCommonHelper.currentPanels(screen).size());
+        for (int panelIndex = 0; panelIndex < panelCount; panelIndex++) {
+            if (screen.panelSearchBoxes.get(panelIndex).isFocused()) {
+                return PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab();
+            }
+        }
+        return null;
+    }
+
+    private static void restoreFocusedSearchBox(PersonalDatabaseScreen screen, DatabaseScopedTabRef focusedSearchTab) {
+        if (focusedSearchTab == null) {
+            return;
+        }
+        int panelCount = Math.min(screen.panelSearchBoxes.size(), PersonalDatabaseScreenCommonHelper.currentPanels(screen).size());
+        for (int panelIndex = 0; panelIndex < panelCount; panelIndex++) {
+            if (!PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab().equals(focusedSearchTab)) {
+                continue;
+            }
+            var searchBox = screen.panelSearchBoxes.get(panelIndex);
+            screen.focusScreen(searchBox);
+            searchBox.setFocused(true);
+            return;
+        }
     }
 }
