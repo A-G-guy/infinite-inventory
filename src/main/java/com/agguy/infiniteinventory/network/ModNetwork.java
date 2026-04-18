@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.network;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
@@ -15,7 +16,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "16";
+    private static final String NETWORK_VERSION = "17";
 
     private ModNetwork() {
     }
@@ -23,6 +24,7 @@ public final class ModNetwork {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
+        registrar.playToServer(DatabaseViewerLocalePayload.TYPE, DatabaseViewerLocalePayload.STREAM_CODEC, ModNetwork::handleViewerLocale);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
         registrar.playToServer(DatabaseClickPayload.TYPE, DatabaseClickPayload.STREAM_CODEC, ModNetwork::handleDatabaseClick);
@@ -36,6 +38,16 @@ public final class ModNetwork {
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
         if (Minecraft.getInstance().player != null) {
             PersonalDatabaseClient.applySnapshot(payload.viewState());
+        }
+    }
+
+    private static void handleViewerLocale(DatabaseViewerLocalePayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu != null) {
+            menu.updateViewerLanguage(ViewerLanguage.resolve(payload.languageCode()));
         }
     }
 

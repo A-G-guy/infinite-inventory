@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory;
 
+import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.client.screen.PersonalDatabaseScreen;
 import com.agguy.infiniteinventory.network.OpenEquippedDatabasePayload;
 import com.agguy.infiniteinventory.registry.ModMenus;
@@ -36,6 +37,7 @@ public final class InfiniteInventoryClient {
 
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
+        PersonalDatabaseClient.syncViewerLanguageIfNeeded();
         if (minecraft.player == null) {
             return;
         }

@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.service.search;
 
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -12,8 +13,9 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,40 +38,91 @@ public final class DatabaseItemSearchResolver {
     private static final HanyuPinyinOutputFormat PINYIN_FORMAT = createPinyinFormat();
 
     private final DatabaseSearchIndexCache indexCache = new DatabaseSearchIndexCache();
-    private final Map<String, Map<String, String>> translationsByNamespace = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, EnumMap<ViewerLanguage, Map<String, String>>> translationsByNamespace =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     private DatabaseItemSearchResolver() {
     }
 
-    public DatabaseSearchIndex resolve(StoredStackKey key) {
-        return this.indexCache.resolve(key, this::createIndex);
+    public DatabaseSearchIndex resolve(StoredStackKey key, ViewerLanguage viewerLanguage) {
+        ViewerLanguage normalizedLanguage = viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage;
+        return this.indexCache.resolve(key, normalizedLanguage, resolvedKey -> this.createIndex(resolvedKey, normalizedLanguage));
     }
 
-    private DatabaseSearchIndex createIndex(StoredStackKey key) {
+    private DatabaseSearchIndex createIndex(StoredStackKey key, ViewerLanguage viewerLanguage) {
         ItemStack displayStack = key.displayStack();
         String hoverName = displayStack.getHoverName().getString();
-        boolean customName = displayStack.has(DataComponents.CUSTOM_NAME);
-        String translatedName = customName ? hoverName : this.lookupZhCnName(displayStack, key).orElse(hoverName);
-        boolean supportsPinyin = customName || !translatedName.equals(hoverName) || containsChineseCharacters(translatedName);
-        PinyinIndexData pinyinIndexData = supportsPinyin ? this.toPinyinIndex(translatedName) : PinyinIndexData.empty();
-        return DatabaseSearchIndex.of(key, translatedName, pinyinIndexData);
+        if (displayStack.has(DataComponents.CUSTOM_NAME)) {
+            return DatabaseSearchIndex.of(
+                    key,
+                    hoverName,
+                    List.of(),
+                    containsChineseCharacters(hoverName) ? this.toPinyinIndex(hoverName) : PinyinIndexData.empty()
+            );
+        }
+        ResolvedDisplayNames resolvedDisplayNames = this.resolveDisplayNames(displayStack, key, viewerLanguage, hoverName);
+        return DatabaseSearchIndex.of(
+                key,
+                resolvedDisplayNames.primaryName(),
+                resolvedDisplayNames.aliases(),
+                resolvedDisplayNames.pinyinIndexData()
+        );
     }
 
-    private Optional<String> lookupZhCnName(ItemStack stack, StoredStackKey key) {
+    private ResolvedDisplayNames resolveDisplayNames(
+            ItemStack stack,
+            StoredStackKey key,
+            ViewerLanguage viewerLanguage,
+            String hoverName
+    ) {
         String descriptionId = stack.getDescriptionId();
         if (descriptionId == null || descriptionId.isBlank()) {
-            return Optional.empty();
+            return ResolvedDisplayNames.of(hoverName, List.of(), PinyinIndexData.empty());
         }
-        return Optional.ofNullable(this.translationsForNamespace(key.registryNamespace()).get(descriptionId))
-                .filter(value -> !value.isBlank());
+        String primaryTranslation = this.translationFor(key.registryNamespace(), viewerLanguage, descriptionId);
+        String alternateTranslation = this.translationFor(key.registryNamespace(), viewerLanguage.alternate(), descriptionId);
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        appendCandidate(candidates, primaryTranslation);
+        appendCandidate(candidates, alternateTranslation);
+        appendCandidate(candidates, hoverName);
+        if (candidates.isEmpty()) {
+            return ResolvedDisplayNames.of(hoverName, List.of(), PinyinIndexData.empty());
+        }
+
+        String primaryName = firstNonBlank(primaryTranslation, alternateTranslation, hoverName);
+        java.util.ArrayList<String> aliases = new java.util.ArrayList<>();
+        String chineseSource = containsChineseCharacters(primaryName) ? primaryName : null;
+        for (String candidate : candidates) {
+            if (candidate.equals(primaryName)) {
+                continue;
+            }
+            aliases.add(candidate);
+            if (chineseSource == null && containsChineseCharacters(candidate)) {
+                chineseSource = candidate;
+            }
+        }
+        PinyinIndexData pinyinIndexData = chineseSource == null ? PinyinIndexData.empty() : this.toPinyinIndex(chineseSource);
+        return ResolvedDisplayNames.of(primaryName, List.copyOf(aliases), pinyinIndexData);
     }
 
-    private Map<String, String> translationsForNamespace(String namespace) {
-        return this.translationsByNamespace.computeIfAbsent(namespace, this::loadTranslations);
+    private String translationFor(String namespace, ViewerLanguage viewerLanguage, String descriptionId) {
+        return Optional.ofNullable(this.translationsForNamespace(namespace, viewerLanguage).get(descriptionId))
+                .filter(value -> !value.isBlank())
+                .orElse("");
     }
 
-    private Map<String, String> loadTranslations(String namespace) {
-        String resourcePath = "assets/" + namespace + "/lang/zh_cn.json";
+    private Map<String, String> translationsForNamespace(String namespace, ViewerLanguage viewerLanguage) {
+        EnumMap<ViewerLanguage, Map<String, String>> namespaceTranslations = this.translationsByNamespace.computeIfAbsent(
+                namespace,
+                ignored -> new EnumMap<>(ViewerLanguage.class)
+        );
+        synchronized (namespaceTranslations) {
+            return namespaceTranslations.computeIfAbsent(viewerLanguage, language -> this.loadTranslations(namespace, language));
+        }
+    }
+
+    private Map<String, String> loadTranslations(String namespace, ViewerLanguage viewerLanguage) {
+        String resourcePath = "assets/" + namespace + "/lang/" + viewerLanguage.code() + ".json";
         Map<String, String> translations = new HashMap<>();
         this.readTranslations(this.classpathResource(resourcePath), resourcePath, translations);
         if (!translations.isEmpty()) {
@@ -82,7 +135,7 @@ public final class DatabaseItemSearchResolver {
             return Map.of();
         }
 
-        Path resourceFile = modFileInfo.get().getFile().findResource("assets", namespace, "lang", "zh_cn.json");
+        Path resourceFile = modFileInfo.get().getFile().findResource("assets", namespace, "lang", viewerLanguage.code() + ".json");
         if (Files.notExists(resourceFile)) {
             return Map.of();
         }
@@ -125,7 +178,7 @@ public final class DatabaseItemSearchResolver {
     }
 
     private PinyinIndexData toPinyinIndex(String text) {
-        List<String> pinyinTokens = new ArrayList<>();
+        List<String> pinyinTokens = new java.util.ArrayList<>();
         StringBuilder asciiToken = new StringBuilder();
         StringBuilder initials = new StringBuilder();
         for (int index = 0; index < text.length(); index++) {
@@ -192,5 +245,31 @@ public final class DatabaseItemSearchResolver {
             }
         }
         return false;
+    }
+
+    private static void appendCandidate(LinkedHashSet<String> candidates, String candidate) {
+        if (candidate == null || candidate.isBlank()) {
+            return;
+        }
+        candidates.add(candidate);
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private record ResolvedDisplayNames(String primaryName, List<String> aliases, PinyinIndexData pinyinIndexData) {
+        private static ResolvedDisplayNames of(String primaryName, List<String> aliases, PinyinIndexData pinyinIndexData) {
+            return new ResolvedDisplayNames(
+                    primaryName == null ? "" : primaryName,
+                    aliases == null ? List.of() : List.copyOf(aliases),
+                    pinyinIndexData == null ? PinyinIndexData.empty() : pinyinIndexData
+            );
+        }
     }
 }

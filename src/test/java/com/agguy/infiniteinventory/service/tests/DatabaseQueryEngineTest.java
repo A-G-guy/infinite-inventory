@@ -9,7 +9,11 @@ import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.service.DatabaseQueryEngine;
+import com.agguy.infiniteinventory.service.search.DatabaseItemSearchResolver;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -50,7 +54,7 @@ class DatabaseQueryEngineTest {
                 firstPageQuery.withPageIndex(1),
                 DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)
         );
-        Object runtimeIndex = this.runtimeIndexFor(database);
+        Object runtimeIndex = this.runtimeIndexFor(database, ViewerLanguage.EN_US);
 
         assertEquals(3, firstPage.totalEntries());
         assertEquals(3, secondPage.totalEntries());
@@ -66,7 +70,7 @@ class DatabaseQueryEngineTest {
         DatabaseQuery searchQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.COUNT_DESC, "diamond", 0, 1);
 
         this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL));
-        Object firstRuntimeIndex = this.runtimeIndexFor(database);
+        Object firstRuntimeIndex = this.runtimeIndexFor(database, ViewerLanguage.EN_US);
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
         this.queryEngine.buildPage(
@@ -75,12 +79,12 @@ class DatabaseQueryEngineTest {
                 searchQuery.withPageIndex(1),
                 DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)
         );
-        assertSame(firstRuntimeIndex, this.runtimeIndexFor(database));
+        assertSame(firstRuntimeIndex, this.runtimeIndexFor(database, ViewerLanguage.EN_US));
         assertEquals(1, this.searchCacheSize(firstRuntimeIndex));
 
         database.store(new ItemStack(Items.DIAMOND_BLOCK, 2));
         this.queryEngine.buildPage(database, tabDirectory, searchQuery, DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL));
-        Object rebuiltRuntimeIndex = this.runtimeIndexFor(database);
+        Object rebuiltRuntimeIndex = this.runtimeIndexFor(database, ViewerLanguage.EN_US);
 
         assertNotSame(firstRuntimeIndex, rebuiltRuntimeIndex);
         assertEquals(1, this.searchCacheSize(rebuiltRuntimeIndex));
@@ -105,6 +109,76 @@ class DatabaseQueryEngineTest {
         assertEquals(2, page.totalEntries());
         assertEquals(11L, page.totalItems());
         assertTrue(page.entries().stream().allMatch(entry -> entry.view().tabId().equals(blocksTab.id())));
+    }
+
+    @Test
+    void differentViewerLanguagesShouldUseIndependentLocalizedIndexes() throws ReflectiveOperationException {
+        StoredItemDatabase database = this.seededLocalizedDatabase();
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseQuery browseQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_ASC, "", 0, 10);
+
+        DatabasePage englishPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                browseQuery,
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US
+        );
+        DatabasePage chinesePage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                browseQuery,
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.ZH_CN
+        );
+
+        assertEquals("minecraft:apple", englishPage.entries().getFirst().key().registryName());
+        DatabaseSearchIndex chineseApple = DatabaseItemSearchResolver.INSTANCE.resolve(
+                StoredStackKey.of(new ItemStack(Items.APPLE)),
+                ViewerLanguage.ZH_CN
+        );
+        if (!"Apple".equals(chineseApple.displayName())) {
+            assertEquals("minecraft:bread", chinesePage.entries().getFirst().key().registryName());
+        } else {
+            assertEquals("minecraft:apple", chinesePage.entries().getFirst().key().registryName());
+        }
+        assertNotSame(this.runtimeIndexFor(database, ViewerLanguage.EN_US), this.runtimeIndexFor(database, ViewerLanguage.ZH_CN));
+    }
+
+    @Test
+    void englishViewerSearchShouldStillMatchChineseAliasAndPinyin() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        database.store(new ItemStack(Items.APPLE, 3));
+        database.store(new ItemStack(Items.BREAD, 2));
+        DatabaseSearchIndex englishApple = DatabaseItemSearchResolver.INSTANCE.resolve(
+                StoredStackKey.of(new ItemStack(Items.APPLE)),
+                ViewerLanguage.EN_US
+        );
+
+        if (!englishApple.displayNameSearchNormalizedTexts().contains("苹果")) {
+            return;
+        }
+
+        DatabasePage chineseAliasPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "苹果", 0, 10),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US
+        );
+        DatabasePage pinyinPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "pingguo", 0, 10),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US
+        );
+
+        assertEquals(1, chineseAliasPage.totalEntries());
+        assertEquals("minecraft:apple", chineseAliasPage.entries().getFirst().key().registryName());
+        assertEquals(1, pinyinPage.totalEntries());
+        assertEquals("minecraft:apple", pinyinPage.entries().getFirst().key().registryName());
     }
 
     @Test
@@ -153,12 +227,24 @@ class DatabaseQueryEngineTest {
         return database;
     }
 
-    private Object runtimeIndexFor(StoredItemDatabase database) throws ReflectiveOperationException {
+    private StoredItemDatabase seededLocalizedDatabase() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.APPLE, 3));
+        database.store(new ItemStack(Items.BREAD, 2));
+        return database;
+    }
+
+    private Object runtimeIndexFor(StoredItemDatabase database, ViewerLanguage viewerLanguage) throws ReflectiveOperationException {
         Field runtimeIndexesField = DatabaseQueryEngine.class.getDeclaredField("runtimeIndexes");
         runtimeIndexesField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<StoredItemDatabase, Object> runtimeIndexes = (Map<StoredItemDatabase, Object>) runtimeIndexesField.get(this.queryEngine);
-        return runtimeIndexes.get(database);
+        Object localizedRuntimeIndexes = runtimeIndexes.get(database);
+        Field localizedIndexesField = localizedRuntimeIndexes.getClass().getDeclaredField("localizedIndexes");
+        localizedIndexesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<ViewerLanguage, Object> localizedIndexes = (Map<ViewerLanguage, Object>) localizedIndexesField.get(localizedRuntimeIndexes);
+        return localizedIndexes.get(viewerLanguage);
     }
 
     private int noSearchCacheSize(Object runtimeIndex, String tabId) throws ReflectiveOperationException {

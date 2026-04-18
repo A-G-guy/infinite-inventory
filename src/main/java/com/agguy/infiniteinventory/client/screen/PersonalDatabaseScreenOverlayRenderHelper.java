@@ -83,7 +83,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
                     guiGraphics,
-                    Component.literal(enabled ? "ON" : "OFF"),
+                    commonToggleLabel(enabled),
                     toggleRect.x(),
                     toggleRect.right(),
                     toggleRect.y() + 6,
@@ -111,7 +111,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
                     guiGraphics,
-                    enabled ? Component.translatable(weight.translationKey()) : Component.literal("OFF"),
+                    enabled ? Component.translatable(weight.translationKey()) : commonToggleLabel(false),
                     weightRect.x(),
                     weightRect.right(),
                     weightRect.y() + 6,
@@ -165,7 +165,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
                     screen,
                     guiGraphics,
-                    Component.literal(enabled ? "ON" : "OFF"),
+                    commonToggleLabel(enabled),
                     toggleRect.x(),
                     toggleRect.right(),
                     toggleRect.y() + 6,
@@ -382,5 +382,11 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
 
     static boolean isOverlayCloseClicked(PersonalDatabaseLayout.Rect panelRect, double mouseX, double mouseY) {
         return PersonalDatabaseScreenGeometry.overlayCloseButtonRect(panelRect).contains(mouseX, mouseY);
+    }
+
+    private static Component commonToggleLabel(boolean enabled) {
+        return Component.translatable(enabled
+                ? "screen.infiniteinventory.common.on"
+                : "screen.infiniteinventory.common.off");
     }
 }

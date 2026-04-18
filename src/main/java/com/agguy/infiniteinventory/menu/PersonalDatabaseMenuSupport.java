@@ -12,6 +12,7 @@ import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.registry.ModMenus;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
@@ -82,6 +83,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     protected DatabaseQuery publicQuery = DatabaseQuery.defaultQuery(DatabaseScope.PUBLIC);
     protected DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
     protected DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.defaultTarget();
+    protected ViewerLanguage viewerLanguage = ViewerLanguage.defaultLanguage();
     protected DatabaseViewState viewState;
     protected List<DatabasePage> currentPages = List.of();
 
@@ -280,6 +282,19 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
 
     protected DatabaseQuery currentQuery() {
         return this.query;
+    }
+
+    protected ViewerLanguage currentViewerLanguage() {
+        return this.viewerLanguage;
+    }
+
+    protected boolean setViewerLanguage(ViewerLanguage viewerLanguage) {
+        ViewerLanguage normalizedLanguage = viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage;
+        if (this.viewerLanguage == normalizedLanguage) {
+            return false;
+        }
+        this.viewerLanguage = normalizedLanguage;
+        return true;
     }
 
     protected void applyOpenState(PersonalDatabaseOpenState openState) {
