@@ -14,6 +14,9 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
             return true;
         }
+        if (button == 0) {
+            PersonalDatabaseScreenLayoutHelper.updateSearchFocusFromClick(screen, mouseX, mouseY);
+        }
         if (screen.customExtractOverlayExpanded
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
             return true;
@@ -200,6 +203,7 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_F) {
             int panelIndex = PersonalDatabaseScreenCommonHelper.focusedPanelIndex(screen);
             if (panelIndex >= 0 && panelIndex < screen.panelSearchBoxes.size()) {
+                screen.activeSearchTab = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex).scopedTab();
                 screen.focusScreen(screen.panelSearchBoxes.get(panelIndex));
                 screen.panelSearchBoxes.get(panelIndex).setFocused(true);
                 return true;

@@ -13,6 +13,7 @@ import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.EnumMap;
 import java.util.List;
@@ -125,6 +126,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
     final Map<DatabaseEnhancementOption, Button> enhancementToggleButtons = new EnumMap<>(DatabaseEnhancementOption.class);
     boolean syncingSearchBox;
+    int searchSyncCooldownTicks;
+    @Nullable
+    DatabaseScopedTabRef activeSearchTab;
+    final Map<DatabaseScopedTabRef, String> pendingSearchTexts = new LinkedHashMap<>();
+    final Map<DatabaseScopedTabRef, String> dispatchedSearchTexts = new LinkedHashMap<>();
     boolean sortDropdownExpanded;
     boolean pagePickerExpanded;
     int activeSortPanelIndex = -1;
@@ -247,6 +253,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.topTabScopeFilter = this.databaseMenu.viewState().query().focusedTab().scope();
         this.selectionGestureModel.clearSelectionGesture();
         this.selectionGestureModel.releaseDiscardKey();
+        this.searchSyncCooldownTicks = 0;
+        this.activeSearchTab = null;
+        this.pendingSearchTexts.clear();
+        this.dispatchedSearchTexts.clear();
         PersonalDatabaseScreenContextHelper.closeContextMenu(this);
         PersonalDatabaseScreenWidgetHelper.buildWidgets(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
@@ -258,6 +268,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.containerTick();
         PersonalDatabaseScreenLayoutHelper.refreshUiStructureIfNeeded(this);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
+        PersonalDatabaseScreenLayoutHelper.tickSearchSync(this);
         PersonalDatabaseScreenCustomExtractOverlayHelper.validateOverlay(this);
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
