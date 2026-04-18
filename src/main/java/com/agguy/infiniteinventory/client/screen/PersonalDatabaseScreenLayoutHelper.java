@@ -139,16 +139,29 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query) {
-        sendQuery(screen, query, false);
+        sendQuery(screen, query, false, false);
     }
 
     static void sendQuery(PersonalDatabaseScreen screen, DatabaseQuery query, boolean keepSortDropdownExpanded) {
+        sendQuery(screen, query, keepSortDropdownExpanded, false);
+    }
+
+    static void sendQueryKeepingViewSelector(PersonalDatabaseScreen screen, DatabaseQuery query) {
+        sendQuery(screen, query, false, true);
+    }
+
+    private static void sendQuery(
+            PersonalDatabaseScreen screen,
+            DatabaseQuery query,
+            boolean keepSortDropdownExpanded,
+            boolean keepViewSelectorExpanded
+    ) {
         if (query.equals(screen.databaseMenu.viewState().query())) {
             return;
         }
         screen.pendingLayoutQuery = null;
         PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
-        prepareForServerQuery(screen, keepSortDropdownExpanded);
+        prepareForServerQuery(screen, keepSortDropdownExpanded, keepViewSelectorExpanded);
         dispatchQuery(screen, query);
     }
 
@@ -218,10 +231,18 @@ final class PersonalDatabaseScreenLayoutHelper {
     }
 
     static void prepareForServerQuery(PersonalDatabaseScreen screen) {
-        prepareForServerQuery(screen, false);
+        prepareForServerQuery(screen, false, false);
     }
 
     static void prepareForServerQuery(PersonalDatabaseScreen screen, boolean keepSortDropdownExpanded) {
+        prepareForServerQuery(screen, keepSortDropdownExpanded, false);
+    }
+
+    private static void prepareForServerQuery(
+            PersonalDatabaseScreen screen,
+            boolean keepSortDropdownExpanded,
+            boolean keepViewSelectorExpanded
+    ) {
         if (keepSortDropdownExpanded) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
@@ -229,6 +250,21 @@ final class PersonalDatabaseScreenLayoutHelper {
             screen.activePagePickerPanelIndex = -1;
             screen.enhancementPanelExpanded = false;
             screen.viewSelectorExpanded = false;
+            screen.moreTabsExpanded = false;
+            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+            PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
+            PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
+            return;
+        }
+        if (keepViewSelectorExpanded) {
+            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+            PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
+            screen.pagePickerExpanded = false;
+            screen.activePagePickerPanelIndex = -1;
+            screen.advancedSearchExpanded = false;
+            screen.enhancementPanelExpanded = false;
             screen.moreTabsExpanded = false;
             PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
             PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);

@@ -63,28 +63,24 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void pageControlsShouldStayInsideToolbar() {
+    void titleToolbarShouldKeepSummaryAndDepositControlsAligned() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertTrue(layout.previousPageButtonRect().x() >= layout.toolbarRect().x());
-        assertTrue(layout.pageLabelRect().x() >= layout.toolbarRect().x());
-        assertTrue(layout.nextPageButtonRect().right() <= layout.toolbarRect().right());
-        assertTrue(layout.previousPageButtonRect().y() == layout.toolbarRect().y());
+        assertTrue(layout.toolbarRect().x() >= layout.titleRect().x());
+        assertTrue(layout.toolbarRect().right() <= layout.personalScopeButtonRect().x());
+        assertTrue(layout.toolbarRect().y() == layout.titleRect().y());
+        assertTrue(layout.depositButtonRect().y() == layout.titleRect().y());
     }
 
     @Test
-    void topTabBarShouldExposeScopeToggleButtons() {
+    void scopeToggleShouldMoveOutOfTopTabBar() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
         assertTrue(layout.personalScopeButtonRect().width() > 0);
-        assertTrue(layout.publicScopeButtonRect().width() > 0);
-        assertTrue(layout.personalScopeButtonRect().x() >= layout.tabBarRect().x());
-        assertTrue(layout.publicScopeButtonRect().right() <= layout.tabBarRect().right());
-        assertTrue(layout.personalScopeButtonRect().y() >= layout.tabBarRect().y());
-        assertTrue(layout.personalScopeButtonRect().bottom() <= layout.tabBarRect().bottom());
-        assertTrue(layout.publicScopeButtonRect().y() >= layout.tabBarRect().y());
-        assertTrue(layout.publicScopeButtonRect().bottom() <= layout.tabBarRect().bottom());
-        assertTrue(layout.publicScopeButtonRect().x() >= layout.personalScopeButtonRect().right());
+        assertEquals(0, layout.publicScopeButtonRect().width());
+        assertTrue(layout.personalScopeButtonRect().y() == layout.titleRect().y());
+        assertTrue(layout.personalScopeButtonRect().x() >= layout.toolbarRect().right());
+        assertTrue(!layout.personalScopeButtonRect().intersects(layout.tabBarRect()));
     }
 
     @Test

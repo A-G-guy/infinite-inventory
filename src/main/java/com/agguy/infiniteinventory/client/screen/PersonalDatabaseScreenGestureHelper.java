@@ -77,10 +77,15 @@ final class PersonalDatabaseScreenGestureHelper {
                         : DatabaseSelectionGestureModel.PointerTarget.emptySlot(panelIndex, hitResult.slotIndex());
             }
         }
-        int panelIndex = PersonalDatabaseScreenTabHelper.findDatabasePanel(screen, mouseX, mouseY);
-        return panelIndex >= 0
-                ? DatabaseSelectionGestureModel.PointerTarget.panelBackground(panelIndex)
-                : DatabaseSelectionGestureModel.PointerTarget.outsidePanel();
+        if (screen.layout == null) {
+            return DatabaseSelectionGestureModel.PointerTarget.outsidePanel();
+        }
+        for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
+            if (screen.layout.databaseViewportLayout(panelIndex).gridRect().contains(mouseX, mouseY)) {
+                return DatabaseSelectionGestureModel.PointerTarget.panelBackground(panelIndex);
+            }
+        }
+        return DatabaseSelectionGestureModel.PointerTarget.outsidePanel();
     }
 
     @Nullable

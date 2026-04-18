@@ -256,7 +256,10 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             List<DatabaseScopedTabRef> nextVisibleTabs = query.visibleTabs().stream()
                     .filter(existingTab -> !existingTab.equals(scopedTab))
                     .toList();
-            PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.withVisibleTabs(nextVisibleTabs));
+            PersonalDatabaseScreenLayoutHelper.sendQueryKeepingViewSelector(
+                    screen,
+                    query.withVisibleTabs(nextVisibleTabs)
+            );
             return;
         }
         if (query.visibleTabs().size() >= PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen)) {
@@ -264,7 +267,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
         }
         LinkedHashSet<DatabaseScopedTabRef> nextVisibleTabs = new LinkedHashSet<>(query.visibleTabs());
         nextVisibleTabs.add(scopedTab);
-        PersonalDatabaseScreenLayoutHelper.sendQuery(
+        PersonalDatabaseScreenLayoutHelper.sendQueryKeepingViewSelector(
                 screen,
                 query.withVisibleTabs(new ArrayList<>(nextVisibleTabs)).withFocusedTab(scopedTab)
         );

@@ -241,27 +241,16 @@ final class PersonalDatabaseScreenCommonHelper {
         return Component.translatable(DatabaseScope.normalize(scope).translationKey());
     }
 
-    static boolean shouldShowScopeTag(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
-        if (scopedTab == null) {
-            return false;
-        }
-        if (scopedTab.isAllTab()) {
-            return true;
-        }
-        DatabaseScope otherScope = scopedTab.scope() == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
-        return tabsForScope(screen, otherScope).stream().anyMatch(tab -> tab.id().equals(scopedTab.tabId()));
+    static Component viewTitleLabel(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+        DatabaseScopedTabRef resolvedScopedTab = scopedTab == null ? DatabaseScopedTabRef.defaultTab() : scopedTab;
+        return Component.empty()
+                .append(tabLabel(screen, findTab(screen, resolvedScopedTab)))
+                .append(Component.literal(" · "))
+                .append(scopeLabel(resolvedScopedTab.scope()));
     }
 
     static Component scopedTabLabel(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
-        DatabaseTab tab = findTab(screen, scopedTab);
-        if (!shouldShowScopeTag(screen, scopedTab)) {
-            return tabLabel(screen, tab);
-        }
-        return Component.empty()
-                .append(tabLabel(screen, tab))
-                .append(Component.literal(" ["))
-                .append(scopeLabel(scopedTab.scope()))
-                .append(Component.literal("]"));
+        return tabLabel(screen, findTab(screen, scopedTab));
     }
 
     static Component autoStoreTargetLabel(PersonalDatabaseScreen screen, @Nullable DatabaseAutoStoreTarget autoStoreTarget) {
