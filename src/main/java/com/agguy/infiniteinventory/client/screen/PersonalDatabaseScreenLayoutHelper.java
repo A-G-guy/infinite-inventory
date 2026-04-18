@@ -214,14 +214,6 @@ final class PersonalDatabaseScreenLayoutHelper {
         PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
     }
 
-    static void switchScope(PersonalDatabaseScreen screen, DatabaseScope scope) {
-        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
-        if (normalizedScope == screen.databaseMenu.viewState().query().scope()) {
-            return;
-        }
-        sendQuery(screen, screen.databaseMenu.viewState().queryForScope(normalizedScope));
-    }
-
     static void toggleAccessoriesPanel(PersonalDatabaseScreen screen) {
         if (!hasAccessorySlots(screen)) {
             return;

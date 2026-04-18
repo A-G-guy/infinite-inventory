@@ -73,11 +73,24 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void titleAreaShouldUseViewAndManageButtonsInsteadOfScopeButtons() {
+    void topTabBarShouldExposeScopeToggleButtons() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertEquals(PersonalDatabaseLayout.Rect.empty(), layout.personalScopeButtonRect());
-        assertEquals(PersonalDatabaseLayout.Rect.empty(), layout.publicScopeButtonRect());
+        assertTrue(layout.personalScopeButtonRect().width() > 0);
+        assertTrue(layout.publicScopeButtonRect().width() > 0);
+        assertTrue(layout.personalScopeButtonRect().x() >= layout.tabBarRect().x());
+        assertTrue(layout.publicScopeButtonRect().right() <= layout.tabBarRect().right());
+        assertTrue(layout.personalScopeButtonRect().y() >= layout.tabBarRect().y());
+        assertTrue(layout.personalScopeButtonRect().bottom() <= layout.tabBarRect().bottom());
+        assertTrue(layout.publicScopeButtonRect().y() >= layout.tabBarRect().y());
+        assertTrue(layout.publicScopeButtonRect().bottom() <= layout.tabBarRect().bottom());
+        assertTrue(layout.publicScopeButtonRect().x() >= layout.personalScopeButtonRect().right());
+    }
+
+    @Test
+    void titleAreaShouldKeepViewAndManageButtonsInsideFrame() {
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
+
         assertTrue(layout.viewSelectorButtonRect().x() >= layout.frameRect().x());
         assertTrue(layout.viewSelectorButtonRect().right() <= layout.frameRect().right());
         assertTrue(layout.tabManagementButtonRect().x() >= layout.viewSelectorButtonRect().right());
