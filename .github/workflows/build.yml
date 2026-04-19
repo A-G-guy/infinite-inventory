@@ -26,5 +26,25 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Fetch pull request base branch
+        if: github.event_name == 'pull_request'
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Run version governance unit tests
+        run: ./gradlew -p buildSrc test
+
+      - name: Recommend mod version
+        run: ./gradlew recommendModVersion
+
+      - name: Publish version governance summary
+        if: always()
+        run: |
+          if [ -f build/reports/version-governance/recommendation.md ]; then
+            cat build/reports/version-governance/recommendation.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Verify mod version progression
+        run: ./gradlew verifyModVersionProgression
+
       - name: Build with Gradle
         run: ./gradlew build

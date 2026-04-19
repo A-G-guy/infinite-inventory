@@ -44,6 +44,7 @@ docs/
 - [数据安全与恢复说明](./long-term/operations/database-safety-and-recovery.md)：备份、恢复、迁移与排障语义。
 - [公共发布检查清单](./long-term/operations/public-release-checklist.md)：GitHub、Modrinth、CurseForge 的元数据、素材与发版核对项。
 - [Java 文件行数约束](./long-term/engineering/java-file-line-limit.md)：Java 文件规模上限与校验方式。
+- [版本治理与推进规则](./long-term/engineering/version-governance.md)：`mod_version` 的推进策略、CI 校验方式与发布基线规则。
 
 ## 短期文档工作流
 

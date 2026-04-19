@@ -1,3 +1,6 @@
+import com.agguy.build.versioning.RecommendModVersionTask
+import com.agguy.build.versioning.VerifyModVersionProgressionTask
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -260,6 +263,35 @@ tasks.register('checkJavaFileLineLimit') {
 
 tasks.named('check').configure {
     dependsOn(tasks.named('checkJavaFileLineLimit'))
+}
+
+def versionGovernanceReportDirectory = layout.buildDirectory.dir('reports/version-governance')
+
+def configureVersionGovernanceTask = { task ->
+    task.repositoryRootPath.set(layout.projectDirectory.asFile.absolutePath)
+    task.currentVersion.set(mod_version.toString())
+    task.githubEventName.set(providers.environmentVariable('GITHUB_EVENT_NAME').orElse(''))
+    task.githubBaseRef.set(providers.environmentVariable('GITHUB_BASE_REF').orElse(''))
+    task.githubRefName.set(providers.environmentVariable('GITHUB_REF_NAME').orElse(''))
+    task.baseRefOverride.set(providers.gradleProperty('versionGovernanceBaseRef').orElse(''))
+    task.markdownReportFile.set(versionGovernanceReportDirectory.map { directory ->
+        directory.file('recommendation.md')
+    })
+    task.textReportFile.set(versionGovernanceReportDirectory.map { directory ->
+        directory.file('recommendation.txt')
+    })
+}
+
+tasks.register('recommendModVersion', RecommendModVersionTask) {
+    group = 'verification'
+    description = 'Analyzes commit history and recommends the minimum mod_version.'
+    configureVersionGovernanceTask(delegate)
+}
+
+tasks.register('verifyModVersionProgression', VerifyModVersionProgressionTask) {
+    group = 'verification'
+    description = 'Fails when mod_version is lower than the required version progression.'
+    configureVersionGovernanceTask(delegate)
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

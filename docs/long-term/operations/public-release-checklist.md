@@ -32,9 +32,11 @@
 
 - 确认 `README.md`、`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.md` 已同步到当前代码状态。
 - 确认工作树不包含本地路径、密钥、私有配置和临时压缩包。
+- 先运行 `./gradlew recommendModVersion`，确认当前版本治理报告符合预期。
+- 再运行 `./gradlew verifyModVersionProgression`，确认 `mod_version` 已达到最低推荐值。
 - 运行 `./gradlew check` 与 `./gradlew build`。
 - 将发布 JAR 复制到你的共享交付目录或外部备份位置。
-- 使用与 `gradle.properties` 一致的版本号创建 Git tag 和 GitHub Release。
+- 使用与 `gradle.properties` 一致的版本号创建标注 Git tag 与 GitHub Release，例如 `v1.2.0`。
 - Release notes 至少说明：
   - 支持的 Minecraft / NeoForge 版本
   - 这次更新的核心功能或修复
@@ -97,6 +99,8 @@
 ## 发版前最后核对
 
 - `git status` 干净。
+- 最近发布基线 tag 已存在，且命名符合 `v<mod_version>`。
+- `recommendModVersion` 报告的最低推荐版本没有超过当前 `mod_version`。
 - `./gradlew check` 通过。
 - `./gradlew build` 通过。
 - 最终 JAR 已复制到共享交付目录或外部备份位置。
