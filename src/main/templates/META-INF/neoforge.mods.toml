@@ -15,7 +15,7 @@ loaderVersion="${loader_version_range}" #mandatory
 license="${mod_license}"
 
 # A URL to refer people to when problems occur with this mod
-#issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
+issueTrackerURL="${mod_issues_url}"
 
 # A list of mods - how many allowed here is determined by the individual mod loader
 [[mods]] #mandatory
@@ -33,22 +33,22 @@ displayName="${mod_name}" #mandatory
 #updateJSONURL="https://change.me.example.invalid/updates.json" #optional
 
 # A URL for the "homepage" for this mod, displayed in the mod UI
-#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional
+displayURL="${mod_homepage_url}"
 
 # A file name (in the root of the mod JAR) containing a logo for display
-#logoFile="examplemod.png" #optional
+logoFile="${mod_logo_file}"
 
 # A text field displayed in the mod UI
 #credits="" #optional
 
 # The authors of the mod, displayed in the mod UI (optional)
-authors="agguy"
+authors="${mod_authors}"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 Infinite Inventory / 无限库存
-A personal infinite inventory database for each player, with full-screen search, sorting and categorized storage.
-为每位玩家提供全屏检索、排序与分类存储的个人无限库存数据库。
+An infinite inventory database for Minecraft players with full-screen search, sorting, tab management, and personal/public storage scopes.
+为 Minecraft 玩家提供支持全屏搜索、排序、页签管理，以及个人库/公共库双作用域的无限库存数据库。
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

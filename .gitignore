@@ -3,6 +3,7 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/**/build/
+gradle-app.setting
 
 ### IntelliJ IDEA ###
 .idea/
@@ -29,6 +30,9 @@ bin/
 ### VS Code ###
 .vscode/
 
+### Local Project Instructions ###
+AGENTS.md
+
 ### Mac OS ###
 .DS_Store
 
@@ -39,3 +43,22 @@ run/
 repo/
 !**/src/**/repo/
 logs/
+crash-reports/
+run-data/
+saves/
+screenshots/
+
+### Local Secrets ###
+.env
+.env.*
+*.local
+*.private
+*.secret
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+
+### Local Release Scratch ###
+infiniteinventory-template-*.zip
