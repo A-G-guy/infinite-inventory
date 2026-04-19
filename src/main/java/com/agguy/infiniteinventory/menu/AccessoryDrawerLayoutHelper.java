@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class AccessoryDrawerLayoutHelper {
+    private static final int COMPACT_DRAWER_MIN_WIDTH = 128;
+
     private AccessoryDrawerLayoutHelper() {
     }
 
@@ -27,11 +29,11 @@ final class AccessoryDrawerLayoutHelper {
         }
         boolean inlineToggle = accessoryToggleRect.y() <= equipmentPanelRect.y() + 1;
         boolean overlayMode = compactOverlayFallback || inlineToggle;
+        int drawerWidth = resolveDrawerWidth(playerColumnWidth, accessoryGroups);
         int drawerX = equipmentPanelRect.x();
         int drawerY = overlayMode
                 ? equipmentPanelRect.bottom() + PersonalDatabaseLayout.ACCESSORY_DRAWER_TOP_GAP
                 : accessoryToggleRect.bottom() + PersonalDatabaseLayout.ACCESSORY_DRAWER_TOP_GAP;
-        int drawerWidth = Math.max(1, playerColumnWidth);
         int contentWidth = Math.max(
                 PersonalDatabaseLayout.SLOT_SIZE,
                 drawerWidth - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
@@ -62,6 +64,20 @@ final class AccessoryDrawerLayoutHelper {
                 + visibleRows * PersonalDatabaseLayout.SLOT_SIZE;
         int drawerBottom = Math.min(maxDrawerBottom, drawerY + drawerHeight);
         return new PersonalDatabaseLayout.Rect(drawerX, drawerY, drawerWidth, Math.max(1, drawerBottom - drawerY));
+    }
+
+    private static int resolveDrawerWidth(int playerColumnWidth, List<AccessorySlotGroup> accessoryGroups) {
+        int maxWidth = Math.max(1, playerColumnWidth);
+        int minWidth = Math.min(maxWidth, COMPACT_DRAWER_MIN_WIDTH);
+        int widestGroupSlots = 1;
+        if (accessoryGroups != null) {
+            for (AccessorySlotGroup group : accessoryGroups) {
+                widestGroupSlots = Math.max(widestGroupSlots, Math.max(1, group.slotCount()));
+            }
+        }
+        int preferredWidth = PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
+                + widestGroupSlots * PersonalDatabaseLayout.SLOT_SIZE;
+        return PersonalDatabaseLayout.clamp(preferredWidth, minWidth, maxWidth);
     }
 
     static AccessorySlotLayoutResult buildAccessorySlotLayouts(

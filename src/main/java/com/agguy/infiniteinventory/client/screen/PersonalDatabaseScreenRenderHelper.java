@@ -201,20 +201,19 @@ final class PersonalDatabaseScreenRenderHelper {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
             PersonalDatabaseLayout.Rect titleRect = viewportLayout.headerRect();
-            int titleMaxWidth = Math.max(0, titleRect.width() - 4);
-            guiGraphics.drawString(
-                    screen.screenFont(),
+            renderFrameBadgeText(
+                    screen,
+                    guiGraphics,
                     PersonalDatabaseScreenGeometry.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.viewTitleLabel(screen, panel.scopedTab()).getString(),
-                            titleMaxWidth
+                            Math.max(0, titleRect.width() - 8)
                     ),
                     titleRect.x(),
                     titleRect.y(),
                     viewState.query().focusedTab().equals(panel.scopedTab())
                             ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
-                            : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
+                            : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR
             );
         }
 
@@ -352,7 +351,7 @@ final class PersonalDatabaseScreenRenderHelper {
             PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
             int iconX = searchRect.x() + 6;
             int iconY = searchRect.y() + (searchRect.height() - PersonalDatabaseScreen.SEARCH_ICON_SIZE) / 2;
-            VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFF6D6D6D);
+            VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFFDCD4C8);
 
             PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
             DatabaseSortOption sortOption = PersonalDatabaseScreenCommonHelper.sortOptionForPanel(screen, panelIndex);
@@ -374,13 +373,13 @@ final class PersonalDatabaseScreenRenderHelper {
                     sortRect.right() - 18,
                     sortRect.y() + sortRect.height() / 2,
                     sortOption.direction() == DatabaseSortDirection.ASC,
-                    0xFF3F3F3F
+                    0xFFD8D0C4
             );
             VanillaWidgetRenderer.renderDropdownIndicator(
                     guiGraphics,
                     sortRect.right() - 9,
                     sortRect.y() + sortRect.height() / 2,
-                    0xFF3F3F3F
+                    0xFFD8D0C4
             );
 
             PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
@@ -388,35 +387,35 @@ final class PersonalDatabaseScreenRenderHelper {
                     guiGraphics,
                     pageRect.right() - 10,
                     pageRect.y() + pageRect.height() / 2,
-                    0xFF3F3F3F
+                    0xFFD8D0C4
             );
         }
 
         if (screen.advancedSearchButton != null && screen.layout.advancedSearchButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect advancedRect = screen.layout.advancedSearchButtonRect();
             VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    advancedRect.right() - 10,
-                    advancedRect.y() + advancedRect.height() / 2,
-                    0xFF3F3F3F
+                guiGraphics,
+                advancedRect.right() - 10,
+                advancedRect.y() + advancedRect.height() / 2,
+                0xFFD8D0C4
             );
         }
         if (screen.enhancementButton != null && screen.layout.enhancementButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect enhancementRect = screen.layout.enhancementButtonRect();
             VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    enhancementRect.right() - 10,
-                    enhancementRect.y() + enhancementRect.height() / 2,
-                    0xFF3F3F3F
+                guiGraphics,
+                enhancementRect.right() - 10,
+                enhancementRect.y() + enhancementRect.height() / 2,
+                0xFFD8D0C4
             );
         }
         if (screen.viewSelectorButton != null && screen.layout.viewSelectorButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect viewRect = screen.layout.viewSelectorButtonRect();
             VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    viewRect.right() - 10,
-                    viewRect.y() + viewRect.height() / 2,
-                    0xFF3F3F3F
+                guiGraphics,
+                viewRect.right() - 10,
+                viewRect.y() + viewRect.height() / 2,
+                0xFFD8D0C4
             );
         }
     }

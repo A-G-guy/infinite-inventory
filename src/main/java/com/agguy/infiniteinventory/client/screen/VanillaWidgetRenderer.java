@@ -12,11 +12,11 @@ final class VanillaWidgetRenderer {
     private static final int OVERLAY_BOTTOM_EDGE_COLOR = 0x50261E16;
     private static final int OVERLAY_ROW_COLOR = 0x80E1D9C9;
     private static final int OVERLAY_ROW_HOVERED_COLOR = 0xE0D8CFBD;
-    private static final int OVERLAY_ROW_SELECTED_COLOR = 0xE0D6C193;
+    private static final int OVERLAY_ROW_SELECTED_COLOR = 0xE0CDB27A;
     private static final int OVERLAY_ROW_DIVIDER_COLOR = 0x70A89E8C;
     private static final int OVERLAY_CHIP_ACTIVE_COLOR = 0xFFF5F0E4;
     private static final int OVERLAY_CHIP_HOVERED_COLOR = 0xFFE8DDC6;
-    private static final int OVERLAY_CHIP_SELECTED_COLOR = 0xFFE3D0A4;
+    private static final int OVERLAY_CHIP_SELECTED_COLOR = 0xFFD6BB86;
     private static final int OVERLAY_CHIP_DISABLED_COLOR = 0xFFD3CCBE;
     private static final ResourceLocation PANEL_SPRITE = ResourceLocation.withDefaultNamespace("container/bundle/background");
     private static final ResourceLocation SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/slot");
@@ -54,10 +54,10 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderTextField(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean focused) {
-        int outlineColor = focused ? 0xFFBE9760 : 0xFF685848;
-        int innerOutlineColor = focused ? 0xFFE4C89B : 0xFFCCBBA2;
-        int fillColor = focused ? 0xFFF8F3E9 : 0xFFF2EBDE;
-        int topEdgeColor = focused ? 0xA0FFFDF8 : 0x70FFFDF8;
+        int outlineColor = focused ? 0xFFC49B60 : 0xFF2A2E35;
+        int innerOutlineColor = focused ? 0xFF575E69 : 0xFF3D434B;
+        int fillColor = focused ? 0xFF15191F : 0xFF101419;
+        int topEdgeColor = focused ? 0xA07A8390 : 0x705C6674;
         guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), outlineColor);
         guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, innerOutlineColor);
         guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.bottom() - 2, fillColor);

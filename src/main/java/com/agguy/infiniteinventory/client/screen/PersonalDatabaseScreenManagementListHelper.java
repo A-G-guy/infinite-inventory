@@ -114,7 +114,7 @@ final class PersonalDatabaseScreenManagementListHelper {
                     viewport.bodyRect().x(),
                     viewport.bodyRect().y() + rowIndex * PersonalDatabaseScreen.MANAGEMENT_ROW_HEIGHT,
                     viewport.bodyRect().width(),
-                    PersonalDatabaseScreen.MANAGEMENT_ROW_HEIGHT - 1
+                    PersonalDatabaseScreen.MANAGEMENT_ROW_HEIGHT
             );
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;

@@ -161,6 +161,9 @@ final class PersonalDatabaseScreenIconPickerHelper {
             if (!PersonalDatabaseScreenIconPickerGeometry.iconPickerCategoryRect(screen, index).contains(mouseX, mouseY)) {
                 continue;
             }
+            if (screen.iconSearchBox != null) {
+                screen.iconSearchBox.setFocused(false);
+            }
             screen.iconPickerCategory = categories[index];
             screen.iconPickerPageIndex = 0;
             return true;
@@ -174,6 +177,9 @@ final class PersonalDatabaseScreenIconPickerHelper {
         for (int index = 0; index < pageChoices.size(); index++) {
             if (!PersonalDatabaseScreenIconPickerGeometry.iconPickerCellRect(screen, index).contains(mouseX, mouseY)) {
                 continue;
+            }
+            if (screen.iconSearchBox != null) {
+                screen.iconSearchBox.setFocused(false);
             }
             screen.pendingIconItemId = pageChoices.get(index).itemId();
             return true;

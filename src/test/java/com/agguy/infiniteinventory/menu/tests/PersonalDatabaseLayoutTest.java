@@ -110,12 +110,15 @@ class PersonalDatabaseLayoutTest {
         assertTrue(layout.accessoryToggleRect().height() == PersonalDatabaseLayout.CONTROL_HEIGHT);
         assertTrue(layout.accessoriesPanelRect().height() == 0);
         assertTrue(layout.bottomInventoryRect().bottom() <= layout.frameRect().bottom());
-        assertTrue(layout.accessoryToggleRect().bottom() <= layout.bottomInventoryRect().y());
+        assertEquals(
+                layout.accessoryToggleRect().bottom() + PersonalDatabaseLayout.SECTION_GAP,
+                layout.bottomInventoryRect().y()
+        );
         assertTrue(layout.accessorySlotLayouts().stream().noneMatch(PersonalDatabaseLayout.AccessorySlotLayout::visible));
     }
 
     @Test
-    void expandedAccessoriesPanelShouldOverlayDatabaseAreaWithoutMovingBottomInventory() {
+    void expandedAccessoriesPanelShouldPushBottomInventoryDownToMakeRoom() {
         List<AccessorySlotGroup> accessoryGroups = List.of(
                 new AccessorySlotGroup("ring", "accessories.slot.ring", 46, 10)
         );
@@ -125,7 +128,7 @@ class PersonalDatabaseLayoutTest {
         assertTrue(expandedLayout.accessoriesPanelRect().height() > 0);
         assertEquals(expandedLayout.equipmentPanelRect().x(), expandedLayout.accessoriesPanelRect().x());
         assertTrue(expandedLayout.accessoriesPanelRect().right() <= expandedLayout.bottomInventoryRect().right());
-        assertTrue(expandedLayout.bottomInventoryRect().y() == collapsedLayout.bottomInventoryRect().y());
+        assertTrue(expandedLayout.bottomInventoryRect().y() > collapsedLayout.bottomInventoryRect().y());
         assertTrue(expandedLayout.accessoriesPanelRect().bottom() <= expandedLayout.bottomInventoryRect().y() - PersonalDatabaseLayout.SECTION_GAP);
         assertFalse(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
     }
@@ -142,6 +145,17 @@ class PersonalDatabaseLayoutTest {
                 + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
                 + PersonalDatabaseLayout.SLOT_SIZE * 2;
         assertEquals(expectedHeight, layout.accessoriesPanelRect().height());
+    }
+
+    @Test
+    void narrowAccessoryGroupsShouldTrimExpandedDrawerWidth() {
+        List<AccessorySlotGroup> accessoryGroups = List.of(
+                new AccessorySlotGroup("back", "accessories.slot.back", 46, 1)
+        );
+        PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups, true, 0);
+
+        assertTrue(layout.accessoriesPanelRect().width() < layout.bottomInventoryRect().width());
+        assertTrue(layout.accessoriesPanelRect().width() >= 120);
     }
 
     @Test

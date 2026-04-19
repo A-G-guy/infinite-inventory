@@ -31,7 +31,7 @@ final class PersonalDatabaseScreenIconPickerGeometry {
         if (index < 0 || index >= DatabaseCategory.values().length) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        int tabGap = 4;
+        int tabGap = 2;
         int totalGap = Math.max(0, DatabaseCategory.values().length - 1) * tabGap;
         int tabWidth = Math.max(1, (layout.categoryRowRect().width() - totalGap) / DatabaseCategory.values().length);
         int x = layout.categoryRowRect().x() + index * (tabWidth + tabGap);

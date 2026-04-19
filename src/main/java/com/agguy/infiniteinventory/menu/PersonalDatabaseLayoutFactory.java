@@ -40,6 +40,7 @@ final class PersonalDatabaseLayoutFactory {
                 PersonalDatabaseLayout.TITLE_HEIGHT
         );
         boolean compactTopBar = frameRect.width() <= 520;
+        boolean compactAccessoryLayout = isCompactAccessoryLayout(screenWidth, screenHeight);
         int utilityButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH;
         int enhancementButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.ENHANCEMENT_BUTTON_WIDTH;
         int advancedButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.ADVANCED_SEARCH_BUTTON_WIDTH;
@@ -47,7 +48,7 @@ final class PersonalDatabaseLayoutFactory {
         int depositButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH;
         int defaultScopeButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH;
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
-        int titleReservedWidth = compactTopBar ? 56 : Math.max(80, Math.min(104, frameRect.width() / 7));
+        int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
         PersonalDatabaseLayout.Rect tabManagementButtonRect = new PersonalDatabaseLayout.Rect(
                 toolbarRight - tabManagementButtonWidth,
                 titleRect.y(),
@@ -120,18 +121,9 @@ final class PersonalDatabaseLayoutFactory {
         int playerColumnX = frameRect.x() + PersonalDatabaseLayout.INNER_PADDING;
         int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         PersonalDatabaseLayout.Rect equipmentPanelRect = new PersonalDatabaseLayout.Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
-        PersonalDatabaseLayout.Rect bottomInventoryRect = new PersonalDatabaseLayout.Rect(
-                playerColumnX,
-                Math.max(
-                        contentTop + equipmentHeight + PersonalDatabaseLayout.SECTION_GAP,
-                        frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING - bottomInventoryHeight
-                ),
-                bottomInventoryWidth,
-                bottomInventoryHeight
-        );
         boolean hasAccessorySlots = accessoryGroups != null && !accessoryGroups.isEmpty();
         boolean reserveAccessoryToggleRow = hasAccessorySlots
-                && canReserveAccessoryToggleRow(equipmentPanelRect, bottomInventoryRect);
+                && canReserveAccessoryToggleRow(frameRect, equipmentPanelRect, bottomInventoryHeight);
         PersonalDatabaseLayout.Rect accessoryToggleRect = !hasAccessorySlots
                 ? PersonalDatabaseLayout.Rect.empty()
                 : reserveAccessoryToggleRow
@@ -147,6 +139,29 @@ final class PersonalDatabaseLayoutFactory {
                                 defaultScopeButtonWidth,
                                 PersonalDatabaseLayout.CONTROL_HEIGHT
                         );
+        int collapsedBottomInventoryY = reserveAccessoryToggleRow
+                ? accessoryToggleRect.bottom() + PersonalDatabaseLayout.SECTION_GAP
+                : equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP;
+        PersonalDatabaseLayout.Rect bottomInventoryRect = new PersonalDatabaseLayout.Rect(
+                playerColumnX,
+                collapsedBottomInventoryY,
+                bottomInventoryWidth,
+                bottomInventoryHeight
+        );
+        boolean inlineAccessoryOverlay = accessoryToggleRect.height() > 0
+                && accessoryToggleRect.y() <= equipmentPanelRect.y() + 1;
+        if (accessoriesExpanded
+                && hasAccessorySlots
+                && reserveAccessoryToggleRow
+                && !compactAccessoryLayout
+                && !inlineAccessoryOverlay) {
+            bottomInventoryRect = new PersonalDatabaseLayout.Rect(
+                    playerColumnX,
+                    frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING - bottomInventoryHeight,
+                    bottomInventoryWidth,
+                    bottomInventoryHeight
+            );
+        }
         PersonalDatabaseLayout.Rect accessoriesPanelRect = AccessoryDrawerLayoutHelper.createAccessoriesPanelRect(
                 frameRect,
                 equipmentPanelRect,
@@ -155,7 +170,7 @@ final class PersonalDatabaseLayoutFactory {
                 playerColumnWidth,
                 accessoryGroups,
                 accessoriesExpanded,
-                isCompactAccessoryLayout(screenWidth, screenHeight)
+                compactAccessoryLayout
         );
         AccessoryDrawerLayoutHelper.AccessorySlotLayoutResult accessorySlotLayoutResult = AccessoryDrawerLayoutHelper.buildAccessorySlotLayouts(
                 accessoryGroups,
@@ -356,11 +371,16 @@ final class PersonalDatabaseLayoutFactory {
     }
 
     private static boolean canReserveAccessoryToggleRow(
+            PersonalDatabaseLayout.Rect frameRect,
             PersonalDatabaseLayout.Rect equipmentPanelRect,
-            PersonalDatabaseLayout.Rect bottomInventoryRect
+            int bottomInventoryHeight
     ) {
-        int toggleBottom = equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP + PersonalDatabaseLayout.CONTROL_HEIGHT;
-        return toggleBottom + PersonalDatabaseLayout.SECTION_GAP <= bottomInventoryRect.y();
+        int requiredBottom = equipmentPanelRect.bottom()
+                + PersonalDatabaseLayout.SECTION_GAP
+                + PersonalDatabaseLayout.CONTROL_HEIGHT
+                + PersonalDatabaseLayout.SECTION_GAP
+                + bottomInventoryHeight;
+        return requiredBottom <= frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING;
     }
 
     private static boolean isCompactAccessoryLayout(int screenWidth, int screenHeight) {

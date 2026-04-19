@@ -40,9 +40,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int FRAME_ACCENT_TEXT_COLOR = 0xFFE0A6;
     static final int FRAME_TEXT_BACKDROP_COLOR = 0x6A16120D;
     static final int FRAME_TEXT_OUTLINE_COLOR = 0x90765B3B;
-    static final int TEXT_FIELD_TEXT_COLOR = 0x1C1712;
-    static final int TEXT_FIELD_MUTED_TEXT_COLOR = 0x786C5E;
-    static final int SORT_BUTTON_TEXT_COLOR = 0x2B241D;
+    static final int TEXT_FIELD_TEXT_COLOR = 0xF1ECE3;
+    static final int TEXT_FIELD_MUTED_TEXT_COLOR = 0xB2ABA1;
+    static final int SORT_BUTTON_TEXT_COLOR = 0xECE5D8;
     static final int SCROLLBAR_TRACK_COLOR = 0x3051463B;
     static final int SCROLLBAR_THUMB_COLOR = 0xCC7A6447;
     static final int SCROLLBAR_THUMB_HOVERED_COLOR = 0xE09E825D;
