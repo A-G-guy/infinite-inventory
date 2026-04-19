@@ -5,6 +5,8 @@ import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.network.DatabaseViewerLocalePayload;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class PersonalDatabaseClient {
@@ -33,10 +35,21 @@ public final class PersonalDatabaseClient {
             clearViewerLanguageSyncState();
             return;
         }
+        ClientPacketListener connection = minecraft.getConnection();
+        if (connection == null) {
+            clearViewerLanguageSyncState();
+            return;
+        }
         ViewerLanguage viewerLanguage = ViewerLanguage.resolve(minecraft.getLanguageManager().getSelected());
-        if (menu.containerId == lastSyncedContainerId
-                && menu.sessionId() == lastSyncedSessionId
-                && viewerLanguage == lastSyncedViewerLanguage) {
+        if (!shouldSendViewerLanguageUpdate(
+                menu.containerId,
+                menu.sessionId(),
+                viewerLanguage,
+                lastSyncedContainerId,
+                lastSyncedSessionId,
+                lastSyncedViewerLanguage,
+                connection.hasChannel(DatabaseViewerLocalePayload.TYPE)
+        )) {
             return;
         }
         PacketDistributor.sendToServer(new DatabaseViewerLocalePayload(
@@ -47,6 +60,23 @@ public final class PersonalDatabaseClient {
         lastSyncedContainerId = menu.containerId;
         lastSyncedSessionId = menu.sessionId();
         lastSyncedViewerLanguage = viewerLanguage;
+    }
+
+    static boolean shouldSendViewerLanguageUpdate(
+            int containerId,
+            long sessionId,
+            ViewerLanguage viewerLanguage,
+            int lastContainerId,
+            long lastSessionId,
+            @Nullable ViewerLanguage lastViewerLanguage,
+            boolean viewerLocaleChannelAvailable
+    ) {
+        if (!viewerLocaleChannelAvailable) {
+            return false;
+        }
+        return containerId != lastContainerId
+                || sessionId != lastSessionId
+                || viewerLanguage != lastViewerLanguage;
     }
 
     private static void clearViewerLanguageSyncState() {
