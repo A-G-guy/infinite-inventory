@@ -30,7 +30,7 @@
 
 ## GitHub 发版
 
-- 确认 `README.md`、`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.md` 已同步到当前代码状态。
+- 确认 `README.md`、`README.zh-CN.md`、`LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.md` 已同步到当前代码状态。
 - 确认工作树不包含本地路径、密钥、私有配置和临时压缩包。
 - 先运行 `./gradlew recommendModVersion`，确认当前版本治理报告符合预期。
 - 再运行 `./gradlew verifyModVersionProgression`，确认 `mod_version` 已达到最低推荐值。
@@ -105,5 +105,5 @@
 - `./gradlew build` 通过。
 - 最终 JAR 已复制到共享交付目录或外部备份位置。
 - `src/main/resources/infiniteinventory_logo.png` 存在。
-- `README.md` 的公开链接和文案没有模板残留。
+- `README.md` 与 `README.zh-CN.md` 的公开链接、互链和文案没有模板残留。
 - 本地专用说明文件没有被重新加入 Git 索引。
