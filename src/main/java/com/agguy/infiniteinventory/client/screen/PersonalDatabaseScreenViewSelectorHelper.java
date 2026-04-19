@@ -236,7 +236,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                     viewport.bodyRect().x(),
                     viewport.bodyRect().y() + rowIndex * PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT,
                     viewport.bodyRect().width(),
-                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
+                    PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
             );
             if (!rowRect.contains(mouseX, mouseY)) {
                 continue;

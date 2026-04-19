@@ -266,12 +266,9 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             boolean hovered = rowRect.contains(mouseX, mouseY);
             boolean selected = currentSort.method() == method;
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, selected);
-            Component label = selected
-                    ? PersonalDatabaseScreenCommonHelper.sortMethodLabel(method).copy().withStyle(ChatFormatting.GOLD)
-                    : PersonalDatabaseScreenCommonHelper.sortMethodLabel(method);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    label,
+                    PersonalDatabaseScreenCommonHelper.sortMethodLabel(method),
                     rowRect.x() + 6,
                     rowRect.y() + 5,
                     selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
