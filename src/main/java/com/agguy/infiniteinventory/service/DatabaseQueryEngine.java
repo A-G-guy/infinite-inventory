@@ -17,9 +17,17 @@ import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
+import com.agguy.infiniteinventory.service.search.DatabaseItemSearchMetadata;
+import com.agguy.infiniteinventory.service.search.DatabaseItemSearchMetadataResolver;
 import com.agguy.infiniteinventory.service.search.DatabaseItemSearchResolver;
+import com.agguy.infiniteinventory.service.search.DatabaseParsedSearchQuery;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchEnvironment;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchEnvironmentSignature;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchEvaluator;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchExpressionEvaluator;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParser;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParserContext;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
 import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.ArrayList;
@@ -38,6 +46,7 @@ public final class DatabaseQueryEngine {
 
     private final DatabaseEntrySorter entrySorter = DatabaseEntrySorter.INSTANCE;
     private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
+    private final DatabaseSearchExpressionEvaluator searchExpressionEvaluator = DatabaseSearchExpressionEvaluator.INSTANCE;
     private final Map<StoredItemDatabase, LocalizedRuntimeIndexes> runtimeIndexes = new WeakHashMap<>();
 
     private DatabaseQueryEngine() {
@@ -49,7 +58,14 @@ public final class DatabaseQueryEngine {
             DatabaseQuery query,
             DatabaseScopedTabRef scopedTab
     ) {
-        return this.buildPage(database, tabDirectory, query, scopedTab, ViewerLanguage.defaultLanguage());
+        return this.buildPage(
+                database,
+                tabDirectory,
+                query,
+                scopedTab,
+                ViewerLanguage.defaultLanguage(),
+                DatabaseSearchEnvironment.defaultEnvironment()
+        );
     }
 
     public DatabasePage buildPage(
@@ -59,6 +75,24 @@ public final class DatabaseQueryEngine {
             DatabaseScopedTabRef scopedTab,
             ViewerLanguage viewerLanguage
     ) {
+        return this.buildPage(
+                database,
+                tabDirectory,
+                query,
+                scopedTab,
+                viewerLanguage,
+                DatabaseSearchEnvironment.defaultEnvironment()
+        );
+    }
+
+    public DatabasePage buildPage(
+            StoredItemDatabase database,
+            DatabaseTabDirectory tabDirectory,
+            DatabaseQuery query,
+            DatabaseScopedTabRef scopedTab,
+            ViewerLanguage viewerLanguage,
+            DatabaseSearchEnvironment searchEnvironment
+    ) {
         StoredItemDatabase resolvedDatabase = database == null ? new StoredItemDatabase() : database;
         DatabaseTabDirectory resolvedTabDirectory = tabDirectory == null ? new DatabaseTabDirectory() : tabDirectory;
         DatabaseQuery normalizedQuery = resolvedTabDirectory.sanitizeQuery(query == null ? DatabaseQuery.defaultQuery() : query);
@@ -67,7 +101,8 @@ public final class DatabaseQueryEngine {
         CachedQueryResult queryResult = this.resolveQueryResult(
                 this.runtimeIndexFor(resolvedDatabase, viewerLanguage),
                 normalizedQuery.tabStateFor(normalizedScopedTab),
-                normalizedTabId
+                normalizedTabId,
+                searchEnvironment
         );
         return this.toPage(normalizedQuery, queryResult, normalizedScopedTab, resolvedTabDirectory.resolve(normalizedTabId));
     }
@@ -93,11 +128,23 @@ public final class DatabaseQueryEngine {
         return rebuiltIndex;
     }
 
-    private CachedQueryResult resolveQueryResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
-        if (SearchTextNormalizer.splitTerms(tabQueryState.searchText()).isEmpty()) {
+    private CachedQueryResult resolveQueryResult(
+            DatabaseRuntimeIndex runtimeIndex,
+            DatabaseTabQueryState tabQueryState,
+            String tabId,
+            DatabaseSearchEnvironment searchEnvironment
+    ) {
+        if (tabQueryState.searchText().isBlank()) {
             return this.resolveNoSearchResult(runtimeIndex, tabQueryState, tabId);
         }
-        return this.resolveSearchResult(runtimeIndex, tabQueryState, tabId);
+        DatabaseParsedSearchQuery parsedQuery = DatabaseSearchQueryParser.INSTANCE.parse(
+                tabQueryState.searchText(),
+                DatabaseSearchQueryParserContext.fromQuery(tabQueryState.searchText(), searchEnvironment)
+        );
+        if (!parsedQuery.active()) {
+            return this.resolveNoSearchResult(runtimeIndex, tabQueryState, tabId);
+        }
+        return this.resolveSearchResult(runtimeIndex, tabQueryState, tabId, parsedQuery, searchEnvironment);
     }
 
     private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
@@ -112,9 +159,15 @@ public final class DatabaseQueryEngine {
         });
     }
 
-    private CachedQueryResult resolveSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
+    private CachedQueryResult resolveSearchResult(
+            DatabaseRuntimeIndex runtimeIndex,
+            DatabaseTabQueryState tabQueryState,
+            String tabId,
+            DatabaseParsedSearchQuery parsedQuery,
+            DatabaseSearchEnvironment searchEnvironment
+    ) {
         String normalizedTabId = normalizeTabId(tabId, null);
-        QueryFingerprint fingerprint = QueryFingerprint.of(tabQueryState, normalizedTabId);
+        QueryFingerprint fingerprint = QueryFingerprint.of(tabQueryState, normalizedTabId, parsedQuery, searchEnvironment);
         CachedQueryResult cachedResult = runtimeIndex.searchResult(fingerprint);
         if (cachedResult != null) {
             return cachedResult;
@@ -123,7 +176,15 @@ public final class DatabaseQueryEngine {
         List<ResolvedQueryRecord> matchedRecords = new ArrayList<>();
         long totalItems = 0L;
         for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
-            DatabaseSearchRanking ranking = this.searchEvaluator.evaluate(tabQueryState, entryRecord.searchIndex(), entryRecord.entry().amount());
+            DatabaseSearchRanking ranking = this.searchExpressionEvaluator.evaluate(
+                    tabQueryState,
+                    parsedQuery,
+                    entryRecord.searchIndex(),
+                    entryRecord.searchMetadata(),
+                    entryRecord.key(),
+                    entryRecord.entry().amount(),
+                    searchEnvironment
+            );
             if (!ranking.matched()) {
                 continue;
             }
@@ -203,15 +264,22 @@ public final class DatabaseQueryEngine {
     private record QueryFingerprint(
             String tabId,
             DatabaseSortOption sortOption,
-            String normalizedSearchText,
-            DatabaseSearchConfig searchConfig
+            String normalizedSearchExpression,
+            DatabaseSearchConfig searchConfig,
+            DatabaseSearchEnvironmentSignature searchEnvironmentSignature
     ) {
-        private static QueryFingerprint of(DatabaseTabQueryState tabQueryState, String tabId) {
+        private static QueryFingerprint of(
+                DatabaseTabQueryState tabQueryState,
+                String tabId,
+                DatabaseParsedSearchQuery parsedQuery,
+                DatabaseSearchEnvironment searchEnvironment
+        ) {
             return new QueryFingerprint(
                     normalizeTabId(tabId, null),
                     tabQueryState.sortOption(),
-                    SearchTextNormalizer.normalizeQueryText(tabQueryState.searchText()),
-                    tabQueryState.searchConfig()
+                    parsedQuery == null ? "" : parsedQuery.normalizedExpression(),
+                    tabQueryState.searchConfig(),
+                    (searchEnvironment == null ? DatabaseSearchEnvironment.defaultEnvironment() : searchEnvironment).signature()
             );
         }
     }
@@ -231,16 +299,19 @@ public final class DatabaseQueryEngine {
             StoredStackEntry entry,
             ItemStack displayStack,
             DatabaseSearchIndex searchIndex,
+            DatabaseItemSearchMetadata searchMetadata,
             DatabaseSortSnapshot baseSortSnapshot
     ) {
         private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, ViewerLanguage viewerLanguage) {
             ItemStack displayStack = key.displayStack();
             DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage);
+            DatabaseItemSearchMetadata searchMetadata = DatabaseItemSearchMetadataResolver.INSTANCE.resolve(key);
             return new DatabaseRuntimeEntryRecord(
                     key,
                     entry,
                     displayStack,
                     searchIndex,
+                    searchMetadata,
                     new DatabaseSortSnapshot(
                             searchIndex.displayNameNormalized(),
                             key.registryName(),

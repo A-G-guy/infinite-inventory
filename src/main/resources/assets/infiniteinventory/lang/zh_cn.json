@@ -5,7 +5,7 @@
   "screen.infiniteinventory.database.section.public": "公共库存储区",
   "screen.infiniteinventory.database.section.mixed": "混合视图",
   "screen.infiniteinventory.search": "搜索",
-  "screen.infiniteinventory.search_hint": "搜索物品...",
+  "screen.infiniteinventory.search_hint": "搜索物品，或用 @ # & %",
   "screen.infiniteinventory.search_advanced_button": "高级",
   "screen.infiniteinventory.search_advanced_title": "高级搜索",
   "screen.infiniteinventory.enhancement_button": "加强",

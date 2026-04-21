@@ -5,7 +5,7 @@
   "screen.infiniteinventory.database.section.public": "Public Database Storage",
   "screen.infiniteinventory.database.section.mixed": "Mixed View",
   "screen.infiniteinventory.search": "Search",
-  "screen.infiniteinventory.search_hint": "Search items...",
+  "screen.infiniteinventory.search_hint": "Search items or use @ # & %",
   "screen.infiniteinventory.search_advanced_button": "Adv",
   "screen.infiniteinventory.search_advanced_title": "Advanced Search",
   "screen.infiniteinventory.enhancement_button": "Boost",

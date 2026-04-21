@@ -199,7 +199,8 @@ public final class PersonalDatabaseService {
                 this.resolveTabsForView(player, scopedTab.scope()),
                 normalizedQuery,
                 scopedTab,
-                viewerLanguage
+                viewerLanguage,
+                PersonalDatabaseSearchEnvironmentResolver.resolve(player)
         );
     }
 

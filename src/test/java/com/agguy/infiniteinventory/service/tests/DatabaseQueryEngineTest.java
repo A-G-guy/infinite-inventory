@@ -9,16 +9,27 @@ import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import com.agguy.infiniteinventory.database.tests.DatabaseTestReflectionHelper;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.service.DatabaseQueryEngine;
+import com.agguy.infiniteinventory.service.search.DatabaseCreativeTabSearchResolver;
+import com.agguy.infiniteinventory.service.search.DatabaseSearchEnvironment;
 import com.agguy.infiniteinventory.service.search.DatabaseItemSearchResolver;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
@@ -182,6 +193,93 @@ class DatabaseQueryEngineTest {
     }
 
     @Test
+    void specialSearchFiltersShouldMatchModTagsItemIdsAndCreativeTabs() throws ReflectiveOperationException {
+        StoredItemDatabase database = new StoredItemDatabase();
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseTestReflectionHelper.forceEntry(
+                database,
+                DatabaseTestReflectionHelper.fakeKey("infiniteinventory:database_access_item", new ItemStack(Items.BARRIER)),
+                new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 1L, 1L)
+        );
+        database.store(new ItemStack(Items.OAK_LOG, 4));
+        database.store(new ItemStack(Items.STONE, 8));
+        database.store(new ItemStack(Items.DIAMOND_PICKAXE, 1));
+        DatabaseSearchEnvironment searchEnvironment = new DatabaseSearchEnvironment(
+                FeatureFlags.DEFAULT_FLAGS,
+                true,
+                RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY)
+        );
+        this.seedCreativeTabSearchCache(searchEnvironment, StoredStackKey.of(new ItemStack(Items.STONE)), "minecraft:building_blocks", "building blocks");
+
+        DatabasePage modPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "@infinite inventory", 0, 10),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US,
+                searchEnvironment
+        );
+        DatabasePage itemIdPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "&minecraft:diamond_pickaxe", 0, 10),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US,
+                searchEnvironment
+        );
+        DatabasePage creativeTabPage = this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "%building blocks", 0, 10),
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US,
+                searchEnvironment
+        );
+
+        assertEquals(1, modPage.totalEntries());
+        assertEquals("infiniteinventory:database_access_item", modPage.entries().getFirst().key().registryName());
+        assertEquals(1, itemIdPage.totalEntries());
+        assertEquals("minecraft:diamond_pickaxe", itemIdPage.entries().getFirst().key().registryName());
+        assertEquals(1, creativeTabPage.totalEntries());
+        assertEquals("minecraft:stone", creativeTabPage.entries().getFirst().key().registryName());
+    }
+
+    @Test
+    void advancedSearchSyntaxShouldNormalizeEquivalentCacheFingerprints() throws ReflectiveOperationException {
+        StoredItemDatabase database = new StoredItemDatabase();
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseTestReflectionHelper.forceEntry(
+                database,
+                DatabaseTestReflectionHelper.fakeKey("infiniteinventory:database_access_item", new ItemStack(Items.BARRIER)),
+                new StoredStackEntry(DatabaseTabs.DEFAULT_TAB_ID, 1L, 1L)
+        );
+        DatabaseQuery canonicalQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "@infinite inventory", 0, 10);
+        DatabaseQuery spacedQuery = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "  @infinite   inventory  ", 0, 10);
+
+        this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                canonicalQuery,
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US,
+                DatabaseSearchEnvironment.defaultEnvironment()
+        );
+        Object runtimeIndex = this.runtimeIndexFor(database, ViewerLanguage.EN_US);
+        assertEquals(1, this.searchCacheSize(runtimeIndex));
+
+        this.queryEngine.buildPage(
+                database,
+                tabDirectory,
+                spacedQuery,
+                DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL),
+                ViewerLanguage.EN_US,
+                DatabaseSearchEnvironment.defaultEnvironment()
+        );
+
+        assertEquals(1, this.searchCacheSize(runtimeIndex));
+    }
+
+    @Test
     void pageWindowCalculationShouldAvoidIntegerOverflow() throws ReflectiveOperationException {
         Method fromIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageFromIndex", int.class, int.class, int.class);
         Method toIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageToIndex", int.class, int.class, int.class);
@@ -261,5 +359,53 @@ class DatabaseQueryEngineTest {
         searchCacheField.setAccessible(true);
         Map<?, ?> searchCache = (Map<?, ?>) searchCacheField.get(runtimeIndex);
         return searchCache.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void seedCreativeTabSearchCache(
+            DatabaseSearchEnvironment searchEnvironment,
+            StoredStackKey key,
+            String tabRegistryName,
+            String tabDisplayName
+    ) throws ReflectiveOperationException {
+        DatabaseCreativeTabSearchResolver resolver = DatabaseCreativeTabSearchResolver.INSTANCE;
+        Field availableTabsCacheField = DatabaseCreativeTabSearchResolver.class.getDeclaredField("availableTabsCache");
+        availableTabsCacheField.setAccessible(true);
+        Map<Object, Object> availableTabsCache = (Map<Object, Object>) availableTabsCacheField.get(resolver);
+        Field itemTabCacheField = DatabaseCreativeTabSearchResolver.class.getDeclaredField("itemTabCache");
+        itemTabCacheField.setAccessible(true);
+        Map<Object, Object> itemTabCache = (Map<Object, Object>) itemTabCacheField.get(resolver);
+
+        Class<?> entryClass = Class.forName("com.agguy.infiniteinventory.service.search.DatabaseCreativeTabSearchEntry");
+        Constructor<?> constructor = entryClass.getDeclaredConstructor(
+                Class.forName("net.minecraft.world.item.CreativeModeTab"),
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                String.class,
+                String.class
+        );
+        constructor.setAccessible(true);
+        String normalizedRegistryName = tabRegistryName.toLowerCase(Locale.ROOT);
+        String compactRegistryName = normalizedRegistryName.replace(":", "");
+        String registryPath = normalizedRegistryName.substring(normalizedRegistryName.indexOf(':') + 1);
+        String compactRegistryPath = registryPath.replace("_", "");
+        String normalizedDisplayName = tabDisplayName.toLowerCase(Locale.ROOT);
+        String compactDisplayName = normalizedDisplayName.replace(" ", "");
+        Object entry = constructor.newInstance(
+                CreativeModeTabs.searchTab(),
+                normalizedRegistryName,
+                compactRegistryName,
+                registryPath,
+                compactRegistryPath,
+                normalizedDisplayName,
+                compactDisplayName
+        );
+
+        availableTabsCache.put(searchEnvironment.signature(), List.of(entry));
+        Map<StoredStackKey, List<?>> cachedTabsByKey = new HashMap<>();
+        cachedTabsByKey.put(key, List.of(entry));
+        itemTabCache.put(searchEnvironment.signature(), cachedTabsByKey);
     }
 }

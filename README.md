@@ -53,6 +53,7 @@ The item ID is `infiniteinventory:database_access_item`.
 - Open the database terminal to access the full-screen inventory database.
 - Switch between personal storage, public storage, or mixed views from the top toolbar.
 - Search by display name, item ID, namespace, English alias, Chinese alias, or pinyin initials/full spellings.
+- Use JEI-style special syntax for focused search: `@mod`, `#item_tag`, `&item_id`, `%creative_tab`, plus `|` for OR and `-` for exclusion.
 - Use tabs to organize categories, move batches of items, and keep storage readable at scale.
 - Extract individual items, half stacks, full stacks, or custom amounts directly back to the player inventory.
 - Enable the optional auto-store enhancement to send picked-up items into a chosen target tab automatically.
@@ -61,6 +62,8 @@ The item ID is `infiniteinventory:database_access_item`.
 
 - Search supports bilingual item names from `zh_cn` and `en_us`.
 - Chinese names also generate pinyin full spellings and initials for fast keyboard lookup.
+- Special search supports `@` mod filters, `#` item tag filters, `&` registry-name filters, `%` creative-tab filters, implicit AND by spaces, `|` OR clauses, and `-` exclusions.
+- Multi-word mod names and creative tabs can be written directly when they stay unambiguous, such as `@infinite inventory` or `%building blocks`.
 - Advanced search weights let you rebalance display name, item ID, namespace, pinyin, and count boost.
 - Non-empty searches keep result ranking stable by combining exact, prefix, contains, fuzzy, and sort-based ordering.
 
