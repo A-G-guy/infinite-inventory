@@ -1,9 +1,10 @@
 package com.agguy.infiniteinventory.service.search;
 
 import com.agguy.infiniteinventory.database.StoredStackKey;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import java.util.LinkedHashSet;
 import java.util.List;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 
 public record DatabaseItemSearchMetadata(
@@ -25,8 +26,11 @@ public record DatabaseItemSearchMetadata(
         String modDisplayName = DatabaseModMetadataResolver.INSTANCE.displayNameForNamespace(key.registryNamespace());
         LinkedHashSet<String> normalizedTagIds = new LinkedHashSet<>();
         LinkedHashSet<String> compactTagIds = new LinkedHashSet<>();
-        key.displayStack().getItem().builtInRegistryHolder().tags()
-                .map(TagKey::location)
+        Item item = key.displayStack().getItem();
+        Holder<Item> itemHolder = BuiltInRegistries.ITEM.wrapAsHolder(item);
+        BuiltInRegistries.ITEM.getTags()
+                .filter(tag -> tag.getSecond().contains(itemHolder))
+                .map(tag -> tag.getFirst().location())
                 .map(Object::toString)
                 .forEach(tagId -> {
                     String normalizedTagId = SearchTextNormalizer.normalizeIdentifierText(tagId);
