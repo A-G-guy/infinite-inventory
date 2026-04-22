@@ -336,6 +336,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, menuRect);
         for (int index = 0; index < items.size(); index++) {
+            PersonalDatabaseContextMenuItem item = items.get(index);
             PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
                     menuRect.x() + 2,
                     menuRect.y() + index * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 2,
@@ -344,10 +345,11 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             );
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
+            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.contextMenuItemIcon(item), rowRect.x() + 4, rowRect.y() + 2);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenCommonHelper.contextMenuLabel(items.get(index)),
-                    rowRect.x() + 6,
+                    PersonalDatabaseScreenCommonHelper.contextMenuLabel(item),
+                    rowRect.x() + 24,
                     rowRect.y() + 5,
                     PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                     false

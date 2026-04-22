@@ -383,10 +383,40 @@ final class PersonalDatabaseScreenCommonHelper {
         return Component.translatable(item.translationKey());
     }
 
+    static ItemStack contextMenuItemIcon(PersonalDatabaseContextMenuItem item) {
+        return switch (item.translationKey()) {
+            case "screen.infiniteinventory.context.take_single",
+                 "screen.infiniteinventory.selection.take_one_each" ->
+                    new ItemStack(Items.IRON_NUGGET);
+            case "screen.infiniteinventory.context.take_half_stack_to_inventory",
+                 "screen.infiniteinventory.selection.take_half_stack_each" ->
+                    new ItemStack(Items.IRON_INGOT);
+            case "screen.infiniteinventory.context.take_stack",
+                 "screen.infiniteinventory.selection.take_stack_each" ->
+                    new ItemStack(Items.DIAMOND);
+            case "screen.infiniteinventory.context.take_half_entry_to_inventory",
+                 "screen.infiniteinventory.selection.take_half_entry_each" ->
+                    new ItemStack(Items.CHEST);
+            case "screen.infiniteinventory.context.take_all_to_inventory",
+                 "screen.infiniteinventory.selection.take_all_each" ->
+                    new ItemStack(Items.HOPPER);
+            case "screen.infiniteinventory.context.take_custom_to_inventory",
+                 "screen.infiniteinventory.selection.take_custom_each" ->
+                    new ItemStack(Items.ANVIL);
+            case "screen.infiniteinventory.context.edit_note" ->
+                    new ItemStack(Items.WRITABLE_BOOK);
+            case "screen.infiniteinventory.context.toggle_star" ->
+                    new ItemStack(Items.NETHER_STAR);
+            case "screen.infiniteinventory.selection.transfer" ->
+                    new ItemStack(Items.ENDER_CHEST);
+            default -> ItemStack.EMPTY;
+        };
+    }
+
     static int contextMenuWidth(PersonalDatabaseScreen screen) {
         int width = PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
         for (PersonalDatabaseContextMenuItem item : contextMenuItems(screen)) {
-            width = Math.max(width, screen.screenFont().width(contextMenuLabel(item)) + 16);
+            width = Math.max(width, screen.screenFont().width(contextMenuLabel(item)) + 40);
         }
         return width;
     }
