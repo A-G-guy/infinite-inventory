@@ -28,7 +28,7 @@ final class PersonalDatabaseExtractionHelper {
             return 0L;
         }
         Inventory inventory = player.getInventory();
-        String originalTabId = PersonalDatabaseService.entryTabId(database, key);
+        String originalTabId = PersonalDatabaseServiceHelper.entryTabId(database, key);
         long movedItems = 0L;
         long remainingAmount = requestedAmount;
         while (remainingAmount > 0L && hasSpaceFor(inventory, key)) {
@@ -69,7 +69,7 @@ final class PersonalDatabaseExtractionHelper {
         if (requestedAmount <= 0L) {
             return 0L;
         }
-        String originalTabId = PersonalDatabaseService.entryTabId(database, key);
+        String originalTabId = PersonalDatabaseServiceHelper.entryTabId(database, key);
         ItemStack extracted = database.extract(
                 key,
                 (int) Math.min(Integer.MAX_VALUE, Math.min((long) key.maxStackSize(), requestedAmount))

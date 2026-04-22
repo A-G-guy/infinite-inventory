@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.service;
-
+import com.agguy.infiniteinventory.database.DatabaseLogAction;
+import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
@@ -42,12 +43,11 @@ public final class PersonalDatabaseService {
     static final int HOTBAR_SLOT_COUNT = 9;
     private static final Logger LOGGER = LogManager.getLogger();
     private final DatabaseQueryEngine queryEngine = DatabaseQueryEngine.INSTANCE;
-
     private PersonalDatabaseService() {
     }
 
     public void open(ServerPlayer player) {
-        this.ensureLegacyPersonalMigration(player);
+        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
         player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
             menu.syncViewToClient();
@@ -76,10 +76,12 @@ public final class PersonalDatabaseService {
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, scope).store(stack.copy(), this.resolveConcreteTargetTabId(player, scope, targetTabId));
+        String resolvedTargetTabId = this.resolveConcreteTargetTabId(player, scope, targetTabId);
+        this.resolveDatabaseForMutation(player, scope).store(stack.copy(), resolvedTargetTabId);
         this.markScopeDirty(player, scope);
         slot.setByPlayer(ItemStack.EMPTY, stack.copy());
         slot.setChanged();
+        this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
         return true;
     }
 
@@ -90,7 +92,7 @@ public final class PersonalDatabaseService {
         long movedItems = 0L;
         boolean movedAny = false;
         for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
-            if (!PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex)) {
+            if (!PersonalDatabaseServiceHelper.isPrimaryStorageSlot(slotIndex)) {
                 continue;
             }
             ItemStack stack = inventory.items.get(slotIndex);
@@ -100,6 +102,7 @@ public final class PersonalDatabaseService {
             movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
             movedAny = true;
             database.store(stack.copy(), resolvedTargetTabId);
+            this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
             inventory.items.set(slotIndex, ItemStack.EMPTY);
         }
         if (movedAny) {
@@ -113,8 +116,10 @@ public final class PersonalDatabaseService {
         if (!this.canStore(stack)) {
             return false;
         }
-        this.resolveDatabaseForMutation(player, scope).store(stack, this.resolveConcreteTargetTabId(player, scope, targetTabId));
+        String resolvedTargetTabId = this.resolveConcreteTargetTabId(player, scope, targetTabId);
+        this.resolveDatabaseForMutation(player, scope).store(stack, resolvedTargetTabId);
         this.markScopeDirty(player, scope);
+        this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
         return true;
     }
 
@@ -146,6 +151,7 @@ public final class PersonalDatabaseService {
         player.awardStat(Stats.ITEM_PICKED_UP.get(stack.getItem()), pickedUpAmount);
         player.onItemPickup(itemEntity);
         itemEntity.discard();
+        this.recordLog(player, autoStoreTarget.scope(), DatabaseLogAction.DEPOSIT, stack, pickedUpAmount, "", autoStoreTarget.tabId(), null);
         if (autoStoreTarget.scope() == DatabaseScope.PUBLIC) {
             this.syncPublicViewers(player.server);
         } else if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PERSONAL) {
@@ -155,9 +161,11 @@ public final class PersonalDatabaseService {
     }
 
     public ItemStack extractToCarried(ServerPlayer player, DatabaseScope scope, StoredStackKey key, int requestedAmount) {
+        String sourceTabId = PersonalDatabaseServiceHelper.entryTabId(this.resolveDatabaseForMutation(player, scope), key);
         ItemStack extracted = this.resolveDatabaseForMutation(player, scope).extract(key, requestedAmount);
         if (!extracted.isEmpty()) {
             this.markScopeDirty(player, scope);
+            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, extracted, extracted.getCount(), sourceTabId, "", null);
         }
         return extracted;
     }
@@ -167,11 +175,21 @@ public final class PersonalDatabaseService {
     }
 
     public long extractToInventory(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
-        return PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
+        String sourceTabId = PersonalDatabaseServiceHelper.entryTabId(this.resolveDatabaseForMutation(player, scope), key);
+        long moved = PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
+        if (moved > 0L) {
+            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
+        }
+        return moved;
     }
 
     public long extractToWorld(ServerPlayer player, DatabaseScope scope, StoredStackKey key, long requestedAmount) {
-        return PersonalDatabaseExtractionHelper.extractToWorld(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
+        String sourceTabId = PersonalDatabaseServiceHelper.entryTabId(this.resolveDatabaseForMutation(player, scope), key);
+        long moved = PersonalDatabaseExtractionHelper.extractToWorld(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
+        if (moved > 0L) {
+            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
+        }
+        return moved;
     }
 
     public long extractSelectionToInventory(ServerPlayer player, DatabaseScope scope, List<DatabaseSelectionEntry> selectionEntries, DatabaseSelectionAction action) {
@@ -181,15 +199,32 @@ public final class PersonalDatabaseService {
     public long extractSelectionToInventory(
             ServerPlayer player, DatabaseScope scope, List<DatabaseSelectionEntry> selectionEntries, DatabaseSelectionAction action, long requestedAmount
     ) {
-        return PersonalDatabaseExtractionHelper.extractSelectionToInventory(
-                this,
-                player,
-                scope,
-                this.resolveDatabaseForMutation(player, scope),
-                selectionEntries,
-                action,
-                requestedAmount
-        );
+        if (action == null || !action.extractsToInventory()) {
+            return 0L;
+        }
+        long totalMoved = 0L;
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        for (DatabaseSelectionEntry selectionEntry : PersonalDatabaseExtractionHelper.normalizeSelectionEntries(selectionEntries)) {
+            StoredStackKey key = PersonalDatabaseExtractionHelper.selectionKey(selectionEntry);
+            if (key == null) {
+                continue;
+            }
+            StoredStackEntry storedEntry = database.entries().get(key);
+            if (storedEntry == null || !storedEntry.tabId().equals(selectionEntry.sourceTabId())) {
+                continue;
+            }
+            long resolvedRequestedAmount = action.resolveRequestedAmount(
+                    storedEntry.amount(),
+                    key.maxStackSize(),
+                    requestedAmount
+            );
+            long moved = PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, database, key, resolvedRequestedAmount);
+            if (moved > 0L) {
+                totalMoved = PersonalDatabaseServiceHelper.safeAddMovedItems(totalMoved, moved);
+                this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, selectionEntry.sourceTabId(), "", null);
+            }
+        }
+        return totalMoved;
     }
 
     public DatabasePage buildPage(ServerPlayer player, DatabaseQuery query, DatabaseScopedTabRef scopedTab, ViewerLanguage viewerLanguage) {
@@ -294,7 +329,15 @@ public final class PersonalDatabaseService {
         if (!tabDirectory.find(tabId).map(DatabaseTab::canDelete).orElse(false)) {
             return false;
         }
-        boolean databaseChanged = this.resolveDatabaseForMutation(player, scope).transferTab(tabId, resolvedTargetTabId);
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        String normalizedTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
+        java.util.Map<StoredStackKey, Long> entriesToDelete = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : database.entries().entrySet()) {
+            if (entry.getValue().tabId().equals(normalizedTabId)) {
+                entriesToDelete.put(entry.getKey(), entry.getValue().amount());
+            }
+        }
+        boolean databaseChanged = database.transferTab(tabId, resolvedTargetTabId);
         boolean directoryChanged = tabDirectory.deleteTab(tabId);
         DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
         DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
@@ -304,6 +347,9 @@ public final class PersonalDatabaseService {
         }
         if (databaseChanged || directoryChanged) {
             this.markScopeDirty(player, scope);
+            for (java.util.Map.Entry<StoredStackKey, Long> entry : entriesToDelete.entrySet()) {
+                this.recordLog(player, scope, DatabaseLogAction.DELETE, entry.getKey().displayStack(), entry.getValue(), normalizedTabId, resolvedTargetTabId, null);
+            }
         }
         return databaseChanged || directoryChanged;
     }
@@ -328,6 +374,10 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseTransferHelper.transferSelection(this, player, sourceScope, targetScope, selectionEntries, targetTabId);
     }
 
+    public List<DatabaseLogEntry> getLogEntries(ServerPlayer player, DatabaseScope scope) {
+        return this.resolveDatabaseForMutation(player, scope).logEntries();
+    }
+
     public void syncPublicViewers(MinecraftServer server) {
         PersonalDatabaseServiceViewerHelper.syncPublicViewers(server);
     }
@@ -348,16 +398,13 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack);
     }
 
-    private static boolean isPrimaryStorageSlot(int slotIndex) {
-        return PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex);
-    }
 
     private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
             return storage.publicDatabase();
         }
-        this.ensureLegacyPersonalMigration(player, storage);
+        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
         return storage.personalDatabaseView(player.getUUID());
     }
 
@@ -367,7 +414,7 @@ public final class PersonalDatabaseService {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
             return storage.publicTabs();
         }
-        this.ensureLegacyPersonalMigration(player, storage);
+        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
         StoredItemDatabase database = storage.personalDatabaseView(player.getUUID());
         DatabaseTabDirectory tabDirectory = storage.personalTabsView(player.getUUID());
         database.ensureTabAssignments(tabDirectory);
@@ -390,7 +437,7 @@ public final class PersonalDatabaseService {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
             return storage.publicDatabase();
         }
-        this.ensureLegacyPersonalMigration(player, storage);
+        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
         StoredItemDatabase database = storage.personalDatabase(player.getUUID());
         database.ensureTabAssignments(storage.personalTabs(player.getUUID()));
         return database;
@@ -402,7 +449,7 @@ public final class PersonalDatabaseService {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
             return storage.publicTabs();
         }
-        this.ensureLegacyPersonalMigration(player, storage);
+        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
         StoredItemDatabase database = storage.personalDatabase(player.getUUID());
         DatabaseTabDirectory tabDirectory = storage.personalTabs(player.getUUID());
         database.ensureTabAssignments(tabDirectory);
@@ -417,84 +464,37 @@ public final class PersonalDatabaseService {
         storage.setDirty();
     }
 
-    private void ensureLegacyPersonalMigration(ServerPlayer player) {
-        this.ensureLegacyPersonalMigration(player, DatabaseStorageSavedData.get(player.server));
-    }
-
-    private void ensureLegacyPersonalMigration(ServerPlayer player, DatabaseStorageSavedData storage) {
-        PlayerDatabaseAttachment legacyDatabase = this.getLegacyPersonalDatabase(player);
-        if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
-            this.pruneStaleMigrationState(storage, player.getUUID());
-            return;
-        }
-        UUID playerId = player.getUUID();
-        int legacyEntryCount = legacyDatabase.entryCount() + legacyDatabase.unresolvedEntryCount();
-        if (!storage.hasPersonalDatabase(playerId)) {
-            storage.personalDatabase(playerId).mergeFrom(legacyDatabase);
-            storage.recordMigrationState(playerId, new LegacyMigrationState(
-                    LegacyMigrationState.Status.PENDING_CLEANUP,
-                    System.currentTimeMillis(),
-                    legacyEntryCount
-            ));
-            storage.setDirty();
-            LOGGER.info("已将玩家 {} 的旧个人数据库导入统一存储，等待迁移备份完成后清理旧附件", player.getGameProfile().getName());
-        }
-        this.tryFinalizeLegacyCleanup(player, storage, legacyDatabase, legacyEntryCount);
-    }
-
-    private void tryFinalizeLegacyCleanup(
+    void recordLog(
             ServerPlayer player,
-            DatabaseStorageSavedData storage,
-            PlayerDatabaseAttachment legacyDatabase,
-            int legacyEntryCount
+            DatabaseScope scope,
+            DatabaseLogAction action,
+            ItemStack stack,
+            long amount,
+            String sourceTabId,
+            String targetTabId,
+            DatabaseScope relatedScope
     ) {
-        if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
+        if (player == null || stack == null || stack.isEmpty() || amount <= 0L) {
             return;
         }
-        UUID playerId = player.getUUID();
-        LegacyMigrationState migrationState = storage.migrationState(playerId);
-        if (!storage.hasPersonalDatabase(playerId)) {
-            return;
-        }
-        if (migrationState == null) {
-            storage.recordMigrationState(playerId, new LegacyMigrationState(
-                    LegacyMigrationState.Status.SKIPPED_EXISTING_STORAGE,
-                    System.currentTimeMillis(),
-                    legacyEntryCount
-            ));
-            storage.setDirty();
-            LOGGER.warn("玩家 {} 同时存在旧附件个人库与统一存储个人库，已跳过重复导入旧附件", player.getGameProfile().getName());
-            return;
-        }
-        if (migrationState.status() == LegacyMigrationState.Status.SKIPPED_EXISTING_STORAGE) {
-            return;
-        }
-        try {
-            DatabaseBackupManager.createMigrationBackup(
-                    player.server,
-                    "legacy-personal-" + playerId,
-                    storage.exportStorageTag(player.registryAccess())
-            );
-            legacyDatabase.clear();
-            storage.clearMigrationState(playerId);
-            storage.setDirty();
-            LOGGER.info("已完成玩家 {} 的旧个人数据库迁移并清理旧附件", player.getGameProfile().getName());
-        } catch (java.io.IOException exception) {
-            LOGGER.error("为玩家 {} 生成旧个人数据库迁移备份失败，旧附件已保留", player.getGameProfile().getName(), exception);
-        }
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        database.appendLogEntry(new DatabaseLogEntry(
+                System.currentTimeMillis(),
+                player.getUUID(),
+                player.getGameProfile().getName(),
+                action,
+                stack.copyWithCount(1),
+                amount,
+                sourceTabId == null ? "" : sourceTabId,
+                targetTabId == null ? "" : targetTabId,
+                relatedScope
+        ));
     }
 
-    private void pruneStaleMigrationState(DatabaseStorageSavedData storage, UUID playerId) {
-        if (storage == null || playerId == null) {
-            return;
+    private static long safeAddMovedItems(long currentTotal, long movedItems) {
+        if (Long.MAX_VALUE - currentTotal < movedItems) {
+            return Long.MAX_VALUE;
         }
-        if (storage.clearMigrationState(playerId)) {
-            storage.setDirty();
-        }
-    }
-
-    static String entryTabId(StoredItemDatabase database, StoredStackKey key) {
-        StoredStackEntry entry = database.entries().get(key);
-        return entry == null ? DatabaseTabs.DEFAULT_TAB_ID : entry.tabId();
+        return currentTotal + movedItems;
     }
 }

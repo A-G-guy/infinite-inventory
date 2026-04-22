@@ -1,9 +1,15 @@
 package com.agguy.infiniteinventory.client;
 
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
+import com.agguy.infiniteinventory.database.DatabaseLogEntry;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
+import com.agguy.infiniteinventory.network.DatabaseLogSnapshotPayload;
 import com.agguy.infiniteinventory.network.DatabaseViewerLocalePayload;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +19,7 @@ public final class PersonalDatabaseClient {
     private static int lastSyncedContainerId = Integer.MIN_VALUE;
     private static long lastSyncedSessionId = Long.MIN_VALUE;
     private static ViewerLanguage lastSyncedViewerLanguage;
+    private static final Map<DatabaseScope, List<DatabaseLogEntry>> cachedLogEntries = new EnumMap<>(DatabaseScope.class);
 
     private PersonalDatabaseClient() {
     }
@@ -27,6 +34,19 @@ public final class PersonalDatabaseClient {
                 && menu.sessionId() == viewState.sessionId()) {
             menu.applyViewState(viewState);
         }
+    }
+
+    public static void applyLogSnapshot(DatabaseLogSnapshotPayload payload) {
+        cachedLogEntries.put(DatabaseScope.normalize(payload.scope()), List.copyOf(payload.entries()));
+    }
+
+    public static List<DatabaseLogEntry> getLogEntries(DatabaseScope scope) {
+        List<DatabaseLogEntry> entries = cachedLogEntries.get(DatabaseScope.normalize(scope));
+        return entries == null ? List.of() : entries;
+    }
+
+    public static void clearLogCache() {
+        cachedLogEntries.clear();
     }
 
     public static void syncViewerLanguageIfNeeded() {

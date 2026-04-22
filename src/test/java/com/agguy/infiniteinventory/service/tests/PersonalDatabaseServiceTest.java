@@ -5,6 +5,8 @@ import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.agguy.infiniteinventory.service.PersonalDatabaseServiceHelper;
+import com.agguy.infiniteinventory.service.PersonalDatabaseServiceMigrationHelper;
 import com.agguy.infiniteinventory.tests.MinecraftTestBootstrap;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
@@ -58,7 +60,7 @@ class PersonalDatabaseServiceTest {
 
     @Test
     void depositMainInventoryShouldSkipHotbarSlots() throws ReflectiveOperationException {
-        var method = PersonalDatabaseService.class.getDeclaredMethod("isPrimaryStorageSlot", int.class);
+        var method = PersonalDatabaseServiceHelper.class.getDeclaredMethod("isPrimaryStorageSlot", int.class);
         method.setAccessible(true);
 
         assertEquals(false, method.invoke(null, 0));
@@ -77,9 +79,9 @@ class PersonalDatabaseServiceTest {
                 8
         ));
 
-        var method = PersonalDatabaseService.class.getDeclaredMethod("pruneStaleMigrationState", DatabaseStorageSavedData.class, UUID.class);
+        var method = PersonalDatabaseServiceMigrationHelper.class.getDeclaredMethod("pruneStaleMigrationState", DatabaseStorageSavedData.class, UUID.class);
         method.setAccessible(true);
-        method.invoke(PersonalDatabaseService.INSTANCE, storage, playerId);
+        method.invoke(null, storage, playerId);
 
         assertNull(storage.migrationState(playerId));
         assertTrue(storage.isDirty());

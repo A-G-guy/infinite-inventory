@@ -2,12 +2,15 @@ package com.agguy.infiniteinventory.network;
 
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.service.PersonalDatabaseTransferHelper;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -16,7 +19,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "17";
+    private static final String NETWORK_VERSION = "18";
 
     private ModNetwork() {
     }
@@ -34,6 +37,8 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseTabMutationPayload.TYPE, DatabaseTabMutationPayload.STREAM_CODEC, ModNetwork::handleTabMutation);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
+        registrar.playToServer(DatabaseLogRequestPayload.TYPE, DatabaseLogRequestPayload.STREAM_CODEC, ModNetwork::handleLogRequest);
+        registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
@@ -182,6 +187,22 @@ public final class ModNetwork {
             return;
         }
         PersonalDatabaseService.INSTANCE.open(player);
+    }
+
+    private static void handleLogRequest(DatabaseLogRequestPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        DatabaseScope scope = DatabaseScope.normalize(payload.scope());
+        if (scope == DatabaseScope.PUBLIC && !player.hasPermissions(2)) {
+            return;
+        }
+        List<DatabaseLogEntry> entries = PersonalDatabaseService.INSTANCE.getLogEntries(player, scope);
+        context.reply(new DatabaseLogSnapshotPayload(scope, entries));
+    }
+
+    private static void handleLogSnapshot(DatabaseLogSnapshotPayload payload, IPayloadContext context) {
+        PersonalDatabaseClient.applyLogSnapshot(payload);
     }
 
     @Nullable

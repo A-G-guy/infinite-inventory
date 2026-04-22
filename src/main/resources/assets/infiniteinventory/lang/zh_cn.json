@@ -161,5 +161,15 @@
   "command.infiniteinventory.database.backup.list_header": "数据库备份列表（共 %s 个）：",
   "command.infiniteinventory.database.backup.list_entry": "%s | 类型=%s | 原因=%s | 时间=%s",
   "command.infiniteinventory.database.restore.completed": "已从备份 %s 恢复数据库，并额外创建恢复前保护备份 %s。",
-  "command.infiniteinventory.database.error": "数据库操作失败：%s"
+  "command.infiniteinventory.database.error": "数据库操作失败：%s",
+  "screen.infiniteinventory.log_button": "日志",
+  "screen.infiniteinventory.log_panel.title": "操作日志",
+  "screen.infiniteinventory.log.action.deposit": "存入",
+  "screen.infiniteinventory.log.action.extract": "取出",
+  "screen.infiniteinventory.log.action.transfer": "转移",
+  "screen.infiniteinventory.log.action.delete": "删除合并",
+  "screen.infiniteinventory.log.empty": "暂无操作记录",
+  "screen.infiniteinventory.log.tooltip.action": "操作：%s",
+  "screen.infiniteinventory.log.tooltip.amount": "数量：%s",
+  "screen.infiniteinventory.log.tooltip.player": "玩家：%s"
 }

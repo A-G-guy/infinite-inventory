@@ -15,6 +15,7 @@ public record PersonalDatabaseLayout(
         Rect enhancementButtonRect,
         Rect viewSelectorButtonRect,
         Rect tabManagementButtonRect,
+        Rect logButtonRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
         Rect pageLabelRect,
@@ -63,6 +64,7 @@ public record PersonalDatabaseLayout(
     static final int ENHANCEMENT_BUTTON_WIDTH = 56;
     static final int VIEW_SELECTOR_BUTTON_WIDTH = 56;
     static final int TAB_MANAGEMENT_BUTTON_WIDTH = 56;
+    static final int LOG_BUTTON_WIDTH = 56;
     static final int SORT_BUTTON_WIDTH = 112;
     static final int DEPOSIT_BUTTON_WIDTH = 84;
     static final int SCOPE_BUTTON_WIDTH = 76;
@@ -83,6 +85,7 @@ public record PersonalDatabaseLayout(
         enhancementButtonRect = enhancementButtonRect == null ? Rect.empty() : enhancementButtonRect;
         viewSelectorButtonRect = viewSelectorButtonRect == null ? Rect.empty() : viewSelectorButtonRect;
         tabManagementButtonRect = tabManagementButtonRect == null ? Rect.empty() : tabManagementButtonRect;
+        logButtonRect = logButtonRect == null ? Rect.empty() : logButtonRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;

@@ -1,10 +1,16 @@
 package com.agguy.infiniteinventory.service;
 
 import com.agguy.infiniteinventory.database.DatabaseCrossTransferHelper;
+import com.agguy.infiniteinventory.database.DatabaseLogAction;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.StoredStackKey;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
@@ -83,20 +89,41 @@ public final class PersonalDatabaseTransferHelper {
     ) {
         DatabaseScope normalizedSourceScope = DatabaseScope.normalize(sourceScope);
         DatabaseScope normalizedTargetScope = resolveTargetScope(sourceScope, targetScope);
+        StoredItemDatabase sourceDatabase = service.resolveDatabaseForMutation(player, normalizedSourceScope);
+        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
+        Map<StoredStackKey, Long> preTransferEntries = new LinkedHashMap<>();
+        for (Map.Entry<StoredStackKey, StoredStackEntry> entry : sourceDatabase.entries().entrySet()) {
+            if (entry.getValue().tabId().equals(normalizedSourceTabId)) {
+                preTransferEntries.put(entry.getKey(), entry.getValue().amount());
+            }
+        }
         boolean changed = transferTab(
                 player.registryAccess(),
-                service.resolveDatabaseForMutation(player, normalizedSourceScope),
+                sourceDatabase,
                 service.resolveDatabaseForMutation(player, normalizedTargetScope),
                 sourceTabId,
                 service.resolveConcreteTargetTabId(player, normalizedTargetScope, targetTabId)
         );
-        if (changed) {
-            service.markScopeDirty(player, normalizedSourceScope);
+        if (!changed) {
+            return false;
+        }
+        service.markScopeDirty(player, normalizedSourceScope);
+        if (normalizedTargetScope != normalizedSourceScope) {
+            service.markScopeDirty(player, normalizedTargetScope);
+        }
+        String resolvedTargetTabId = service.resolveConcreteTargetTabId(player, normalizedTargetScope, targetTabId);
+        for (Map.Entry<StoredStackKey, Long> entry : preTransferEntries.entrySet()) {
+            service.recordLog(player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
+                    entry.getKey().displayStack(), entry.getValue(),
+                    normalizedSourceTabId, resolvedTargetTabId,
+                    normalizedTargetScope != normalizedSourceScope ? normalizedTargetScope : null);
             if (normalizedTargetScope != normalizedSourceScope) {
-                service.markScopeDirty(player, normalizedTargetScope);
+                service.recordLog(player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
+                        entry.getKey().displayStack(), entry.getValue(),
+                        normalizedSourceTabId, resolvedTargetTabId, normalizedSourceScope);
             }
         }
-        return changed;
+        return true;
     }
 
     static boolean transferSelection(
@@ -109,19 +136,57 @@ public final class PersonalDatabaseTransferHelper {
     ) {
         DatabaseScope normalizedSourceScope = DatabaseScope.normalize(sourceScope);
         DatabaseScope normalizedTargetScope = resolveTargetScope(sourceScope, targetScope);
+        StoredItemDatabase sourceDatabase = service.resolveDatabaseForMutation(player, normalizedSourceScope);
+        String resolvedTargetTabId = service.resolveConcreteTargetTabId(player, normalizedTargetScope, targetTabId);
+        Map<StoredStackKey, TransferEntryInfo> preTransferEntries = collectSelectionEntries(sourceDatabase, selectionEntries);
         boolean changed = transferSelection(
                 player.registryAccess(),
-                service.resolveDatabaseForMutation(player, normalizedSourceScope),
+                sourceDatabase,
                 service.resolveDatabaseForMutation(player, normalizedTargetScope),
                 selectionEntries,
-                service.resolveConcreteTargetTabId(player, normalizedTargetScope, targetTabId)
+                resolvedTargetTabId
         );
-        if (changed) {
-            service.markScopeDirty(player, normalizedSourceScope);
+        if (!changed) {
+            return false;
+        }
+        service.markScopeDirty(player, normalizedSourceScope);
+        if (normalizedTargetScope != normalizedSourceScope) {
+            service.markScopeDirty(player, normalizedTargetScope);
+        }
+        for (Map.Entry<StoredStackKey, TransferEntryInfo> entry : preTransferEntries.entrySet()) {
+            TransferEntryInfo info = entry.getValue();
+            service.recordLog(player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
+                    entry.getKey().displayStack(), info.amount(),
+                    info.sourceTabId(), resolvedTargetTabId,
+                    normalizedTargetScope != normalizedSourceScope ? normalizedTargetScope : null);
             if (normalizedTargetScope != normalizedSourceScope) {
-                service.markScopeDirty(player, normalizedTargetScope);
+                service.recordLog(player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
+                        entry.getKey().displayStack(), info.amount(),
+                        info.sourceTabId(), resolvedTargetTabId, normalizedSourceScope);
             }
         }
-        return changed;
+        return true;
+    }
+
+    private record TransferEntryInfo(long amount, String sourceTabId) {
+    }
+
+    private static Map<StoredStackKey, TransferEntryInfo> collectSelectionEntries(
+            StoredItemDatabase database,
+            List<DatabaseSelectionEntry> selectionEntries
+    ) {
+        Map<StoredStackKey, TransferEntryInfo> result = new LinkedHashMap<>();
+        for (DatabaseSelectionEntry selectionEntry : PersonalDatabaseExtractionHelper.normalizeSelectionEntries(selectionEntries)) {
+            StoredStackKey key = PersonalDatabaseExtractionHelper.selectionKey(selectionEntry);
+            if (key == null) {
+                continue;
+            }
+            StoredStackEntry storedEntry = database.entries().get(key);
+            if (storedEntry == null || !storedEntry.tabId().equals(selectionEntry.sourceTabId())) {
+                continue;
+            }
+            result.put(key, new TransferEntryInfo(storedEntry.amount(), selectionEntry.sourceTabId()));
+        }
+        return result;
     }
 }

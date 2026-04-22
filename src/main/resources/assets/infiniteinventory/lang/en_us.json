@@ -161,5 +161,15 @@
   "command.infiniteinventory.database.backup.list_header": "Database backups (%s total):",
   "command.infiniteinventory.database.backup.list_entry": "%s | type=%s | reason=%s | time=%s",
   "command.infiniteinventory.database.restore.completed": "Restored the database from %s and created a pre-restore safeguard backup %s.",
-  "command.infiniteinventory.database.error": "Database operation failed: %s"
+  "command.infiniteinventory.database.error": "Database operation failed: %s",
+  "screen.infiniteinventory.log_button": "Log",
+  "screen.infiniteinventory.log_panel.title": "Operation Log",
+  "screen.infiniteinventory.log.action.deposit": "Deposit",
+  "screen.infiniteinventory.log.action.extract": "Extract",
+  "screen.infiniteinventory.log.action.transfer": "Transfer",
+  "screen.infiniteinventory.log.action.delete": "Delete Merge",
+  "screen.infiniteinventory.log.empty": "No operation records",
+  "screen.infiniteinventory.log.tooltip.action": "Action: %s",
+  "screen.infiniteinventory.log.tooltip.amount": "Amount: %s",
+  "screen.infiniteinventory.log.tooltip.player": "Player: %s"
 }

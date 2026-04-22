@@ -20,13 +20,16 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
     private static final String STACK_KEY = "stack";
     private static final String COUNT_KEY = "count";
-    private static final String TAB_ID_KEY = "tab_id";
-    private static final String FIRST_ADDED_KEY = "first_added";
+    static final String TAB_ID_KEY = "tab_id";
+    static final String FIRST_ADDED_KEY = "first_added";
     private static final String LAST_MODIFIED_KEY = "last_modified";
     private static final String NEXT_SEQUENCE_KEY = "next_sequence";
+    private static final String LOG_ENTRIES_KEY = "log_entries";
+    private static final int MAX_LOG_ENTRIES = 500;
 
     private final Map<StoredStackKey, StoredStackEntry> entries = new LinkedHashMap<>();
     private final java.util.List<UnresolvedStoredEntry> unresolvedEntries = new java.util.ArrayList<>();
+    private final java.util.List<DatabaseLogEntry> logEntries = new java.util.ArrayList<>();
     private long nextSequence = 1L;
     private long revision;
     private boolean needsResave;
@@ -37,6 +40,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     public List<UnresolvedStoredEntry> unresolvedEntries() {
         return List.copyOf(this.unresolvedEntries);
+    }
+
+    public List<DatabaseLogEntry> logEntries() {
+        return List.copyOf(this.logEntries);
     }
 
     public int unresolvedEntryCount() {
@@ -278,6 +285,9 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
         }
         root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
+        if (!this.logEntries.isEmpty() && resolvedProvider != null) {
+            root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
+        }
         root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);
         return root;
     }
@@ -312,6 +322,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             highestSequence = Math.max(highestSequence, unresolvedEntry.lastModified());
         }
         this.resolveUnresolvedEntries(provider);
+        this.logEntries.clear();
+        this.logEntries.addAll(DatabaseLogEntry.readList(provider, tag.getList(LOG_ENTRIES_KEY, Tag.TAG_COMPOUND)));
         this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
     }
@@ -335,8 +347,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                 continue;
             }
             long lastModified = Math.max(0L, entryTag.getLong(LAST_MODIFIED_KEY));
-            long firstAdded = readFirstAdded(entryTag, lastModified);
-            String tabId = readTabId(entryTag, storedSchemaVersion);
+            long firstAdded = StoredItemDatabaseHelper.readFirstAdded(entryTag, lastModified);
+            String tabId = StoredItemDatabaseHelper.readTabId(entryTag, storedSchemaVersion, CURRENT_SCHEMA_VERSION);
             if (provider == null) {
                 if (preserveInvalidEntries && !stackTag.isEmpty()) {
                     this.unresolvedEntries.add(new UnresolvedStoredEntry(
@@ -409,9 +421,9 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                 : existingEntry.tabId();
         this.entries.put(key, new StoredStackEntry(
                 mergedTabId,
-                safeAdd(existingEntry.amount(), incomingEntry.amount()),
+                StoredItemDatabaseHelper.safeAdd(existingEntry.amount(), incomingEntry.amount()),
                 Math.max(existingEntry.lastModified(), incomingEntry.lastModified()),
-                mergeFirstAdded(existingEntry.firstAdded(), incomingEntry.firstAdded())
+                StoredItemDatabaseHelper.mergeFirstAdded(existingEntry.firstAdded(), incomingEntry.firstAdded())
         ));
     }
 
@@ -420,45 +432,6 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (this.nextSequence <= 0L) {
             this.nextSequence = 1L;
         }
-    }
-
-    private static String readTabId(CompoundTag tag, int storedSchemaVersion) {
-        if (storedSchemaVersion >= CURRENT_SCHEMA_VERSION && tag.contains(TAB_ID_KEY)) {
-            return DatabaseTabs.normalizeConcreteTarget(tag.getString(TAB_ID_KEY));
-        }
-        if (tag.contains(TAB_ID_KEY)) {
-            return DatabaseTabs.normalizeConcreteTarget(tag.getString(TAB_ID_KEY));
-        }
-        return DatabaseTabs.DEFAULT_TAB_ID;
-    }
-
-    private static long readFirstAdded(CompoundTag tag, long lastModified) {
-        if (!tag.contains(FIRST_ADDED_KEY)) {
-            return Math.max(0L, lastModified);
-        }
-        return Math.max(0L, tag.getLong(FIRST_ADDED_KEY));
-    }
-
-    private static long mergeFirstAdded(long existingFirstAdded, long incomingFirstAdded) {
-        long normalizedExisting = Math.max(0L, existingFirstAdded);
-        long normalizedIncoming = Math.max(0L, incomingFirstAdded);
-        if (normalizedExisting == 0L) {
-            return normalizedIncoming;
-        }
-        if (normalizedIncoming == 0L) {
-            return normalizedExisting;
-        }
-        return Math.min(normalizedExisting, normalizedIncoming);
-    }
-
-    private static long safeAdd(long left, long right) {
-        if (right <= 0L) {
-            return left;
-        }
-        if (Long.MAX_VALUE - left < right) {
-            return Long.MAX_VALUE;
-        }
-        return left + right;
     }
 
     long nextSequence() {
@@ -475,8 +448,20 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private void resetContent() {
         this.entries.clear();
         this.unresolvedEntries.clear();
+        this.logEntries.clear();
         this.nextSequence = 1L;
         this.needsResave = false;
+    }
+
+    public void appendLogEntry(DatabaseLogEntry entry) {
+        if (entry == null || entry.isEmpty()) {
+            return;
+        }
+        this.logEntries.add(entry);
+        if (this.logEntries.size() > MAX_LOG_ENTRIES) {
+            this.logEntries.removeFirst();
+        }
+        this.markRuntimeStateDirty();
     }
 
     void markRuntimeStateDirty() {

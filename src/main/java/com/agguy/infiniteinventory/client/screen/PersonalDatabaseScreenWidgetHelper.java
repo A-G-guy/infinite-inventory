@@ -12,6 +12,7 @@ import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
+import com.agguy.infiniteinventory.network.DatabaseLogRequestPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -107,6 +108,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             screen.moreTabsExpanded = false;
                             screen.targetSelectorExpanded = false;
                             screen.viewSelectorExpanded = false;
+                            screen.logPanelExpanded = false;
                             PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
                             boolean nextExpanded = !screen.tabManagementExpanded;
                             PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
@@ -124,6 +126,8 @@ final class PersonalDatabaseScreenWidgetHelper {
                 )
                 .bounds(tabManagementRect.x(), tabManagementRect.y(), tabManagementRect.width(), tabManagementRect.height())
                 .build());
+
+        PersonalDatabaseScreenLogHelper.buildLogButton(screen);
 
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
@@ -319,6 +323,10 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         if (screen.tabManagementButton != null) {
             screen.tabManagementButton.setMessage(Component.translatable("screen.infiniteinventory.tab_management_button"));
+        }
+        if (screen.logButton != null) {
+            screen.logButton.setMessage(Component.translatable("screen.infiniteinventory.log_button"));
+            screen.logButton.visible = screen.layout != null && screen.layout.logButtonRect().width() > 0;
         }
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;

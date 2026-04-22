@@ -181,6 +181,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             screen.activeSortPanelIndex = -1;
             return true;
         }
+        if (screen.logPanelExpanded) {
+            screen.logPanelExpanded = false;
+            return true;
+        }
         if (screen.enhancementPanelExpanded) {
             screen.enhancementPanelExpanded = false;
             return true;

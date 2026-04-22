@@ -21,6 +21,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
             return true;
         }
+        if (screen.logPanelExpanded
+                && PersonalDatabaseScreenLogHelper.handleLogPanelClick(screen, mouseX, mouseY, button)) {
+            return true;
+        }
         if (screen.advancedSearchExpanded
                 && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
                         PersonalDatabaseScreenGeometry.advancedSearchPanelRect(screen),
@@ -111,6 +115,9 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (screen.customExtractOverlayExpanded) {
+            return true;
+        }
+        if (PersonalDatabaseScreenLogHelper.handleLogPanelScroll(screen, scrollY)) {
             return true;
         }
         if (screen.moreTabsExpanded

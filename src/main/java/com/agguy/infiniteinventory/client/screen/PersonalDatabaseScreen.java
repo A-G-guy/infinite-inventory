@@ -119,6 +119,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     Button enhancementButton;
     Button viewSelectorButton;
     Button tabManagementButton;
+    Button logButton;
     Button personalScopeButton;
     Button publicScopeButton;
     Button accessoriesToggleButton;
@@ -158,6 +159,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean accessoriesExpanded;
     boolean contextMenuExpanded;
     boolean customExtractOverlayExpanded;
+    boolean logPanelExpanded;
+    DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
+    int logPanelScrollIndex;
     boolean suppressVanillaTooltipRender;
     double lastMouseX;
     double lastMouseY;
@@ -252,7 +256,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.iconPickerExpanded = false;
         this.customExtractOverlayExpanded = false;
         this.customExtractValidationKey = "";
-        this.targetSelectorScrollIndex = 0;
+        this.logPanelExpanded = false;
+        this.logPanelScrollIndex = 0;
         this.viewSelectorPersonalScrollIndex = 0;
         this.viewSelectorPublicScrollIndex = 0;
         this.managementPersonalScrollIndex = 0;
@@ -339,6 +344,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.customExtractOverlayExpanded) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.logPanelExpanded) {
+            PersonalDatabaseScreenLogHelper.renderLogPanel(this, guiGraphics, mouseX, mouseY);
         }
         PersonalDatabaseScreenRenderHelper.renderScreenTooltips(this, guiGraphics, mouseX, mouseY);
     }
