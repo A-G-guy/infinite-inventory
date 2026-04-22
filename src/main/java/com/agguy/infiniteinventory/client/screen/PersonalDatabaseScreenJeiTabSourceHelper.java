@@ -2,6 +2,8 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
+import com.agguy.infiniteinventory.database.DatabaseViewState;
+import com.agguy.infiniteinventory.database.JeiCraftingTabSourceConfig;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.JeiCraftingTabSourcePayload;
 import java.util.List;
@@ -249,10 +251,12 @@ final class PersonalDatabaseScreenJeiTabSourceHelper {
 
     private static void toggleTab(PersonalDatabaseScreen screen, String tabId) {
         boolean currentlyEnabled = isTabEnabled(screen, tabId);
+        boolean newEnabled = !currentlyEnabled;
+        updateLocalJeiTabSourceConfig(screen, screen.jeiTabSourceScopeFilter, tabId, newEnabled);
         PacketDistributor.sendToServer(new JeiCraftingTabSourcePayload(
                 screen.jeiTabSourceScopeFilter,
                 tabId,
-                !currentlyEnabled
+                newEnabled
         ));
     }
 
@@ -260,6 +264,7 @@ final class PersonalDatabaseScreenJeiTabSourceHelper {
         List<DatabaseTab> tabs = tabRows(screen);
         for (DatabaseTab tab : tabs) {
             if (isTabEnabled(screen, tab.id()) != enable) {
+                updateLocalJeiTabSourceConfig(screen, screen.jeiTabSourceScopeFilter, tab.id(), enable);
                 PacketDistributor.sendToServer(new JeiCraftingTabSourcePayload(
                         screen.jeiTabSourceScopeFilter,
                         tab.id(),
@@ -267,6 +272,27 @@ final class PersonalDatabaseScreenJeiTabSourceHelper {
                 ));
             }
         }
+    }
+
+    private static void updateLocalJeiTabSourceConfig(PersonalDatabaseScreen screen, DatabaseScope scope, String tabId, boolean enabled) {
+        DatabaseViewState currentState = screen.databaseMenu.viewState();
+        JeiCraftingTabSourceConfig currentConfig = currentState.jeiCraftingTabSources();
+        JeiCraftingTabSourceConfig updatedConfig = currentConfig.withTabEnabled(scope, tabId, enabled);
+        if (updatedConfig == currentConfig) {
+            return;
+        }
+        DatabaseViewState updatedState = new DatabaseViewState(
+                currentState.containerId(),
+                currentState.sessionId(),
+                currentState.query(),
+                currentState.enhancementConfig(),
+                currentState.autoStoreTarget(),
+                updatedConfig,
+                currentState.personalTabs(),
+                currentState.publicTabs(),
+                currentState.panels()
+        );
+        screen.databaseMenu.applyViewState(updatedState);
     }
 
     private static PersonalDatabaseLayout.Rect jeiTabSourceBodyRect(PersonalDatabaseLayout.Rect panelRect) {

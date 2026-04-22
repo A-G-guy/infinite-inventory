@@ -1,9 +1,12 @@
 package com.agguy.infiniteinventory.client;
 
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PersonalDatabaseClientTest {
@@ -50,5 +53,22 @@ class PersonalDatabaseClientTest {
         );
 
         assertTrue(shouldSend);
+    }
+
+    @Test
+    void shouldReturnDefaultEnhancementConfigInitially() {
+        DatabaseEnhancementConfig config = PersonalDatabaseClient.lastKnownEnhancementConfig();
+
+        assertFalse(config.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
+        assertFalse(config.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertFalse(config.isEnabled(DatabaseEnhancementOption.JEI_AUTO_EXTRACT_FOR_CRAFTING));
+    }
+
+    @Test
+    void shouldReturnSameDefaultConfigInstanceInitially() {
+        DatabaseEnhancementConfig config1 = PersonalDatabaseClient.lastKnownEnhancementConfig();
+        DatabaseEnhancementConfig config2 = PersonalDatabaseClient.lastKnownEnhancementConfig();
+
+        assertSame(config1, config2);
     }
 }

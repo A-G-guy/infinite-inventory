@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client;
 
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
@@ -20,6 +21,7 @@ public final class PersonalDatabaseClient {
     private static long lastSyncedSessionId = Long.MIN_VALUE;
     private static ViewerLanguage lastSyncedViewerLanguage;
     private static final Map<DatabaseScope, List<DatabaseLogEntry>> cachedLogEntries = new EnumMap<>(DatabaseScope.class);
+    private static DatabaseEnhancementConfig lastKnownEnhancementConfig = DatabaseEnhancementConfig.defaultConfig();
 
     private PersonalDatabaseClient() {
     }
@@ -29,11 +31,16 @@ public final class PersonalDatabaseClient {
         if (minecraft.player == null) {
             return;
         }
+        lastKnownEnhancementConfig = viewState.enhancementConfig();
         if (minecraft.player.containerMenu instanceof PersonalDatabaseMenu menu
                 && menu.containerId == viewState.containerId()
                 && menu.sessionId() == viewState.sessionId()) {
             menu.applyViewState(viewState);
         }
+    }
+
+    public static DatabaseEnhancementConfig lastKnownEnhancementConfig() {
+        return lastKnownEnhancementConfig;
     }
 
     public static void applyLogSnapshot(DatabaseLogSnapshotPayload payload) {

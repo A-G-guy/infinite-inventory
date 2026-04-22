@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.client.screen.PersonalDatabaseScreen;
 import com.agguy.infiniteinventory.compat.jei.JeiAmountCache;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.network.OpenEquippedDatabasePayload;
 import com.agguy.infiniteinventory.registry.ModMenus;
 import com.agguy.infiniteinventory.util.CompactNumberFormatter;
@@ -58,6 +59,13 @@ public final class InfiniteInventoryClient {
 
     public static void onItemTooltip(ItemTooltipEvent event) {
         if (!JeiAmountCache.isAvailable()) {
+            return;
+        }
+        if (!PersonalDatabaseClient.lastKnownEnhancementConfig().isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP)) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof PersonalDatabaseScreen) {
             return;
         }
         ItemStack stack = event.getItemStack();

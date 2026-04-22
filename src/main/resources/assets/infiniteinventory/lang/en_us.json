@@ -12,6 +12,8 @@
   "screen.infiniteinventory.enhancement_title": "Optional Enhancements",
   "screen.infiniteinventory.enhancement.auto_store_target": "Auto-store Target",
   "screen.infiniteinventory.enhancement.option.auto_store_picked_up_items": "Auto-store picked-up items",
+  "screen.infiniteinventory.enhancement.option.show_jei_amount_in_tooltip": "Show JEI amount in tooltip",
+  "screen.infiniteinventory.enhancement.option.jei_auto_extract_for_crafting": "JEI auto-extract from database for crafting",
   "screen.infiniteinventory.search_field.display_name": "Display Name",
   "screen.infiniteinventory.search_field.item_id": "Item ID",
   "screen.infiniteinventory.search_field.pinyin": "Pinyin",
@@ -186,10 +188,11 @@
   "screen.infiniteinventory.log.tooltip.action": "Action: %s",
   "screen.infiniteinventory.log.tooltip.amount": "Amount: %s",
   "screen.infiniteinventory.log.tooltip.player": "Player: %s",
-  "screen.infiniteinventory.jei.amount.personal": "Personal: %s",
-  "screen.infiniteinventory.jei.amount.public": "Public: %s",
+  "screen.infiniteinventory.jei.amount.personal": "Personal Storage: %s",
+  "screen.infiniteinventory.jei.amount.public": "Public Storage: %s",
   "screen.infiniteinventory.jei.crafting_tab_source.title": "JEI Crafting Material Sources",
   "screen.infiniteinventory.jei.crafting_tab_source.select_all": "Select All",
   "screen.infiniteinventory.jei.crafting_tab_source.clear_all": "Clear All",
+  "screen.infiniteinventory.jei.extracting_from_database": "Materials extracted from database, click again to place",
   "screen.infiniteinventory.enhancement.jei_crafting_tab_source": "JEI Crafting Material Sources"
 }
