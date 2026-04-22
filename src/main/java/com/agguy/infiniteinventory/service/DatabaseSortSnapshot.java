@@ -11,6 +11,7 @@ public record DatabaseSortSnapshot(
         long firstAdded,
         long lastModified,
         int stackHash,
+        boolean starred,
         DatabaseSearchRanking searchRanking
 ) {
     public DatabaseSortSnapshot {
@@ -34,6 +35,7 @@ public record DatabaseSortSnapshot(
                 this.firstAdded,
                 this.lastModified,
                 this.stackHash,
+                this.starred,
                 ranking
         );
     }

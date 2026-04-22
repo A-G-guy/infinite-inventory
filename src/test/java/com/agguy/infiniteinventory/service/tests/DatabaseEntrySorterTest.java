@@ -179,6 +179,7 @@ class DatabaseEntrySorterTest {
                 firstAdded,
                 lastModified,
                 stackHash,
+                false,
                 searchRanking
         );
     }

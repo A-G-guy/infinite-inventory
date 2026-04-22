@@ -20,7 +20,8 @@ class DatabaseSortDropdownModelTest {
                         DatabaseSortMethod.NAME,
                         DatabaseSortMethod.COUNT,
                         DatabaseSortMethod.MOD_NAMESPACE,
-                        DatabaseSortMethod.ITEM_ID
+                        DatabaseSortMethod.ITEM_ID,
+                        DatabaseSortMethod.STARRED
                 ),
                 DatabaseSortDropdownModel.methodOptions()
         );

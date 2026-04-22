@@ -14,7 +14,8 @@ public enum DatabaseSortMethod {
     NAME("screen.infiniteinventory.sort.field.name", "screen.infiniteinventory.sort.button.name"),
     COUNT("screen.infiniteinventory.sort.field.count", "screen.infiniteinventory.sort.button.count"),
     MOD_NAMESPACE("screen.infiniteinventory.sort.field.mod_namespace", "screen.infiniteinventory.sort.button.mod_namespace"),
-    ITEM_ID("screen.infiniteinventory.sort.field.item_id", "screen.infiniteinventory.sort.button.item_id");
+    ITEM_ID("screen.infiniteinventory.sort.field.item_id", "screen.infiniteinventory.sort.button.item_id"),
+    STARRED("screen.infiniteinventory.sort.field.starred", "screen.infiniteinventory.sort.button.starred");
 
     private static final List<DatabaseSortMethod> ORDERED_VALUES = List.of(values());
 

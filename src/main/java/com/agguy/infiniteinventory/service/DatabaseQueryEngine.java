@@ -325,6 +325,7 @@ public final class DatabaseQueryEngine {
                             entry.firstAdded(),
                             entry.lastModified(),
                             key.hashCode(),
+                            starred,
                             DatabaseSearchRanking.unfiltered()
                     )
             );

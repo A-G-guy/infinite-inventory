@@ -13,6 +13,8 @@ public enum DatabaseSortOption {
     MOD_NAMESPACE_DESC("screen.infiniteinventory.sort.mod_namespace_desc", DatabaseSortMethod.MOD_NAMESPACE, DatabaseSortDirection.DESC),
     ITEM_ID_ASC("screen.infiniteinventory.sort.item_id_asc", DatabaseSortMethod.ITEM_ID, DatabaseSortDirection.ASC),
     ITEM_ID_DESC("screen.infiniteinventory.sort.item_id_desc", DatabaseSortMethod.ITEM_ID, DatabaseSortDirection.DESC),
+    STARRED_DESC("screen.infiniteinventory.sort.starred_desc", DatabaseSortMethod.STARRED, DatabaseSortDirection.DESC),
+    STARRED_ASC("screen.infiniteinventory.sort.starred_asc", DatabaseSortMethod.STARRED, DatabaseSortDirection.ASC),
     RECENTLY_CHANGED_ASC(
             "screen.infiniteinventory.sort.recent_asc",
             DatabaseSortMethod.RECENTLY_CHANGED,
@@ -62,6 +64,7 @@ public enum DatabaseSortOption {
             case COUNT -> resolvedDirection == DatabaseSortDirection.ASC ? COUNT_ASC : COUNT_DESC;
             case MOD_NAMESPACE -> resolvedDirection == DatabaseSortDirection.ASC ? MOD_NAMESPACE_ASC : MOD_NAMESPACE_DESC;
             case ITEM_ID -> resolvedDirection == DatabaseSortDirection.ASC ? ITEM_ID_ASC : ITEM_ID_DESC;
+            case STARRED -> resolvedDirection == DatabaseSortDirection.ASC ? STARRED_ASC : STARRED_DESC;
         };
     }
 }

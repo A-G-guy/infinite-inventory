@@ -44,6 +44,7 @@ public final class DatabaseEntrySorter {
             case COUNT -> this.countComparator(resolvedOption.direction());
             case MOD_NAMESPACE -> this.modNamespaceComparator(resolvedOption.direction());
             case ITEM_ID -> this.itemIdComparator(resolvedOption.direction());
+            case STARRED -> this.starredComparator(resolvedOption.direction());
         };
     }
 
@@ -107,5 +108,14 @@ public final class DatabaseEntrySorter {
         return Comparator.comparing(DatabaseSortSnapshot::displayNameNormalized, Comparator.reverseOrder())
                 .thenComparing(DatabaseSortSnapshot::registryName)
                 .thenComparingInt(DatabaseSortSnapshot::stackHash);
+    }
+
+    private Comparator<DatabaseSortSnapshot> starredComparator(DatabaseSortDirection direction) {
+        return direction == DatabaseSortDirection.DESC
+                ? Comparator.comparing(DatabaseSortSnapshot::starred)
+                        .thenComparing(this.nameAscendingComparator())
+                : Comparator.comparing(DatabaseSortSnapshot::starred)
+                        .reversed()
+                        .thenComparing(this.nameAscendingComparator());
     }
 }
