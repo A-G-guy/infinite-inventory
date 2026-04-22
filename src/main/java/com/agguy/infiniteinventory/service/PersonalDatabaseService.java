@@ -397,16 +397,16 @@ public final class PersonalDatabaseService {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
     }
 
-    public void setJeiCraftingTabSource(ServerPlayer player, DatabaseScope scope, String tabId, boolean enabled) {
-        PersonalDatabaseServiceJeiHelper.setJeiCraftingTabSource(player, scope, tabId, enabled);
-    }
-
-    public void extractForJeiCrafting(ServerPlayer player, java.util.List<com.agguy.infiniteinventory.network.JeiCraftingExtractPayload.MaterialGap> gaps) {
-        PersonalDatabaseServiceJeiHelper.extractForJeiCrafting(player, gaps);
-    }
-
     public void syncJeiAmountsToPlayer(ServerPlayer player) {
-        PersonalDatabaseServiceJeiHelper.syncAmountsToPlayer(player);
+        java.util.Map<ItemStack, Long> personalAmounts = new java.util.LinkedHashMap<>();
+        java.util.Map<ItemStack, Long> publicAmounts = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : this.resolveDatabaseForView(player, DatabaseScope.PERSONAL).entries().entrySet()) {
+            personalAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
+        }
+        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : this.resolveDatabaseForView(player, DatabaseScope.PUBLIC).entries().entrySet()) {
+            publicAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
+        }
+        com.agguy.infiniteinventory.compat.jei.JeiCompat.syncAmounts(player, personalAmounts, publicAmounts);
     }
 
     public void syncPublicViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncPublicViewers(server); }
@@ -479,7 +479,7 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-        PersonalDatabaseServiceJeiHelper.syncAmountsToPlayer(player);
+        this.syncJeiAmountsToPlayer(player);
     }
 
 }

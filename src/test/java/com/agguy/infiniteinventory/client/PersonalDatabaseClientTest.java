@@ -61,7 +61,6 @@ class PersonalDatabaseClientTest {
 
         assertFalse(config.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
         assertTrue(config.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
-        assertTrue(config.isEnabled(DatabaseEnhancementOption.JEI_AUTO_EXTRACT_FOR_CRAFTING));
     }
 
     @Test

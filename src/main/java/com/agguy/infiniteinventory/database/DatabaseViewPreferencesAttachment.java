@@ -12,12 +12,10 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
     private static final String ENHANCEMENT_CONFIG_KEY = "enhancement_config";
     private static final String AUTO_STORE_TARGET_KEY = "auto_store_target";
     private static final String LEGACY_AUTO_STORE_TARGET_TAB_ID_KEY = "auto_store_target_tab_id";
-    private static final String JEI_CRAFTING_TAB_SOURCES_KEY = "jei_crafting_tab_sources";
 
     private DatabaseQuery query = DatabaseQuery.defaultQuery();
     private DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.defaultConfig();
     private DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.defaultTarget();
-    private JeiCraftingTabSourceConfig jeiCraftingTabSources = JeiCraftingTabSourceConfig.allEnabled();
 
     public DatabaseQuery query() {
         return this.query;
@@ -29,10 +27,6 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
 
     public DatabaseAutoStoreTarget autoStoreTarget() {
         return this.autoStoreTarget;
-    }
-
-    public JeiCraftingTabSourceConfig jeiCraftingTabSources() {
-        return this.jeiCraftingTabSources;
     }
 
     public DatabaseScope lastScope() {
@@ -83,17 +77,12 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.autoStoreTarget = target == null ? DatabaseAutoStoreTarget.defaultTarget() : target;
     }
 
-    public void setJeiCraftingTabSources(JeiCraftingTabSourceConfig config) {
-        this.jeiCraftingTabSources = config == null ? JeiCraftingTabSourceConfig.allEnabled() : config;
-    }
-
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
         tag.put(QUERY_KEY, this.query.toTag());
         tag.put(ENHANCEMENT_CONFIG_KEY, this.enhancementConfig.toTag());
         tag.put(AUTO_STORE_TARGET_KEY, this.autoStoreTarget.toTag());
-        tag.put(JEI_CRAFTING_TAB_SOURCES_KEY, this.jeiCraftingTabSources.toTag());
         return tag;
     }
 
@@ -102,7 +91,6 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         this.query = readQuery(tag);
         this.enhancementConfig = DatabaseEnhancementConfig.fromTag(tag.getCompound(ENHANCEMENT_CONFIG_KEY));
         this.autoStoreTarget = readAutoStoreTarget(tag);
-        this.jeiCraftingTabSources = JeiCraftingTabSourceConfig.fromTag(tag.getCompound(JEI_CRAFTING_TAB_SOURCES_KEY));
     }
 
     private static DatabaseQuery readQuery(CompoundTag tag) {

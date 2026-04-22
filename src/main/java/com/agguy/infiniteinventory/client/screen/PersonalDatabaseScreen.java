@@ -85,8 +85,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TOP_TAB_ACTION_ROW_HEIGHT = 20;
     static final int CUSTOM_EXTRACT_PANEL_WIDTH = 236;
     static final int CUSTOM_EXTRACT_PANEL_HEIGHT = 134;
-    static final int JEI_TAB_SOURCE_PANEL_WIDTH = 320;
-    static final int JEI_TAB_SOURCE_ROW_HEIGHT = 20;
     static final int MANAGEMENT_ROW_HEIGHT = 20;
     static final int MANAGEMENT_LIST_WIDTH = 124;
     static final int MANAGEMENT_BUTTON_WIDTH = 76;
@@ -165,9 +163,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean customExtractOverlayExpanded;
     boolean noteOverlayExpanded;
     boolean logPanelExpanded;
-    boolean jeiTabSourceOverlayExpanded;
-    DatabaseScope jeiTabSourceScopeFilter = DatabaseScope.PERSONAL;
-    int jeiTabSourceScrollIndex;
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
     boolean suppressVanillaTooltipRender;
@@ -267,9 +262,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.customExtractValidationKey = "";
         this.logPanelExpanded = false;
         this.logPanelScrollIndex = 0;
-        this.jeiTabSourceOverlayExpanded = false;
-        this.jeiTabSourceScrollIndex = 0;
-        this.jeiTabSourceScopeFilter = this.databaseMenu.viewState().query().focusedTab().scope();
         this.viewSelectorPersonalScrollIndex = 0;
         this.viewSelectorPublicScrollIndex = 0;
         this.managementPersonalScrollIndex = 0;
@@ -363,9 +355,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.logPanelExpanded) {
             PersonalDatabaseScreenLogHelper.renderLogPanel(this, guiGraphics, mouseX, mouseY);
-        }
-        if (this.jeiTabSourceOverlayExpanded) {
-            PersonalDatabaseScreenJeiTabSourceHelper.renderJeiTabSourceOverlay(this, guiGraphics, mouseX, mouseY);
         }
         PersonalDatabaseScreenRenderHelper.renderScreenTooltips(this, guiGraphics, mouseX, mouseY);
     }

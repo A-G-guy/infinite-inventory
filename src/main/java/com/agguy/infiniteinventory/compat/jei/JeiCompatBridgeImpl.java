@@ -28,13 +28,4 @@ final class JeiCompatBridgeImpl implements JeiCompatBridge {
                 new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(publicAmounts)
         );
     }
-
-    @Override
-    public Set<String> getEnabledCraftingTabIds(Player player, DatabaseScope scope) {
-        return Collections.emptySet();
-    }
-
-    @Override
-    public void setEnabledCraftingTabId(Player player, DatabaseScope scope, String tabId, boolean enabled) {
-    }
 }

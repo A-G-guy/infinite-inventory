@@ -1,10 +1,8 @@
 package com.agguy.infiniteinventory.compat.jei;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
-import com.agguy.infiniteinventory.database.DatabaseScope;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
-import java.util.Set;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
@@ -38,14 +36,6 @@ public final class JeiCompat {
 
     public static void syncAmounts(Player player, Map<ItemStack, Long> personalAmounts, Map<ItemStack, Long> publicAmounts) {
         BRIDGE.syncAmounts(player, personalAmounts, publicAmounts);
-    }
-
-    public static Set<String> getEnabledCraftingTabIds(Player player, DatabaseScope scope) {
-        return BRIDGE.getEnabledCraftingTabIds(player, scope);
-    }
-
-    public static void setEnabledCraftingTabId(Player player, DatabaseScope scope, String tabId, boolean enabled) {
-        BRIDGE.setEnabledCraftingTabId(player, scope, tabId, enabled);
     }
 
     private static JeiCompatBridge createBridge() {

@@ -43,8 +43,6 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
         registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
         registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
-        registrar.playToServer(JeiCraftingTabSourcePayload.TYPE, JeiCraftingTabSourcePayload.STREAM_CODEC, ModNetwork::handleJeiCraftingTabSource);
-        registrar.playToServer(JeiCraftingExtractPayload.TYPE, JeiCraftingExtractPayload.STREAM_CODEC, ModNetwork::handleJeiCraftingExtract);
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
@@ -234,20 +232,6 @@ public final class ModNetwork {
 
     private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {
         JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap());
-    }
-
-    private static void handleJeiCraftingTabSource(JeiCraftingTabSourcePayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseService.INSTANCE.setJeiCraftingTabSource(player, payload.scope(), payload.tabId(), payload.enabled());
-    }
-
-    private static void handleJeiCraftingExtract(JeiCraftingExtractPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseService.INSTANCE.extractForJeiCrafting(player, payload.gaps());
     }
 
     @Nullable

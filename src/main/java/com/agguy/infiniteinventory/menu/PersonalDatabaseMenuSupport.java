@@ -4,7 +4,6 @@ import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
-import com.agguy.infiniteinventory.database.JeiCraftingTabSourceConfig;
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
@@ -325,7 +324,6 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
                 this.query,
                 normalizedState.enhancementConfig(),
                 normalizedState.autoStoreTarget(),
-                JeiCraftingTabSourceConfig.allEnabled(),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of()

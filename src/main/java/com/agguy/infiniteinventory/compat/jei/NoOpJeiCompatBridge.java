@@ -19,13 +19,4 @@ final class NoOpJeiCompatBridge implements JeiCompatBridge {
     @Override
     public void syncAmounts(Player player, Map<ItemStack, Long> personalAmounts, Map<ItemStack, Long> publicAmounts) {
     }
-
-    @Override
-    public Set<String> getEnabledCraftingTabIds(Player player, DatabaseScope scope) {
-        return Set.of();
-    }
-
-    @Override
-    public void setEnabledCraftingTabId(Player player, DatabaseScope scope, String tabId, boolean enabled) {
-    }
 }

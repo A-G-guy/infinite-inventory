@@ -223,29 +223,6 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 autoStoreRowRect.y() + autoStoreRowRect.height() / 2,
                 0xFF3F3F3F
         );
-        if (com.agguy.infiniteinventory.compat.jei.JeiCompat.isAvailable()) {
-            PersonalDatabaseLayout.Rect jeiRowRect = PersonalDatabaseScreenGeometry.enhancementJeiTabSourceRowRect(screen);
-            boolean jeiHovered = jeiRowRect.contains(mouseX, mouseY);
-            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, jeiRowRect, jeiHovered, false);
-            guiGraphics.drawString(
-                    screen.screenFont(),
-                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
-                            screen,
-                            Component.translatable("screen.infiniteinventory.enhancement.jei_crafting_tab_source").getString(),
-                            Math.max(0, jeiRowRect.width() - 132)
-                    ),
-                    jeiRowRect.x() + 6,
-                    jeiRowRect.y() + 6,
-                    PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                    false
-            );
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    jeiRowRect.right() - 9,
-                    jeiRowRect.y() + jeiRowRect.height() / 2,
-                    0xFF3F3F3F
-            );
-        }
         guiGraphics.pose().popPose();
     }
 

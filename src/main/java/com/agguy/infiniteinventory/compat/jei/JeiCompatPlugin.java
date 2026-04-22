@@ -9,7 +9,6 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * JEI 插件入口。
- * 注册配方转移处理器（+ 按钮拦截）和其他 JEI 集成。
  */
 @JeiPlugin
 public final class JeiCompatPlugin implements IModPlugin {
@@ -18,11 +17,6 @@ public final class JeiCompatPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
         return ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "plugin");
-    }
-
-    @Override
-    public void registerRecipeTransferHandlers(IRecipeTransferRegistration registration) {
-        JeiRecipeTransferHandler.register(registration);
     }
 
     @Override
