@@ -3,7 +3,9 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.database.DatabaseLogAction;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
+import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -26,6 +28,8 @@ final class PersonalDatabaseScreenLogHelper {
     }
 
     static void renderLogPanel(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 265.0F);
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenLogGeometry.logPanelRect(screen);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
 
@@ -34,6 +38,7 @@ final class PersonalDatabaseScreenLogHelper {
         renderScopeToggles(screen, guiGraphics, mouseX, mouseY);
         renderLogList(screen, guiGraphics, mouseX, mouseY);
         renderScrollbar(screen, guiGraphics);
+        guiGraphics.pose().popPose();
     }
 
     private static void renderTitle(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect panelRect) {
@@ -49,8 +54,16 @@ final class PersonalDatabaseScreenLogHelper {
     private static void renderCloseButton(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseLayout.Rect closeRect = PersonalDatabaseScreenLogGeometry.logPanelCloseButtonRect(screen);
         boolean hovered = closeRect.contains(mouseX, mouseY);
-        int color = hovered ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR;
-        guiGraphics.drawString(screen.screenFont(), "x", closeRect.x() + 6, closeRect.y() + 3, color, false);
+        VanillaWidgetRenderer.renderOverlayChip(guiGraphics, closeRect, hovered, false, true);
+        PersonalDatabaseScreenCommonHelper.drawCenteredShadow(
+                screen,
+                guiGraphics,
+                Component.literal("X"),
+                closeRect.x() + 1,
+                closeRect.right() - 1,
+                closeRect.y() + 4,
+                hovered ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR
+        );
     }
 
     private static void renderScopeToggles(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -119,7 +132,7 @@ final class PersonalDatabaseScreenLogHelper {
 
             // 物品名称 + 页签信息
             String itemName = entry.stackSnapshot().getHoverName().getString();
-            String tabInfo = formatTabInfo(entry);
+            String tabInfo = formatTabInfo(screen, entry);
             String displayText = tabInfo.isEmpty() ? itemName : itemName + " " + tabInfo;
             displayText = screen.screenFont().plainSubstrByWidth(displayText, itemWidth - 20);
             guiGraphics.drawString(screen.screenFont(), displayText, x, y, PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
@@ -232,9 +245,9 @@ final class PersonalDatabaseScreenLogHelper {
         };
     }
 
-    private static String formatTabInfo(DatabaseLogEntry entry) {
-        String source = entry.sourceTabId();
-        String target = entry.targetTabId();
+    private static String formatTabInfo(PersonalDatabaseScreen screen, DatabaseLogEntry entry) {
+        String source = resolveTabName(screen, entry.sourceTabId());
+        String target = resolveTabName(screen, entry.targetTabId());
         if (source.isEmpty() && target.isEmpty()) {
             return "";
         }
@@ -245,6 +258,28 @@ final class PersonalDatabaseScreenLogHelper {
             return source;
         }
         return source + " -> " + target;
+    }
+
+    private static String resolveTabName(PersonalDatabaseScreen screen, String tabId) {
+        if (tabId == null || tabId.isEmpty()) {
+            return "";
+        }
+        if (DatabaseTabs.DEFAULT_TAB_ID.equals(tabId)) {
+            return Component.translatable(DatabaseTabs.DEFAULT_TAB_TRANSLATION_KEY).getString();
+        }
+        if (DatabaseTabs.ALL_TAB_ID.equals(tabId)) {
+            return Component.translatable(DatabaseTabs.ALL_TAB_TRANSLATION_KEY).getString();
+        }
+        for (DatabasePanelView panel : PersonalDatabaseScreenCommonHelper.currentPanels(screen)) {
+            if (panel.tab().id().equals(tabId)) {
+                String displayName = panel.tab().displayName();
+                if (!displayName.isBlank()) {
+                    return displayName;
+                }
+                break;
+            }
+        }
+        return tabId;
     }
 
     static void buildLogButton(PersonalDatabaseScreen screen) {
