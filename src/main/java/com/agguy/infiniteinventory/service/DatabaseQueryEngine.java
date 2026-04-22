@@ -231,7 +231,13 @@ public final class DatabaseQueryEngine {
 
     private static String normalizeTabId(String tabId, DatabaseTabDirectory tabDirectory) {
         if (tabDirectory == null) {
-            return DatabaseTabs.isAllTabId(tabId) ? DatabaseTabs.ALL_TAB_ID : DatabaseTabs.normalizeConcreteTarget(tabId);
+            if (DatabaseTabs.isAllTabId(tabId)) {
+                return DatabaseTabs.ALL_TAB_ID;
+            }
+            if (DatabaseTabs.isFavoritesTabId(tabId)) {
+                return DatabaseTabs.FAVORITES_TAB_ID;
+            }
+            return DatabaseTabs.normalizeConcreteTarget(tabId);
         }
         String resolvedVisibleTabId = tabDirectory.resolveVisibleTabId(tabId);
         if (resolvedVisibleTabId != null) {

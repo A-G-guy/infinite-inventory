@@ -152,9 +152,13 @@ final class PersonalDatabaseScreenRenderHelper {
                             CompactNumberFormatter.format(entry.amount())
                     );
                     if (entry.starred()) {
-                        int starX = itemX + 13;
-                        int starY = itemY + 13;
-                        guiGraphics.fill(starX, starY, starX + 3, starY + 3, 0xFFFFD700);
+                        int sx = itemX - 1, sy = itemY - 1;
+                        guiGraphics.fill(sx, sy, sx + 5, sy + 1, 0xFF8B6914);
+                        guiGraphics.fill(sx, sy + 4, sx + 5, sy + 5, 0xFF8B6914);
+                        guiGraphics.fill(sx, sy + 1, sx + 1, sy + 4, 0xFF8B6914);
+                        guiGraphics.fill(sx + 4, sy + 1, sx + 5, sy + 4, 0xFF8B6914);
+                        guiGraphics.fill(sx + 1, sy + 1, sx + 4, sy + 4, 0xFFFFD700);
+                        guiGraphics.fill(sx + 1, sy + 1, sx + 2, sy + 2, 0xFFFFEC8B);
                     }
                 } else if (slotRect.contains(mouseX, mouseY)) {
                     VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
@@ -319,7 +323,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 VisibleDatabaseEntry entry = panel.entries().get(hitResult.slotIndex());
                 List<Component> tooltip = new ArrayList<>(screen.containerTooltip(entry.stack()));
                 if (entry.starred()) {
-                    tooltip.add(Component.literal("★ " + I18n.get("screen.infiniteinventory.context.toggle_star")).withStyle(ChatFormatting.GOLD));
+                    tooltip.add(Component.literal("★ ").withStyle(ChatFormatting.GOLD).append(Component.translatable("screen.infiniteinventory.tooltip.starred").withStyle(ChatFormatting.GOLD)));
                 }
                 if (!entry.note().isEmpty()) {
                     tooltip.add(Component.literal(entry.note()).withStyle(ChatFormatting.YELLOW));
@@ -404,30 +408,15 @@ final class PersonalDatabaseScreenRenderHelper {
 
         if (screen.advancedSearchButton != null && screen.layout.advancedSearchButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect advancedRect = screen.layout.advancedSearchButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                guiGraphics,
-                advancedRect.right() - 10,
-                advancedRect.y() + advancedRect.height() / 2,
-                0xFFD8D0C4
-            );
+            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, advancedRect.right() - 10, advancedRect.y() + advancedRect.height() / 2, 0xFFD8D0C4);
         }
         if (screen.enhancementButton != null && screen.layout.enhancementButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect enhancementRect = screen.layout.enhancementButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                guiGraphics,
-                enhancementRect.right() - 10,
-                enhancementRect.y() + enhancementRect.height() / 2,
-                0xFFD8D0C4
-            );
+            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, enhancementRect.right() - 10, enhancementRect.y() + enhancementRect.height() / 2, 0xFFD8D0C4);
         }
         if (screen.viewSelectorButton != null && screen.layout.viewSelectorButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect viewRect = screen.layout.viewSelectorButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                guiGraphics,
-                viewRect.right() - 10,
-                viewRect.y() + viewRect.height() / 2,
-                0xFFD8D0C4
-            );
+            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, viewRect.right() - 10, viewRect.y() + viewRect.height() / 2, 0xFFD8D0C4);
         }
     }
     static void renderDatabaseScaffold(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {

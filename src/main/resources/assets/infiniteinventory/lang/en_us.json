@@ -106,6 +106,7 @@
   "screen.infiniteinventory.context.take_custom_to_inventory": "Extract _____",
   "screen.infiniteinventory.context.edit_note": "Edit Note",
   "screen.infiniteinventory.context.toggle_star": "Add/Remove Star",
+  "screen.infiniteinventory.tooltip.starred": "Starred",
   "screen.infiniteinventory.note.title": "Edit Note",
   "screen.infiniteinventory.note.single_description": "Add or modify a note for this item",
   "screen.infiniteinventory.note.selection_description": "Set the same note for all selected items",

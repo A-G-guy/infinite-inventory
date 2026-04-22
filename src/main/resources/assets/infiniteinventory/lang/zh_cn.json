@@ -106,6 +106,7 @@
   "screen.infiniteinventory.context.take_custom_to_inventory": "取出_____个",
   "screen.infiniteinventory.context.edit_note": "编辑备注",
   "screen.infiniteinventory.context.toggle_star": "添加/取消星标",
+  "screen.infiniteinventory.tooltip.starred": "星标",
   "screen.infiniteinventory.note.title": "编辑备注",
   "screen.infiniteinventory.note.single_description": "为该物品添加或修改备注",
   "screen.infiniteinventory.note.selection_description": "为所有选中的物品设置相同备注",
