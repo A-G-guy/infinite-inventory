@@ -10,7 +10,8 @@ import net.minecraft.network.FriendlyByteBuf;
 public record DatabaseQuery(
         DatabaseScopedTabRef focusedTab,
         List<DatabaseScopedTabRef> visibleTabs,
-        Map<DatabaseScopedTabRef, DatabaseTabQueryState> tabStates
+        Map<DatabaseScopedTabRef, DatabaseTabQueryState> tabStates,
+        List<DatabaseScopedTabRef> hiddenTopTabs
 ) {
     public static final int MAX_SEARCH_LENGTH = 64;
     public static final int DEFAULT_PAGE_SIZE = 54;
@@ -24,6 +25,7 @@ public record DatabaseQuery(
             focusedTab = visibleTabs.getFirst();
         }
         tabStates = DatabaseQuerySupport.normalizeTabStates(tabStates, visibleTabs, focusedTab);
+        hiddenTopTabs = hiddenTopTabs == null ? List.of() : List.copyOf(hiddenTopTabs);
     }
 
     public DatabaseQuery(
@@ -48,7 +50,8 @@ public record DatabaseQuery(
                         sortOption,
                         searchText,
                         searchConfig
-                )
+                ),
+                List.of()
         );
     }
 
@@ -61,7 +64,8 @@ public record DatabaseQuery(
         return new DatabaseQuery(
                 defaultTab,
                 List.of(defaultTab),
-                Map.of(defaultTab, DatabaseTabQueryState.defaultState())
+                Map.of(defaultTab, DatabaseTabQueryState.defaultState()),
+                List.of()
         );
     }
 
@@ -158,6 +162,10 @@ public record DatabaseQuery(
         return this.visibleTabs.size() > 1;
     }
 
+    public boolean isTopTabHidden(DatabaseScopedTabRef scopedTab) {
+        return this.hiddenTopTabs.contains(scopedTab);
+    }
+
     public DatabaseQuery withFocusedTab(DatabaseScopedTabRef nextFocusedTab) {
         DatabaseScopedTabRef normalizedFocusedTab = DatabaseQuerySupport.normalizeScopedTab(nextFocusedTab, DatabaseScopedTabRef.defaultTab());
         java.util.ArrayList<DatabaseScopedTabRef> nextVisibleTabs = new java.util.ArrayList<>(this.visibleTabs);
@@ -165,7 +173,7 @@ public record DatabaseQuery(
             nextVisibleTabs.clear();
             nextVisibleTabs.add(normalizedFocusedTab);
         }
-        return new DatabaseQuery(normalizedFocusedTab, nextVisibleTabs, this.tabStates);
+        return new DatabaseQuery(normalizedFocusedTab, nextVisibleTabs, this.tabStates, this.hiddenTopTabs);
     }
 
     public DatabaseQuery withFocusedTabId(String nextFocusedTabId) {
@@ -174,7 +182,7 @@ public record DatabaseQuery(
 
     public DatabaseQuery withSingleVisibleTab(DatabaseScopedTabRef scopedTab) {
         DatabaseScopedTabRef normalizedScopedTab = DatabaseQuerySupport.normalizeScopedTab(scopedTab, DatabaseScopedTabRef.defaultTab());
-        return new DatabaseQuery(normalizedScopedTab, List.of(normalizedScopedTab), this.tabStates);
+        return new DatabaseQuery(normalizedScopedTab, List.of(normalizedScopedTab), this.tabStates, this.hiddenTopTabs);
     }
 
     public DatabaseQuery withSingleVisibleTab(String tabId) {
@@ -186,7 +194,7 @@ public record DatabaseQuery(
         DatabaseScopedTabRef normalizedFocusedTab = normalizedVisibleTabs.contains(this.focusedTab)
                 ? this.focusedTab
                 : normalizedVisibleTabs.getFirst();
-        return new DatabaseQuery(normalizedFocusedTab, normalizedVisibleTabs, this.tabStates);
+        return new DatabaseQuery(normalizedFocusedTab, normalizedVisibleTabs, this.tabStates, this.hiddenTopTabs);
     }
 
     public DatabaseQuery withVisibleTabIds(List<String> nextVisibleTabIds) {
@@ -199,7 +207,7 @@ public record DatabaseQuery(
                 DatabaseQuerySupport.normalizeScopedTab(scopedTab, this.focusedTab),
                 nextState == null ? DatabaseTabQueryState.defaultState() : nextState
         );
-        return new DatabaseQuery(this.focusedTab, this.visibleTabs, nextTabStates);
+        return new DatabaseQuery(this.focusedTab, this.visibleTabs, nextTabStates, this.hiddenTopTabs);
     }
 
     public DatabaseQuery withSortOption(DatabaseScopedTabRef scopedTab, DatabaseSortOption nextSortOption) {
@@ -293,7 +301,21 @@ public record DatabaseQuery(
                     currentState.withPageIndex(nextPageIndex).withPageSize(nextPageSize)
             );
         }
-        return new DatabaseQuery(this.focusedTab, this.visibleTabs, nextTabStates);
+        return new DatabaseQuery(this.focusedTab, this.visibleTabs, nextTabStates, this.hiddenTopTabs);
+    }
+
+    public DatabaseQuery withHiddenTopTabs(List<DatabaseScopedTabRef> nextHiddenTopTabs) {
+        return new DatabaseQuery(this.focusedTab, this.visibleTabs, this.tabStates, nextHiddenTopTabs);
+    }
+
+    public DatabaseQuery withHiddenTopTabToggled(DatabaseScopedTabRef scopedTab) {
+        java.util.ArrayList<DatabaseScopedTabRef> nextHiddenTopTabs = new java.util.ArrayList<>(this.hiddenTopTabs);
+        if (nextHiddenTopTabs.contains(scopedTab)) {
+            nextHiddenTopTabs.remove(scopedTab);
+        } else {
+            nextHiddenTopTabs.add(scopedTab);
+        }
+        return new DatabaseQuery(this.focusedTab, this.visibleTabs, this.tabStates, List.copyOf(nextHiddenTopTabs));
     }
 
     public DatabaseQuery retargetScope(DatabaseScope nextScope) {

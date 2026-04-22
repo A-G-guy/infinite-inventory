@@ -156,6 +156,8 @@
   "screen.infiniteinventory.management.move_right": "Move Right",
   "screen.infiniteinventory.management.transfer": "Transfer Tab",
   "screen.infiniteinventory.management.delete": "Delete Tab",
+  "screen.infiniteinventory.management.hide_in_top": "Hide in Top",
+  "screen.infiniteinventory.management.show_in_top": "Show in Top",
   "screen.infiniteinventory.icon_picker.title": "Icon Picker",
   "screen.infiniteinventory.icon_picker.search": "Search items or IDs",
   "screen.infiniteinventory.icon_picker.selected": "Selected: %s",

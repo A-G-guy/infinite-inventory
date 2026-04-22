@@ -270,7 +270,16 @@ public final class PersonalDatabaseService {
             DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, tab.id());
             tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
         }
-        return new DatabaseQuery(focusedTab, java.util.List.copyOf(visibleTabs), tabStates);
+        return new DatabaseQuery(focusedTab, java.util.List.copyOf(visibleTabs), tabStates, normalizedQuery.hiddenTopTabs());
+    }
+
+    public boolean toggleTopTabVisibility(ServerPlayer player, DatabaseScope scope, String tabId) {
+        DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
+        DatabaseQuery currentQuery = preferences.query();
+        DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.normalize(scope), tabId);
+        DatabaseQuery updatedQuery = currentQuery.withHiddenTopTabToggled(scopedTab);
+        preferences.setQuery(updatedQuery);
+        return !updatedQuery.hiddenTopTabs().equals(currentQuery.hiddenTopTabs());
     }
 
     public List<DatabaseTab> tabsForScope(ServerPlayer player, DatabaseScope scope) {

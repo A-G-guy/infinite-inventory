@@ -55,8 +55,15 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
             }
         }
         mergedTabStates.putAll(normalizedQuery.tabStates());
+        java.util.LinkedHashSet<DatabaseScopedTabRef> mergedHiddenTopTabs = new java.util.LinkedHashSet<>();
+        for (DatabaseScopedTabRef hiddenTab : this.query.hiddenTopTabs()) {
+            if (hiddenTab.scope() != normalizedScope) {
+                mergedHiddenTopTabs.add(hiddenTab);
+            }
+        }
+        mergedHiddenTopTabs.addAll(normalizedQuery.hiddenTopTabs());
         DatabaseQuery preferredQuery = this.query.scope() == normalizedScope ? normalizedQuery : this.query;
-        this.query = new DatabaseQuery(preferredQuery.focusedTab(), preferredQuery.visibleTabs(), mergedTabStates);
+        this.query = new DatabaseQuery(preferredQuery.focusedTab(), preferredQuery.visibleTabs(), mergedTabStates, java.util.List.copyOf(mergedHiddenTopTabs));
     }
 
     public void setLastScope(DatabaseScope scope) {
@@ -66,7 +73,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
             return;
         }
         DatabaseQuery preferredQuery = this.query.queryForScope(normalizedScope);
-        this.query = new DatabaseQuery(preferredQuery.focusedTab(), preferredQuery.visibleTabs(), this.query.tabStates());
+        this.query = new DatabaseQuery(preferredQuery.focusedTab(), preferredQuery.visibleTabs(), this.query.tabStates(), preferredQuery.hiddenTopTabs());
     }
 
     public void setEnhancementConfig(DatabaseEnhancementConfig config) {
@@ -125,7 +132,7 @@ public final class DatabaseViewPreferencesAttachment implements INBTSerializable
         if (visibleTabs.isEmpty()) {
             visibleTabs.add(preferredQuery.focusedTab());
         }
-        return new DatabaseQuery(preferredQuery.focusedTab(), java.util.List.copyOf(visibleTabs), mergedTabStates);
+        return new DatabaseQuery(preferredQuery.focusedTab(), java.util.List.copyOf(visibleTabs), mergedTabStates, java.util.List.of());
     }
 
     private static DatabaseAutoStoreTarget readAutoStoreTarget(CompoundTag tag) {

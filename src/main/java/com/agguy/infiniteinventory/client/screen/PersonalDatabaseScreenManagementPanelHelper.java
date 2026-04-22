@@ -125,13 +125,14 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                 PersonalDatabaseScreenManagementLogic.managementPrimaryActionLabel(screen, selectedTab),
                 PersonalDatabaseScreenManagementLogic.canSaveSelectedTab(screen, selectedTab)
         );
+        boolean isHiddenInTop = screen.databaseMenu.viewState().query().isTopTabHidden(selectedScopedTab);
         PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
                 screen,
                 guiGraphics,
                 PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1),
                 mouseX,
                 mouseY,
-                Component.translatable("screen.infiniteinventory.management.pick_icon"),
+                Component.translatable(isHiddenInTop ? "screen.infiniteinventory.management.show_in_top" : "screen.infiniteinventory.management.hide_in_top"),
                 true
         );
         PersonalDatabaseScreenManagementLogic.renderManagementActionButton(
@@ -224,7 +225,15 @@ final class PersonalDatabaseScreenManagementPanelHelper {
             return PersonalDatabaseScreenManagementLogic.saveSelectedTab(screen, selectedTab);
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1).contains(mouseX, mouseY)) {
-            PersonalDatabaseScreenManagementHelper.openIconPicker(screen);
+            PersonalDatabaseScreenManagementHelper.sendTabMutation(
+                    screen,
+                    selectedScopedTab.scope(),
+                    DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY,
+                    selectedTab.id(),
+                    "",
+                    "",
+                    ""
+            );
             return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 0).contains(mouseX, mouseY)

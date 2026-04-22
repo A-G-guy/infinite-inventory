@@ -7,5 +7,6 @@ public enum DatabaseTabMutationAction {
     MOVE_LEFT,
     MOVE_RIGHT,
     DELETE,
-    TRANSFER
+    TRANSFER,
+    TOGGLE_TOP_VISIBILITY
 }

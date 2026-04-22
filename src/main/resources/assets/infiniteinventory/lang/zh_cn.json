@@ -156,6 +156,8 @@
   "screen.infiniteinventory.management.move_right": "右移",
   "screen.infiniteinventory.management.transfer": "整页转移",
   "screen.infiniteinventory.management.delete": "删除页签",
+  "screen.infiniteinventory.management.hide_in_top": "顶部隐藏",
+  "screen.infiniteinventory.management.show_in_top": "顶部显示",
   "screen.infiniteinventory.icon_picker.title": "图标选择",
   "screen.infiniteinventory.icon_picker.search": "搜索物品或 ID",
   "screen.infiniteinventory.icon_picker.selected": "当前：%s",

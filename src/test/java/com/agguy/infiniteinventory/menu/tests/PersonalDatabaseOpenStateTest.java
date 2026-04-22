@@ -44,7 +44,8 @@ class PersonalDatabaseOpenStateTest {
                                         1,
                                         96
                                 )
-                        )
+                        ),
+                        java.util.List.of()
                 ),
                 DatabaseEnhancementConfig.defaultConfig().withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true),
                 new DatabaseAutoStoreTarget(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID)

@@ -16,15 +16,12 @@ public final class DatabaseTabDirectory {
     private final List<DatabaseTab> concreteTabs = new ArrayList<>();
 
     public DatabaseTabDirectory() {
+        this.ensureSystemTabs();
         this.ensureDefaultConcreteTab();
     }
 
     public List<DatabaseTab> orderedTabs() {
-        List<DatabaseTab> orderedTabs = new ArrayList<>(this.concreteTabs.size() + 2);
-        orderedTabs.add(DatabaseTabs.allTab());
-        orderedTabs.add(DatabaseTabs.favoritesTab());
-        orderedTabs.addAll(this.concreteTabs);
-        return List.copyOf(orderedTabs);
+        return List.copyOf(this.concreteTabs);
     }
 
     public List<DatabaseTab> concreteTabs() {
@@ -36,9 +33,6 @@ public final class DatabaseTabDirectory {
     }
 
     public boolean contains(String tabId) {
-        if (DatabaseTabs.isSystemTabId(tabId)) {
-            return true;
-        }
         return this.concreteTabs.stream().anyMatch(tab -> tab.id().equals(tabId));
     }
 
@@ -47,12 +41,6 @@ public final class DatabaseTabDirectory {
     }
 
     public java.util.Optional<DatabaseTab> find(String tabId) {
-        if (DatabaseTabs.isAllTabId(tabId)) {
-            return java.util.Optional.of(DatabaseTabs.allTab());
-        }
-        if (DatabaseTabs.isFavoritesTabId(tabId)) {
-            return java.util.Optional.of(DatabaseTabs.favoritesTab());
-        }
         return this.concreteTabs.stream().filter(tab -> tab.id().equals(tabId)).findFirst();
     }
 
@@ -65,10 +53,7 @@ public final class DatabaseTabDirectory {
             return DatabaseTabs.ALL_TAB_ID;
         }
         String normalizedTabId = requestedTabId.trim();
-        if (DatabaseTabs.isSystemTabId(normalizedTabId)) {
-            return normalizedTabId;
-        }
-        if (this.containsConcreteTab(normalizedTabId)) {
+        if (this.contains(normalizedTabId)) {
             return normalizedTabId;
         }
         return null;
@@ -102,7 +87,8 @@ public final class DatabaseTabDirectory {
         return new DatabaseQuery(
                 DatabaseScopedTabRef.concreteTab(scope, focusedTabId),
                 visibleTabIds.stream().map(tabId -> DatabaseScopedTabRef.concreteTab(scope, tabId)).toList(),
-                tabStates
+                tabStates,
+                normalizedQuery.hiddenTopTabs()
         );
     }
 
@@ -204,12 +190,10 @@ public final class DatabaseTabDirectory {
                     continue;
                 }
                 DatabaseTab tab = DatabaseTab.fromTag(tabTag);
-                if (!tab.isConcreteTab()) {
-                    continue;
-                }
                 directory.concreteTabs.add(tab);
             }
         }
+        directory.ensureSystemTabs();
         directory.ensureDefaultConcreteTab();
         directory.deduplicateConcreteTabs();
         return directory;
@@ -224,15 +208,48 @@ public final class DatabaseTabDirectory {
         return -1;
     }
 
+    private void ensureSystemTabs() {
+        boolean hasAll = false;
+        boolean hasFavorites = false;
+        for (DatabaseTab tab : this.concreteTabs) {
+            if (tab.isAllTab()) {
+                hasAll = true;
+            }
+            if (tab.isFavoritesTab()) {
+                hasFavorites = true;
+            }
+        }
+        if (!hasAll) {
+            this.concreteTabs.add(0, DatabaseTabs.allTab());
+        }
+        if (!hasFavorites) {
+            int insertIndex = 0;
+            for (int i = 0; i < this.concreteTabs.size(); i++) {
+                if (this.concreteTabs.get(i).isAllTab()) {
+                    insertIndex = i + 1;
+                    break;
+                }
+            }
+            this.concreteTabs.add(insertIndex, DatabaseTabs.favoritesTab());
+        }
+    }
+
     private void ensureDefaultConcreteTab() {
+        int firstNonSystemIndex = 0;
+        for (int i = 0; i < this.concreteTabs.size(); i++) {
+            if (!this.concreteTabs.get(i).isSystemTab()) {
+                firstNonSystemIndex = i;
+                break;
+            }
+        }
         if (this.concreteTabs.stream().noneMatch(tab -> DatabaseTabs.DEFAULT_TAB_ID.equals(tab.id()))) {
-            this.concreteTabs.add(0, DatabaseTabs.defaultConcreteTab());
+            this.concreteTabs.add(firstNonSystemIndex, DatabaseTabs.defaultConcreteTab());
             return;
         }
         int defaultIndex = this.indexOf(DatabaseTabs.DEFAULT_TAB_ID);
-        if (defaultIndex > 0) {
+        if (defaultIndex > firstNonSystemIndex) {
             DatabaseTab defaultTab = this.concreteTabs.remove(defaultIndex);
-            this.concreteTabs.add(0, defaultTab);
+            this.concreteTabs.add(firstNonSystemIndex, defaultTab);
         }
     }
 
@@ -243,6 +260,7 @@ public final class DatabaseTabDirectory {
         }
         this.concreteTabs.clear();
         this.concreteTabs.addAll(tabsById.values());
+        this.ensureSystemTabs();
         this.ensureDefaultConcreteTab();
     }
 }

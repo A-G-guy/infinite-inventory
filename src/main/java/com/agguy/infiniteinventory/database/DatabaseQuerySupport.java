@@ -16,9 +16,10 @@ final class DatabaseQuerySupport {
     private static final String VISIBLE_TABS_KEY = "visible_tabs";
     private static final String TAB_STATES_KEY = "tab_states";
     private static final String VISIBLE_TAB_ID_KEY = "tab_id";
-    private static final String FOCUSED_TAB_KEY = "focused_tab";
+    private static final String FOCUSED_TAB_KEY = "focused";
     private static final String TAB_STATE_ENTRY_REF_KEY = "tab";
     private static final String TAB_STATE_ENTRY_STATE_KEY = "state";
+    private static final String HIDDEN_TOP_TABS_KEY = "hidden_top_tabs";
 
     private DatabaseQuerySupport() {
     }
@@ -124,10 +125,15 @@ final class DatabaseQuerySupport {
         for (Map.Entry<DatabaseScopedTabRef, DatabaseTabQueryState> entry : query.tabStates().entrySet()) {
             nextTabStates.put(entry.getKey().withScope(normalizedScope), entry.getValue());
         }
+        java.util.ArrayList<DatabaseScopedTabRef> nextHiddenTopTabs = new java.util.ArrayList<>();
+        for (DatabaseScopedTabRef hiddenTab : query.hiddenTopTabs()) {
+            nextHiddenTopTabs.add(hiddenTab.withScope(normalizedScope));
+        }
         return new DatabaseQuery(
                 query.focusedTab().withScope(normalizedScope),
                 query.visibleTabs().stream().map(ref -> ref.withScope(normalizedScope)).toList(),
-                nextTabStates
+                nextTabStates,
+                List.copyOf(nextHiddenTopTabs)
         );
     }
 
@@ -147,6 +153,13 @@ final class DatabaseQuerySupport {
             }
         }
 
+        java.util.ArrayList<DatabaseScopedTabRef> scopedHiddenTopTabs = new java.util.ArrayList<>();
+        for (DatabaseScopedTabRef hiddenTab : query.hiddenTopTabs()) {
+            if (hiddenTab.scope() == normalizedScope) {
+                scopedHiddenTopTabs.add(hiddenTab);
+            }
+        }
+
         DatabaseScopedTabRef scopedFocusedTab = query.focusedTab().scope() == normalizedScope
                 ? query.focusedTab()
                 : !scopedVisibleTabs.isEmpty()
@@ -163,7 +176,7 @@ final class DatabaseQuerySupport {
         for (DatabaseScopedTabRef scopedVisibleTab : scopedVisibleTabs) {
             scopedTabStates.putIfAbsent(scopedVisibleTab, DatabaseTabQueryState.defaultState());
         }
-        return new DatabaseQuery(scopedFocusedTab, List.copyOf(scopedVisibleTabs), scopedTabStates);
+        return new DatabaseQuery(scopedFocusedTab, List.copyOf(scopedVisibleTabs), scopedTabStates, List.copyOf(scopedHiddenTopTabs));
     }
 
     static DatabaseQuery read(FriendlyByteBuf buffer) {
@@ -178,7 +191,12 @@ final class DatabaseQuerySupport {
         for (int index = 0; index < tabStateCount; index++) {
             tabStates.put(DatabaseScopedTabRef.read(buffer), DatabaseTabQueryState.read(buffer));
         }
-        return new DatabaseQuery(focusedTab, visibleTabs, tabStates);
+        int hiddenTopTabCount = buffer.readVarInt();
+        java.util.ArrayList<DatabaseScopedTabRef> hiddenTopTabs = new java.util.ArrayList<>(hiddenTopTabCount);
+        for (int index = 0; index < hiddenTopTabCount; index++) {
+            hiddenTopTabs.add(DatabaseScopedTabRef.read(buffer));
+        }
+        return new DatabaseQuery(focusedTab, visibleTabs, tabStates, hiddenTopTabs);
     }
 
     static void write(FriendlyByteBuf buffer, DatabaseQuery query) {
@@ -191,6 +209,10 @@ final class DatabaseQuerySupport {
         for (Map.Entry<DatabaseScopedTabRef, DatabaseTabQueryState> entry : query.tabStates().entrySet()) {
             entry.getKey().write(buffer);
             entry.getValue().write(buffer);
+        }
+        buffer.writeVarInt(query.hiddenTopTabs().size());
+        for (DatabaseScopedTabRef hiddenTab : query.hiddenTopTabs()) {
+            hiddenTab.write(buffer);
         }
     }
 
@@ -210,6 +232,11 @@ final class DatabaseQuerySupport {
             tabStatesTag.add(tabStateEntry);
         }
         tag.put(TAB_STATES_KEY, tabStatesTag);
+        ListTag hiddenTopTabsTag = new ListTag();
+        for (DatabaseScopedTabRef hiddenTab : query.hiddenTopTabs()) {
+            hiddenTopTabsTag.add(hiddenTab.toTag());
+        }
+        tag.put(HIDDEN_TOP_TABS_KEY, hiddenTopTabsTag);
         return tag;
     }
 
@@ -221,10 +248,12 @@ final class DatabaseQuerySupport {
         if (tag.contains(FOCUSED_TAB_KEY, Tag.TAG_COMPOUND)) {
             DatabaseScopedTabRef focusedTab = DatabaseScopedTabRef.fromTag(tag.getCompound(FOCUSED_TAB_KEY), normalizedFallbackScope);
             List<DatabaseScopedTabRef> visibleTabs = fromVisibleTabsTag(tag.getList(VISIBLE_TABS_KEY, Tag.TAG_COMPOUND), normalizedFallbackScope);
+            List<DatabaseScopedTabRef> hiddenTopTabs = fromHiddenTopTabsTag(tag.getList(HIDDEN_TOP_TABS_KEY, Tag.TAG_COMPOUND), normalizedFallbackScope);
             return new DatabaseQuery(
                     focusedTab,
                     visibleTabs,
-                    fromTabStatesListTag(tag.getList(TAB_STATES_KEY, Tag.TAG_COMPOUND), normalizedFallbackScope, focusedTab)
+                    fromTabStatesListTag(tag.getList(TAB_STATES_KEY, Tag.TAG_COMPOUND), normalizedFallbackScope, focusedTab),
+                    hiddenTopTabs
             );
         }
 
@@ -233,7 +262,8 @@ final class DatabaseQuerySupport {
             return new DatabaseQuery(
                     DatabaseScopedTabRef.concreteTab(legacyScope, tag.getString(FOCUSED_TAB_ID_KEY)),
                     fromVisibleTabsTag(tag.getList(VISIBLE_TABS_KEY, Tag.TAG_COMPOUND), legacyScope),
-                    fromLegacyTabStatesTag(tag.getCompound(TAB_STATES_KEY), legacyScope, tag.getString(FOCUSED_TAB_ID_KEY))
+                    fromLegacyTabStatesTag(tag.getCompound(TAB_STATES_KEY), legacyScope, tag.getString(FOCUSED_TAB_ID_KEY)),
+                    List.of()
             );
         }
         if (tag.contains(FOCUSED_TAB_ID_KEY) || tag.contains(VISIBLE_TABS_KEY)) {
@@ -251,7 +281,8 @@ final class DatabaseQuerySupport {
                             readEnum(tag.getString("sort_option"), DatabaseSortOption.class, DatabaseSortOption.RECENTLY_CHANGED),
                             tag.getString("search_text"),
                             DatabaseSearchConfig.fromTag(tag.getCompound("search_config"))
-                    )
+                    ),
+                    List.of()
             );
         }
 
@@ -270,7 +301,8 @@ final class DatabaseQuerySupport {
                                 Math.max(0, tag.getInt("page_index")),
                                 normalizePageSize(tag.getInt("page_size"))
                         )
-                )
+                ),
+                List.of()
         );
     }
 
@@ -343,6 +375,21 @@ final class DatabaseQuerySupport {
             }
         }
         return visibleTabs;
+    }
+
+    private static List<DatabaseScopedTabRef> fromHiddenTopTabsTag(ListTag tag, DatabaseScope fallbackScope) {
+        java.util.ArrayList<DatabaseScopedTabRef> hiddenTopTabs = new java.util.ArrayList<>();
+        if (tag == null) {
+            return hiddenTopTabs;
+        }
+        for (Tag element : tag) {
+            if (element instanceof CompoundTag hiddenTabTag) {
+                if (hiddenTabTag.contains(SCOPE_KEY, Tag.TAG_STRING)) {
+                    hiddenTopTabs.add(DatabaseScopedTabRef.fromTag(hiddenTabTag, fallbackScope));
+                }
+            }
+        }
+        return hiddenTopTabs;
     }
 
     private static List<String> fromLegacyVisibleTabIdsTag(ListTag tag) {

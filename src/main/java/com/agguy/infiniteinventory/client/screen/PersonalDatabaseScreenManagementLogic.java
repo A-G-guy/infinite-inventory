@@ -54,13 +54,13 @@ final class PersonalDatabaseScreenManagementLogic {
             DatabaseTab selectedTab,
             int direction
     ) {
-        if (selectedTab == null || !selectedTab.isConcreteTab()) {
+        if (selectedTab == null) {
             return false;
         }
-        List<DatabaseTab> concreteTabs = PersonalDatabaseScreenCommonHelper.concreteTabsForScope(screen, selectedScope);
+        List<DatabaseTab> tabs = PersonalDatabaseScreenCommonHelper.tabsForScope(screen, selectedScope);
         int selectedIndex = -1;
-        for (int index = 0; index < concreteTabs.size(); index++) {
-            if (concreteTabs.get(index).id().equals(selectedTab.id())) {
+        for (int index = 0; index < tabs.size(); index++) {
+            if (tabs.get(index).id().equals(selectedTab.id())) {
                 selectedIndex = index;
                 break;
             }
@@ -69,7 +69,7 @@ final class PersonalDatabaseScreenManagementLogic {
             return false;
         }
         int nextIndex = selectedIndex + direction;
-        return nextIndex >= 0 && nextIndex < concreteTabs.size();
+        return nextIndex >= 0 && nextIndex < tabs.size();
     }
 
     static boolean canSaveSelectedTab(PersonalDatabaseScreen screen, DatabaseTab selectedTab) {

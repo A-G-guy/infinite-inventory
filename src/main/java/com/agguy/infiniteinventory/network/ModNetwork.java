@@ -20,7 +20,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "18";
+    private static final String NETWORK_VERSION = "19";
 
     private ModNetwork() {
     }
@@ -145,8 +145,13 @@ public final class ModNetwork {
                     payload.tabId(),
                     payload.targetTabId()
             );
+            case TOGGLE_TOP_VISIBILITY -> PersonalDatabaseService.INSTANCE.toggleTopTabVisibility(player, payload.scope(), payload.tabId());
         };
         if (!changed) {
+            return;
+        }
+        if (payload.action() == DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY) {
+            menu.syncViewToClient();
             return;
         }
         if (payload.action() == DatabaseTabMutationAction.TRANSFER) {

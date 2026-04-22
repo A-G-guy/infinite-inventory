@@ -37,10 +37,26 @@ final class PersonalDatabaseScreenTabHelper {
     }
 
     static List<DatabaseScopedTabRef> currentTopTabs(PersonalDatabaseScreen screen) {
-        return filterTopTabsByScope(
+        List<DatabaseScopedTabRef> tabs = filterTopTabsByScope(
                 PersonalDatabaseScreenCommonHelper.allTopTabs(screen),
                 syncTopTabScopeFilter(screen)
         );
+        DatabaseQuery query = screen.databaseMenu.viewState().query();
+        List<DatabaseScopedTabRef> filteredTabs = new ArrayList<>();
+        for (DatabaseScopedTabRef tab : tabs) {
+            if (!query.isTopTabHidden(tab)) {
+                filteredTabs.add(tab);
+            }
+        }
+        if (filteredTabs.isEmpty() && !tabs.isEmpty()) {
+            DatabaseScopedTabRef focusedTab = query.focusedTab();
+            if (tabs.contains(focusedTab)) {
+                filteredTabs.add(focusedTab);
+            } else {
+                filteredTabs.add(tabs.getFirst());
+            }
+        }
+        return List.copyOf(filteredTabs);
     }
 
     static List<DatabaseScopedTabRef> visibleTopTabs(PersonalDatabaseScreen screen) {
