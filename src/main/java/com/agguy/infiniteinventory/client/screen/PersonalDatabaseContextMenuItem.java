@@ -33,6 +33,7 @@ record PersonalDatabaseContextMenuItem(
     }
 
     enum LocalAction {
-        OPEN_CUSTOM_EXTRACT_OVERLAY
+        OPEN_CUSTOM_EXTRACT_OVERLAY,
+        OPEN_NOTE_OVERLAY
     }
 }

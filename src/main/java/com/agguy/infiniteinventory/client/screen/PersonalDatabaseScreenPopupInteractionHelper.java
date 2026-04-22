@@ -143,6 +143,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
             return true;
         }
+        if (screen.noteOverlayExpanded) {
+            PersonalDatabaseScreenNoteOverlayHelper.closeOverlay(screen);
+            return true;
+        }
         if (screen.contextMenuExpanded) {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             return true;

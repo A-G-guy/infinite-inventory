@@ -21,6 +21,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
             return true;
         }
+        if (screen.noteOverlayExpanded
+                && PersonalDatabaseScreenNoteOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
+            return true;
+        }
         if (screen.logPanelExpanded
                 && PersonalDatabaseScreenLogHelper.handleLogPanelClick(screen, mouseX, mouseY, button)) {
             return true;
@@ -194,6 +198,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.keyPressed(screen, keyCode, scanCode, modifiers)) {
             return true;
         }
+        if (screen.noteOverlayExpanded
+                && PersonalDatabaseScreenNoteOverlayHelper.keyPressed(screen, keyCode, scanCode, modifiers)) {
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if (screen.topTabActionPromptExpanded) {
                 PersonalDatabaseScreenTabHelper.applyPrimaryTopTabAction(screen);
@@ -250,6 +258,10 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (screen.customExtractOverlayExpanded
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.charTyped(screen, codePoint, modifiers)) {
+            return true;
+        }
+        if (screen.noteOverlayExpanded
+                && PersonalDatabaseScreenNoteOverlayHelper.charTyped(screen, codePoint, modifiers)) {
             return true;
         }
         if (screen.iconPickerExpanded

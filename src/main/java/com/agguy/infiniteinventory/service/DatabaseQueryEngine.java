@@ -298,11 +298,12 @@ public final class DatabaseQueryEngine {
             StoredStackKey key,
             StoredStackEntry entry,
             ItemStack displayStack,
+            String note,
             DatabaseSearchIndex searchIndex,
             DatabaseItemSearchMetadata searchMetadata,
             DatabaseSortSnapshot baseSortSnapshot
     ) {
-        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, ViewerLanguage viewerLanguage) {
+        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, String note, ViewerLanguage viewerLanguage) {
             ItemStack displayStack = key.displayStack();
             DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage);
             DatabaseItemSearchMetadata searchMetadata = DatabaseItemSearchMetadataResolver.INSTANCE.resolve(key);
@@ -310,6 +311,7 @@ public final class DatabaseQueryEngine {
                     key,
                     entry,
                     displayStack,
+                    note,
                     searchIndex,
                     searchMetadata,
                     new DatabaseSortSnapshot(
@@ -334,7 +336,8 @@ public final class DatabaseQueryEngine {
                             this.displayStack.copyWithCount(1),
                             this.entry.amount(),
                             this.entry.tabId(),
-                            this.key.registryName()
+                            this.key.registryName(),
+                            this.note
                     )
             );
         }
@@ -396,7 +399,8 @@ public final class DatabaseQueryEngine {
             tabTotals.put(DatabaseTabs.ALL_TAB_ID, 0L);
 
             for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
-                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue(), viewerLanguage);
+                String note = database.noteFor(mapEntry.getKey());
+                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue(), note, viewerLanguage);
                 String tabId = DatabaseTabs.normalizeConcreteTarget(record.entry().tabId());
                 tabBuckets.computeIfAbsent(tabId, ignored -> new ArrayList<>()).add(record);
                 tabBuckets.get(DatabaseTabs.ALL_TAB_ID).add(record);

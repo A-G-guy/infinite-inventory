@@ -134,6 +134,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     EditBox iconSearchBox;
     @Nullable
     EditBox customExtractAmountBox;
+    @Nullable
+    EditBox noteEditBox;
     final Map<DatabaseSearchField, Button> advancedSearchToggleButtons = new EnumMap<>(DatabaseSearchField.class);
     final Map<DatabaseSearchField, Button> advancedSearchWeightButtons = new EnumMap<>(DatabaseSearchField.class);
     final Map<DatabaseEnhancementOption, Button> enhancementToggleButtons = new EnumMap<>(DatabaseEnhancementOption.class);
@@ -159,6 +161,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean accessoriesExpanded;
     boolean contextMenuExpanded;
     boolean customExtractOverlayExpanded;
+    boolean noteOverlayExpanded;
     boolean logPanelExpanded;
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
@@ -255,6 +258,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.tabManagementExpanded = false;
         this.iconPickerExpanded = false;
         this.customExtractOverlayExpanded = false;
+        this.noteOverlayExpanded = false;
         this.customExtractValidationKey = "";
         this.logPanelExpanded = false;
         this.logPanelScrollIndex = 0;
@@ -286,6 +290,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(this);
         PersonalDatabaseScreenLayoutHelper.tickSearchSync(this);
         PersonalDatabaseScreenCustomExtractOverlayHelper.validateOverlay(this);
+        PersonalDatabaseScreenNoteOverlayHelper.validateOverlay(this);
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
 
@@ -344,6 +349,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.customExtractOverlayExpanded) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.noteOverlayExpanded) {
+            PersonalDatabaseScreenNoteOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);
         }
         if (this.logPanelExpanded) {
             PersonalDatabaseScreenLogHelper.renderLogPanel(this, guiGraphics, mouseX, mouseY);
@@ -455,43 +463,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.clearWidgets();
     }
 
-    boolean invokeSuperMouseClicked(double mouseX, double mouseY, int button) {
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    boolean invokeSuperMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    boolean invokeSuperMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
-    }
-
-    boolean invokeSuperMouseReleased(double mouseX, double mouseY, int button) {
-        return super.mouseReleased(mouseX, mouseY, button);
-    }
-
-    boolean invokeSuperKeyPressed(int keyCode, int scanCode, int modifiers) {
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    boolean invokeSuperKeyReleased(int keyCode, int scanCode, int modifiers) {
-        return super.keyReleased(keyCode, scanCode, modifiers);
-    }
-
-    boolean invokeSuperCharTyped(char codePoint, int modifiers) {
-        return super.charTyped(codePoint, modifiers);
-    }
-
-    void invokeSuperRenderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        super.renderTooltip(guiGraphics, mouseX, mouseY);
-    }
-
-    java.util.List<Component> containerTooltip(ItemStack stack) {
-        return this.getTooltipFromContainerItem(stack);
-    }
-
-    void focusScreen(@Nullable GuiEventListener listener) {
-        this.setFocused(listener);
-    }
+    boolean invokeSuperMouseClicked(double mouseX, double mouseY, int button) { return super.mouseClicked(mouseX, mouseY, button); }
+    boolean invokeSuperMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) { return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY); }
+    boolean invokeSuperMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) { return super.mouseDragged(mouseX, mouseY, button, dragX, dragY); }
+    boolean invokeSuperMouseReleased(double mouseX, double mouseY, int button) { return super.mouseReleased(mouseX, mouseY, button); }
+    boolean invokeSuperKeyPressed(int keyCode, int scanCode, int modifiers) { return super.keyPressed(keyCode, scanCode, modifiers); }
+    boolean invokeSuperKeyReleased(int keyCode, int scanCode, int modifiers) { return super.keyReleased(keyCode, scanCode, modifiers); }
+    boolean invokeSuperCharTyped(char codePoint, int modifiers) { return super.charTyped(codePoint, modifiers); }
+    void invokeSuperRenderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) { super.renderTooltip(guiGraphics, mouseX, mouseY); }
+    java.util.List<Component> containerTooltip(ItemStack stack) { return this.getTooltipFromContainerItem(stack); }
+    void focusScreen(@Nullable GuiEventListener listener) { this.setFocused(listener); }
 }

@@ -374,29 +374,25 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseTransferHelper.transferSelection(this, player, sourceScope, targetScope, selectionEntries, targetTabId);
     }
 
+    public void setNote(ServerPlayer player, DatabaseScope scope, StoredStackKey key, String note) {
+        if (key == null) return;
+        this.resolveDatabaseForMutation(player, scope).setNote(key, note);
+        this.markScopeDirty(player, scope);
+    }
+
+    public String noteFor(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
+        return key == null ? "" : this.resolveDatabaseForView(player, scope).noteFor(key);
+    }
+
     public List<DatabaseLogEntry> getLogEntries(ServerPlayer player, DatabaseScope scope) {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
     }
 
-    public void syncPublicViewers(MinecraftServer server) {
-        PersonalDatabaseServiceViewerHelper.syncPublicViewers(server);
-    }
-
-    public void syncAllViewers(MinecraftServer server) {
-        PersonalDatabaseServiceViewerHelper.syncAllViewers(server);
-    }
-
-    public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) {
-        PersonalDatabaseServiceViewerHelper.syncAllViewersAndNotifyCurrentScope(server);
-    }
-
-    public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
-        PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, scope);
-    }
-
-    private static long safeAddMovedItems(long currentTotal, ItemStack stack) {
-        return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack);
-    }
+    public void syncPublicViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncPublicViewers(server); }
+    public void syncAllViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncAllViewers(server); }
+    public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncAllViewersAndNotifyCurrentScope(server); }
+    public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) { PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, scope); }
+    private static long safeAddMovedItems(long currentTotal, ItemStack stack) { return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack); }
 
 
     private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {

@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
-    public static final int CURRENT_SCHEMA_VERSION = 4;
+    public static final int CURRENT_SCHEMA_VERSION = 5;
 
     private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final String ENTRIES_KEY = "entries";
@@ -25,22 +25,23 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private static final String LAST_MODIFIED_KEY = "last_modified";
     private static final String NEXT_SEQUENCE_KEY = "next_sequence";
     private static final String LOG_ENTRIES_KEY = "log_entries";
+    private static final String NOTES_KEY = "notes";
+    private static final String NOTE_KEY = "note_key";
+    private static final String NOTE_TEXT_KEY = "note_text";
     private static final int MAX_LOG_ENTRIES = 500;
+    private static final int MAX_NOTE_LENGTH = 256;
 
     private final Map<StoredStackKey, StoredStackEntry> entries = new LinkedHashMap<>();
+    private final Map<StoredStackKey, String> notes = new LinkedHashMap<>();
     private final java.util.List<UnresolvedStoredEntry> unresolvedEntries = new java.util.ArrayList<>();
     private final java.util.List<DatabaseLogEntry> logEntries = new java.util.ArrayList<>();
     private long nextSequence = 1L;
     private long revision;
     private boolean needsResave;
 
-    public Map<StoredStackKey, StoredStackEntry> entries() {
-        return Collections.unmodifiableMap(this.entries);
-    }
-
-    public List<UnresolvedStoredEntry> unresolvedEntries() {
-        return List.copyOf(this.unresolvedEntries);
-    }
+    public Map<StoredStackKey, StoredStackEntry> entries() { return Collections.unmodifiableMap(this.entries); }
+    public Map<StoredStackKey, String> notes() { return Collections.unmodifiableMap(this.notes); }
+    public List<UnresolvedStoredEntry> unresolvedEntries() { return List.copyOf(this.unresolvedEntries); }
 
     public List<DatabaseLogEntry> logEntries() {
         return List.copyOf(this.logEntries);
@@ -54,46 +55,33 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return !this.unresolvedEntries.isEmpty();
     }
 
-    public long getAmount(StoredStackKey key) {
-        StoredStackEntry entry = this.entries.get(key);
-        return entry == null ? 0L : entry.amount();
-    }
-
-    public int entryCount() {
-        return this.entries.size();
-    }
-
+    public long getAmount(StoredStackKey key) { StoredStackEntry entry = this.entries.get(key); return entry == null ? 0L : entry.amount(); }
+    public int entryCount() { return this.entries.size(); }
     public long totalItemCount() {
         long total = 0L;
         for (StoredStackEntry entry : this.entries.values()) {
-            if (Long.MAX_VALUE - total < entry.amount()) {
-                return Long.MAX_VALUE;
-            }
+            if (Long.MAX_VALUE - total < entry.amount()) return Long.MAX_VALUE;
             total += entry.amount();
         }
         return total;
     }
+    public long revision() { return this.revision; }
+    public boolean needsResave() { return this.needsResave; }
+    public void clear() { if (this.hasStoredContent()) { this.resetContent(); this.markRuntimeStateDirty(); } }
 
-    public long revision() {
-        return this.revision;
-    }
+    public String noteFor(StoredStackKey key) { return key == null ? "" : this.notes.getOrDefault(key, ""); }
 
-    public boolean needsResave() {
-        return this.needsResave;
-    }
-
-    public void clear() {
-        if (!this.hasStoredContent()) {
-            return;
-        }
-        this.resetContent();
-        this.markRuntimeStateDirty();
+    public void setNote(StoredStackKey key, String note) {
+        if (key == null) return;
+        String normalized = note == null ? "" : note.trim();
+        if (normalized.length() > MAX_NOTE_LENGTH) normalized = normalized.substring(0, MAX_NOTE_LENGTH);
+        if (normalized.isEmpty()) { if (this.notes.remove(key) != null) this.markRuntimeStateDirty(); return; }
+        String existing = this.notes.get(key);
+        if (existing == null || !existing.equals(normalized)) { this.notes.put(key, normalized); this.markRuntimeStateDirty(); }
     }
 
     public void mergeFrom(StoredItemDatabase other) {
-        if (other == null) {
-            return;
-        }
+        if (other == null) return;
         boolean changed = false;
         long highestMergedSequence = 0L;
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : other.entries().entrySet()) {
@@ -101,27 +89,26 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             highestMergedSequence = Math.max(highestMergedSequence, mapEntry.getValue().lastModified());
             changed = true;
         }
+        for (Map.Entry<StoredStackKey, String> noteEntry : other.notes().entrySet()) {
+            String existing = this.notes.get(noteEntry.getKey());
+            if (existing == null || !existing.equals(noteEntry.getValue())) {
+                this.notes.put(noteEntry.getKey(), noteEntry.getValue()); changed = true;
+            }
+        }
         for (UnresolvedStoredEntry unresolvedEntry : other.unresolvedEntries()) {
             if (!unresolvedEntry.isEmpty()) {
                 this.unresolvedEntries.add(new UnresolvedStoredEntry(
-                        unresolvedEntry.stackTag(),
-                        unresolvedEntry.amount(),
-                        unresolvedEntry.tabId(),
-                        unresolvedEntry.lastModified(),
-                        unresolvedEntry.firstAdded()
+                        unresolvedEntry.stackTag(), unresolvedEntry.amount(), unresolvedEntry.tabId(),
+                        unresolvedEntry.lastModified(), unresolvedEntry.firstAdded()
                 ));
                 highestMergedSequence = Math.max(highestMergedSequence, unresolvedEntry.lastModified());
                 changed = true;
             }
         }
-        if (!changed) {
-            return;
-        }
-        long nextAfterMergedEntries = highestMergedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMergedSequence + 1L;
-        this.nextSequence = Math.max(this.nextSequence, Math.max(other.nextSequence, nextAfterMergedEntries));
-        if (this.nextSequence <= 0L) {
-            this.nextSequence = 1L;
-        }
+        if (!changed) return;
+        long nextAfterMerged = highestMergedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMergedSequence + 1L;
+        this.nextSequence = Math.max(this.nextSequence, Math.max(other.nextSequence, nextAfterMerged));
+        if (this.nextSequence <= 0L) this.nextSequence = 1L;
         this.markRuntimeStateDirty();
     }
 
@@ -285,11 +272,25 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
         }
         root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
-        if (!this.logEntries.isEmpty()) {
+        if (!this.logEntries.isEmpty() || !this.notes.isEmpty()) {
             if (resolvedProvider == null) {
                 resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
             }
-            root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
+            if (!this.logEntries.isEmpty()) {
+                root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
+            }
+            if (!this.notes.isEmpty()) {
+                ListTag serializedNotes = new ListTag();
+                for (Map.Entry<StoredStackKey, String> noteEntry : this.notes.entrySet()) {
+                    Tag serializedStack = noteEntry.getKey().displayStack().saveOptional(resolvedProvider);
+                    if (!(serializedStack instanceof CompoundTag stackTag)) continue;
+                    CompoundTag noteTag = new CompoundTag();
+                    noteTag.put(NOTE_KEY, stackTag);
+                    noteTag.putString(NOTE_TEXT_KEY, noteEntry.getValue());
+                    serializedNotes.add(noteTag);
+                }
+                root.put(NOTES_KEY, serializedNotes);
+            }
         }
         root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);
         return root;
@@ -327,6 +328,14 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.resolveUnresolvedEntries(provider);
         this.logEntries.clear();
         this.logEntries.addAll(DatabaseLogEntry.readList(provider, tag.getList(LOG_ENTRIES_KEY, Tag.TAG_COMPOUND)));
+        for (Tag element : tag.getList(NOTES_KEY, Tag.TAG_COMPOUND)) {
+            if (!(element instanceof CompoundTag noteTag)) continue;
+            CompoundTag stackTag = noteTag.getCompound(NOTE_KEY);
+            String noteText = noteTag.getString(NOTE_TEXT_KEY);
+            if (stackTag.isEmpty() || noteText.isEmpty() || provider == null) continue;
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            if (!stack.isEmpty()) this.notes.put(StoredStackKey.of(stack), noteText);
+        }
         this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
     }
@@ -450,6 +459,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     private void resetContent() {
         this.entries.clear();
+        this.notes.clear();
         this.unresolvedEntries.clear();
         this.logEntries.clear();
         this.nextSequence = 1L;

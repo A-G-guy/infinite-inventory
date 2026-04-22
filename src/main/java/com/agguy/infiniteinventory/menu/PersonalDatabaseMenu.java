@@ -161,6 +161,23 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         PersonalDatabaseMenuSyncHelper.syncViewToClient(this);
     }
 
+    public void handleNoteUpdate(DatabaseScope scope, List<ItemStack> targetStacks, String note) {
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) return;
+        boolean changed = false;
+        String trimmedNote = note == null ? "" : note.trim();
+        for (ItemStack stack : targetStacks) {
+            if (stack.isEmpty()) continue;
+            StoredStackKey key = StoredStackKey.of(stack);
+            String currentNote = PersonalDatabaseService.INSTANCE.noteFor(serverPlayer, scope, key);
+            if (trimmedNote.isEmpty()) {
+                if (!currentNote.isEmpty()) { PersonalDatabaseService.INSTANCE.setNote(serverPlayer, scope, key, ""); changed = true; }
+            } else if (!currentNote.equals(trimmedNote)) {
+                PersonalDatabaseService.INSTANCE.setNote(serverPlayer, scope, key, trimmedNote); changed = true;
+            }
+        }
+        if (changed) { this.broadcastChanges(); this.syncAfterScopeMutation(serverPlayer, scope); }
+    }
+
     public void updateQuery(DatabaseQuery newQuery) {
         PersonalDatabaseMenuSyncHelper.updateQuery(this, newQuery);
     }
@@ -438,45 +455,21 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     }
 
     @Override
-    public void fillCraftSlotsStackedContents(net.minecraft.world.entity.player.StackedContents stackedContents) {
-        this.craftSlots.fillStackedContents(stackedContents);
-    }
-
+    public void fillCraftSlotsStackedContents(net.minecraft.world.entity.player.StackedContents stackedContents) { this.craftSlots.fillStackedContents(stackedContents); }
     @Override
-    public void clearCraftingContent() {
-        this.resultSlots.clearContent();
-        this.craftSlots.clearContent();
-    }
-
+    public void clearCraftingContent() { this.resultSlots.clearContent(); this.craftSlots.clearContent(); }
     @Override
-    public boolean recipeMatches(RecipeHolder<CraftingRecipe> recipe) {
-        return recipe.value().matches(this.craftSlots.asCraftInput(), this.owner.level());
-    }
-
+    public boolean recipeMatches(RecipeHolder<CraftingRecipe> recipe) { return recipe.value().matches(this.craftSlots.asCraftInput(), this.owner.level()); }
     @Override
-    public int getResultSlotIndex() {
-        return this.resultSlotIndex;
-    }
-
+    public int getResultSlotIndex() { return this.resultSlotIndex; }
     @Override
-    public int getGridWidth() {
-        return 2;
-    }
-
+    public int getGridWidth() { return 2; }
     @Override
-    public int getGridHeight() {
-        return 2;
-    }
-
+    public int getGridHeight() { return 2; }
     @Override
-    public int getSize() {
-        return 5;
-    }
-
+    public int getSize() { return 5; }
     @Override
-    public RecipeBookType getRecipeBookType() {
-        return RecipeBookType.CRAFTING;
-    }
+    public RecipeBookType getRecipeBookType() { return RecipeBookType.CRAFTING; }
 
     @Override
     public boolean shouldMoveToInventory(int slotIndex) {

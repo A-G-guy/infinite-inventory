@@ -313,6 +313,9 @@ final class PersonalDatabaseScreenRenderHelper {
             if (hitResult.slotIndex() < panel.entries().size()) {
                 VisibleDatabaseEntry entry = panel.entries().get(hitResult.slotIndex());
                 List<Component> tooltip = new ArrayList<>(screen.containerTooltip(entry.stack()));
+                if (!entry.note().isEmpty()) {
+                    tooltip.add(Component.literal(entry.note()).withStyle(ChatFormatting.YELLOW));
+                }
                 tooltip.add(Component.translatable(
                         "screen.infiniteinventory.tooltip.amount",
                         CompactNumberFormatter.format(entry.amount())
@@ -475,17 +478,8 @@ final class PersonalDatabaseScreenRenderHelper {
             VanillaWidgetRenderer.renderTextField(guiGraphics, searchRect, focused);
         }
     }
-    private static void renderFrameBadgeText(
-            PersonalDatabaseScreen screen,
-            GuiGraphics guiGraphics,
-            String text,
-            int x,
-            int y,
-            int textColor
-    ) {
-        if (text == null || text.isBlank()) {
-            return;
-        }
+    private static void renderFrameBadgeText(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, String text, int x, int y, int textColor) {
+        if (text == null || text.isBlank()) return;
         int textWidth = screen.screenFont().width(text);
         int left = x - 4;
         int top = y - 3;

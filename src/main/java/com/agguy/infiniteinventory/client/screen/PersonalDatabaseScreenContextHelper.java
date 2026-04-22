@@ -96,6 +96,8 @@ final class PersonalDatabaseScreenContextHelper {
         closeContextMenu(screen);
         if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.openOverlay(screen);
+        } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY) {
+            PersonalDatabaseScreenNoteOverlayHelper.openOverlay(screen);
         }
     }
 

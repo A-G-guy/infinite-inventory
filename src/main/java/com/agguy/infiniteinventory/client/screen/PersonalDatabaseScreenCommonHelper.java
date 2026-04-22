@@ -42,6 +42,10 @@ final class PersonalDatabaseScreenCommonHelper {
                     "screen.infiniteinventory.context.take_custom_to_inventory",
                     PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
             ),
+            PersonalDatabaseContextMenuItem.local(
+                    "screen.infiniteinventory.context.edit_note",
+                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY
+            ),
             PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
     );
     private static final List<PersonalDatabaseContextMenuItem> MULTI_SELECTION_CONTEXT_MENU_ITEMS = List.of(
@@ -68,6 +72,10 @@ final class PersonalDatabaseScreenCommonHelper {
             PersonalDatabaseContextMenuItem.local(
                     "screen.infiniteinventory.selection.take_custom_each",
                     PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
+            ),
+            PersonalDatabaseContextMenuItem.local(
+                    "screen.infiniteinventory.context.edit_note",
+                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY
             ),
             PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
     );
