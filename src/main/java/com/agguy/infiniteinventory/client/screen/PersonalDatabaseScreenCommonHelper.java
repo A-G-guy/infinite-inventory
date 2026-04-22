@@ -387,22 +387,22 @@ final class PersonalDatabaseScreenCommonHelper {
         return switch (item.translationKey()) {
             case "screen.infiniteinventory.context.take_single",
                  "screen.infiniteinventory.selection.take_one_each" ->
-                    new ItemStack(Items.IRON_NUGGET);
+                    new ItemStack(Items.ARROW);
             case "screen.infiniteinventory.context.take_half_stack_to_inventory",
                  "screen.infiniteinventory.selection.take_half_stack_each" ->
-                    new ItemStack(Items.IRON_INGOT);
+                    new ItemStack(Items.SHEARS);
             case "screen.infiniteinventory.context.take_stack",
                  "screen.infiniteinventory.selection.take_stack_each" ->
-                    new ItemStack(Items.DIAMOND);
+                    new ItemStack(Items.BUNDLE);
             case "screen.infiniteinventory.context.take_half_entry_to_inventory",
                  "screen.infiniteinventory.selection.take_half_entry_each" ->
-                    new ItemStack(Items.CHEST);
+                    new ItemStack(Items.DROPPER);
             case "screen.infiniteinventory.context.take_all_to_inventory",
                  "screen.infiniteinventory.selection.take_all_each" ->
                     new ItemStack(Items.HOPPER);
             case "screen.infiniteinventory.context.take_custom_to_inventory",
                  "screen.infiniteinventory.selection.take_custom_each" ->
-                    new ItemStack(Items.ANVIL);
+                    new ItemStack(Items.COMPARATOR);
             case "screen.infiniteinventory.context.edit_note" ->
                     new ItemStack(Items.WRITABLE_BOOK);
             case "screen.infiniteinventory.context.toggle_star" ->
