@@ -235,7 +235,7 @@ public final class DatabaseTabDirectory {
     }
 
     private void ensureDefaultConcreteTab() {
-        int firstNonSystemIndex = 0;
+        int firstNonSystemIndex = this.concreteTabs.size();
         for (int i = 0; i < this.concreteTabs.size(); i++) {
             if (!this.concreteTabs.get(i).isSystemTab()) {
                 firstNonSystemIndex = i;

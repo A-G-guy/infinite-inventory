@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.service.tests;
 
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
@@ -14,6 +15,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseQueryTest {
     @Test
@@ -85,6 +88,67 @@ class DatabaseQueryTest {
         DatabaseQuery.write(buffer, query);
 
         assertEquals(query, DatabaseQuery.read(buffer));
+    }
+
+    @Test
+    void hiddenTopTabsShouldDefaultToEmpty() {
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "", DatabaseSearchConfig.defaultConfig(), 0, DatabaseQuery.DEFAULT_PAGE_SIZE);
+
+        assertEquals(List.of(), query.hiddenTopTabs());
+        assertFalse(query.isTopTabHidden(DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL)));
+    }
+
+    @Test
+    void withHiddenTopTabToggledShouldAddAndRemove() {
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "", DatabaseSearchConfig.defaultConfig(), 0, DatabaseQuery.DEFAULT_PAGE_SIZE);
+        DatabaseScopedTabRef favorites = DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID);
+
+        DatabaseQuery hidden = query.withHiddenTopTabToggled(favorites);
+
+        assertTrue(hidden.isTopTabHidden(favorites));
+        assertEquals(List.of(favorites), hidden.hiddenTopTabs());
+
+        DatabaseQuery shown = hidden.withHiddenTopTabToggled(favorites);
+
+        assertFalse(shown.isTopTabHidden(favorites));
+        assertEquals(List.of(), shown.hiddenTopTabs());
+    }
+
+    @Test
+    void tagAndBufferRoundTripShouldKeepHiddenTopTabs() {
+        DatabaseQuery query = this.query(DatabaseScope.PUBLIC, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_DESC, "diamond sword", DatabaseSearchConfig.defaultConfig(), 2, 72)
+                .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.FAVORITES_TAB_ID))
+                .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.DEFAULT_TAB_ID));
+
+        assertEquals(query, DatabaseQuery.fromTag(query.toTag(), DatabaseScope.PUBLIC));
+
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        DatabaseQuery.write(buffer, query);
+
+        assertEquals(query, DatabaseQuery.read(buffer));
+    }
+
+    @Test
+    void retargetScopeShouldMoveHiddenTopTabs() {
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "", DatabaseSearchConfig.defaultConfig(), 0, DatabaseQuery.DEFAULT_PAGE_SIZE)
+                .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID));
+
+        DatabaseQuery retargeted = query.retargetScope(DatabaseScope.PUBLIC);
+
+        assertTrue(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.FAVORITES_TAB_ID)));
+        assertFalse(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID)));
+    }
+
+    @Test
+    void queryForScopeShouldFilterHiddenTopTabs() {
+        DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "", DatabaseSearchConfig.defaultConfig(), 0, DatabaseQuery.DEFAULT_PAGE_SIZE)
+                .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID))
+                .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID));
+
+        DatabaseQuery personalOnly = query.queryForScope(DatabaseScope.PERSONAL);
+
+        assertTrue(personalOnly.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID)));
+        assertFalse(personalOnly.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.DEFAULT_TAB_ID)));
     }
 
     private DatabaseQuery query(
