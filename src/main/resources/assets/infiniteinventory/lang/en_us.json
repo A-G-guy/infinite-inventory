@@ -16,6 +16,7 @@
   "screen.infiniteinventory.search_field.item_id": "Item ID",
   "screen.infiniteinventory.search_field.pinyin": "Pinyin",
   "screen.infiniteinventory.search_field.mod_namespace": "Mod Namespace",
+  "screen.infiniteinventory.search_field.note": "Note",
   "screen.infiniteinventory.search_field.count_boost": "Count Boost",
   "screen.infiniteinventory.search_weight.off": "Off",
   "screen.infiniteinventory.search_weight.low": "Low",

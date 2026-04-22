@@ -115,6 +115,12 @@ class DatabaseSearchExpressionEvaluatorTest {
                 SearchTextNormalizer.normalizeIdentifierText(namespace),
                 "",
                 "",
+                List.of(),
+                "",
+                "",
+                "",
+                List.of(),
+                List.of(),
                 List.of()
         );
     }

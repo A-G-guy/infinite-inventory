@@ -270,7 +270,13 @@ class DatabaseSearchEvaluatorTest {
                 SearchTextNormalizer.normalizeIdentifierText(namespace),
                 pinyinFull,
                 pinyinInitials,
-                pinyinTokens
+                pinyinTokens,
+                "",
+                "",
+                "",
+                List.of(),
+                List.of(),
+                List.of()
         );
     }
 }

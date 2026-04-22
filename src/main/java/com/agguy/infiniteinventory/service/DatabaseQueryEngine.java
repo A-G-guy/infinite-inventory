@@ -306,7 +306,7 @@ public final class DatabaseQueryEngine {
     ) {
         private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, String note, boolean starred, ViewerLanguage viewerLanguage) {
             ItemStack displayStack = key.displayStack();
-            DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage);
+            DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage).withNote(note);
             DatabaseItemSearchMetadata searchMetadata = DatabaseItemSearchMetadataResolver.INSTANCE.resolve(key);
             return new DatabaseRuntimeEntryRecord(
                     key,

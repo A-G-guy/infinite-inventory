@@ -20,7 +20,13 @@ public record DatabaseSearchIndex(
         String modNamespace,
         String pinyinFull,
         String pinyinInitials,
-        List<String> pinyinTokens
+        List<String> pinyinTokens,
+        String note,
+        String noteNormalized,
+        String noteCompact,
+        List<String> noteTokens,
+        List<String> noteSearchNormalizedTexts,
+        List<String> noteSearchCompactTexts
 ) {
     public DatabaseSearchIndex {
         displayName = displayName == null ? "" : displayName;
@@ -38,6 +44,12 @@ public record DatabaseSearchIndex(
         pinyinFull = pinyinFull == null ? "" : pinyinFull;
         pinyinInitials = pinyinInitials == null ? "" : pinyinInitials;
         pinyinTokens = List.copyOf(pinyinTokens);
+        note = note == null ? "" : note;
+        noteNormalized = noteNormalized == null ? "" : noteNormalized;
+        noteCompact = noteCompact == null ? "" : noteCompact;
+        noteTokens = List.copyOf(noteTokens);
+        noteSearchNormalizedTexts = List.copyOf(noteSearchNormalizedTexts);
+        noteSearchCompactTexts = List.copyOf(noteSearchCompactTexts);
     }
 
     public static DatabaseSearchIndex of(
@@ -45,6 +57,16 @@ public record DatabaseSearchIndex(
             String displayName,
             List<String> displayNameAliases,
             PinyinIndexData pinyinIndexData
+    ) {
+        return of(key, displayName, displayNameAliases, pinyinIndexData, "");
+    }
+
+    public static DatabaseSearchIndex of(
+            StoredStackKey key,
+            String displayName,
+            List<String> displayNameAliases,
+            PinyinIndexData pinyinIndexData,
+            String note
     ) {
         LinkedHashSet<String> searchNormalizedTexts = new LinkedHashSet<>();
         LinkedHashSet<String> searchCompactTexts = new LinkedHashSet<>();
@@ -55,6 +77,14 @@ public record DatabaseSearchIndex(
                 appendDisplayNameSearchText(displayNameAlias, searchNormalizedTexts, searchCompactTexts, searchTokens);
             }
         }
+
+        LinkedHashSet<String> noteNormalizedTexts = new LinkedHashSet<>();
+        LinkedHashSet<String> noteCompactTexts = new LinkedHashSet<>();
+        LinkedHashSet<String> noteSearchTokens = new LinkedHashSet<>();
+        if (note != null && !note.isBlank()) {
+            appendDisplayNameSearchText(note, noteNormalizedTexts, noteCompactTexts, noteSearchTokens);
+        }
+
         return new DatabaseSearchIndex(
                 displayName,
                 SearchTextNormalizer.normalizeNaturalText(displayName),
@@ -70,7 +100,43 @@ public record DatabaseSearchIndex(
                 SearchTextNormalizer.normalizeIdentifierText(key.registryNamespace()),
                 pinyinIndexData.fullPinyin(),
                 pinyinIndexData.initials(),
-                pinyinIndexData.tokens()
+                pinyinIndexData.tokens(),
+                note == null ? "" : note,
+                SearchTextNormalizer.normalizeNaturalText(note == null ? "" : note),
+                SearchTextNormalizer.compactNaturalText(note == null ? "" : note),
+                List.copyOf(noteSearchTokens),
+                List.copyOf(noteNormalizedTexts),
+                List.copyOf(noteCompactTexts)
+        );
+    }
+
+    public DatabaseSearchIndex withNote(String newNote) {
+        if (newNote == null || newNote.isBlank()) {
+            return new DatabaseSearchIndex(
+                    this.displayName, this.displayNameNormalized, this.displayNameCompact,
+                    this.displayNameTokens, this.displayNameSearchNormalizedTexts, this.displayNameSearchCompactTexts,
+                    this.registryNameNormalized, this.registryNameCompact,
+                    this.registryPathNormalized, this.registryPathCompact, this.registryPathTokens,
+                    this.modNamespace, this.pinyinFull, this.pinyinInitials, this.pinyinTokens,
+                    "", "", "", List.of(), List.of(), List.of()
+            );
+        }
+        LinkedHashSet<String> noteNormalizedTexts = new LinkedHashSet<>();
+        LinkedHashSet<String> noteCompactTexts = new LinkedHashSet<>();
+        LinkedHashSet<String> noteSearchTokens = new LinkedHashSet<>();
+        appendDisplayNameSearchText(newNote, noteNormalizedTexts, noteCompactTexts, noteSearchTokens);
+        return new DatabaseSearchIndex(
+                this.displayName, this.displayNameNormalized, this.displayNameCompact,
+                this.displayNameTokens, this.displayNameSearchNormalizedTexts, this.displayNameSearchCompactTexts,
+                this.registryNameNormalized, this.registryNameCompact,
+                this.registryPathNormalized, this.registryPathCompact, this.registryPathTokens,
+                this.modNamespace, this.pinyinFull, this.pinyinInitials, this.pinyinTokens,
+                newNote,
+                SearchTextNormalizer.normalizeNaturalText(newNote),
+                SearchTextNormalizer.compactNaturalText(newNote),
+                List.copyOf(noteSearchTokens),
+                List.copyOf(noteNormalizedTexts),
+                List.copyOf(noteCompactTexts)
         );
     }
 

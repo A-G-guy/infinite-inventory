@@ -8,12 +8,14 @@ public record DatabaseSearchConfig(
         DatabaseSearchWeight itemIdWeight,
         DatabaseSearchWeight pinyinWeight,
         DatabaseSearchWeight modNamespaceWeight,
+        DatabaseSearchWeight noteWeight,
         DatabaseSearchWeight countBoostWeight
 ) {
     private static final String DISPLAY_NAME_KEY = "display_name";
     private static final String ITEM_ID_KEY = "item_id";
     private static final String PINYIN_KEY = "pinyin";
     private static final String MOD_NAMESPACE_KEY = "mod_namespace";
+    private static final String NOTE_KEY = "note";
     private static final String COUNT_BOOST_KEY = "count_boost";
 
     public DatabaseSearchConfig {
@@ -21,8 +23,9 @@ public record DatabaseSearchConfig(
         itemIdWeight = normalizeWeight(itemIdWeight, DatabaseSearchField.ITEM_ID);
         pinyinWeight = normalizeWeight(pinyinWeight, DatabaseSearchField.PINYIN);
         modNamespaceWeight = normalizeWeight(modNamespaceWeight, DatabaseSearchField.MOD_NAMESPACE);
+        noteWeight = normalizeWeight(noteWeight, DatabaseSearchField.NOTE);
         countBoostWeight = normalizeWeight(countBoostWeight, DatabaseSearchField.COUNT_BOOST);
-        if (allTextFieldsDisabled(displayNameWeight, itemIdWeight, pinyinWeight, modNamespaceWeight)) {
+        if (allTextFieldsDisabled(displayNameWeight, itemIdWeight, pinyinWeight, modNamespaceWeight, noteWeight)) {
             displayNameWeight = DatabaseSearchField.DISPLAY_NAME.defaultWeight();
         }
     }
@@ -33,6 +36,7 @@ public record DatabaseSearchConfig(
                 DatabaseSearchField.ITEM_ID.defaultWeight(),
                 DatabaseSearchField.PINYIN.defaultWeight(),
                 DatabaseSearchField.MOD_NAMESPACE.defaultWeight(),
+                DatabaseSearchField.NOTE.defaultWeight(),
                 DatabaseSearchField.COUNT_BOOST.defaultWeight()
         );
     }
@@ -43,6 +47,7 @@ public record DatabaseSearchConfig(
             case ITEM_ID -> this.itemIdWeight;
             case PINYIN -> this.pinyinWeight;
             case MOD_NAMESPACE -> this.modNamespaceWeight;
+            case NOTE -> this.noteWeight;
             case COUNT_BOOST -> this.countBoostWeight;
         };
     }
@@ -50,11 +55,12 @@ public record DatabaseSearchConfig(
     public DatabaseSearchConfig withWeight(DatabaseSearchField field, DatabaseSearchWeight newWeight) {
         DatabaseSearchWeight normalizedWeight = normalizeWeight(newWeight, field);
         return switch (field) {
-            case DISPLAY_NAME -> new DatabaseSearchConfig(normalizedWeight, this.itemIdWeight, this.pinyinWeight, this.modNamespaceWeight, this.countBoostWeight);
-            case ITEM_ID -> new DatabaseSearchConfig(this.displayNameWeight, normalizedWeight, this.pinyinWeight, this.modNamespaceWeight, this.countBoostWeight);
-            case PINYIN -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, normalizedWeight, this.modNamespaceWeight, this.countBoostWeight);
-            case MOD_NAMESPACE -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, this.pinyinWeight, normalizedWeight, this.countBoostWeight);
-            case COUNT_BOOST -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, this.pinyinWeight, this.modNamespaceWeight, normalizedWeight);
+            case DISPLAY_NAME -> new DatabaseSearchConfig(normalizedWeight, this.itemIdWeight, this.pinyinWeight, this.modNamespaceWeight, this.noteWeight, this.countBoostWeight);
+            case ITEM_ID -> new DatabaseSearchConfig(this.displayNameWeight, normalizedWeight, this.pinyinWeight, this.modNamespaceWeight, this.noteWeight, this.countBoostWeight);
+            case PINYIN -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, normalizedWeight, this.modNamespaceWeight, this.noteWeight, this.countBoostWeight);
+            case MOD_NAMESPACE -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, this.pinyinWeight, normalizedWeight, this.noteWeight, this.countBoostWeight);
+            case NOTE -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, this.pinyinWeight, this.modNamespaceWeight, normalizedWeight, this.countBoostWeight);
+            case COUNT_BOOST -> new DatabaseSearchConfig(this.displayNameWeight, this.itemIdWeight, this.pinyinWeight, this.modNamespaceWeight, this.noteWeight, normalizedWeight);
         };
     }
 
@@ -62,7 +68,8 @@ public record DatabaseSearchConfig(
         return this.displayNameWeight != DatabaseSearchWeight.OFF
                 || this.itemIdWeight != DatabaseSearchWeight.OFF
                 || this.pinyinWeight != DatabaseSearchWeight.OFF
-                || this.modNamespaceWeight != DatabaseSearchWeight.OFF;
+                || this.modNamespaceWeight != DatabaseSearchWeight.OFF
+                || this.noteWeight != DatabaseSearchWeight.OFF;
     }
 
     public CompoundTag toTag() {
@@ -71,6 +78,7 @@ public record DatabaseSearchConfig(
         tag.putString(ITEM_ID_KEY, this.itemIdWeight.name());
         tag.putString(PINYIN_KEY, this.pinyinWeight.name());
         tag.putString(MOD_NAMESPACE_KEY, this.modNamespaceWeight.name());
+        tag.putString(NOTE_KEY, this.noteWeight.name());
         tag.putString(COUNT_BOOST_KEY, this.countBoostWeight.name());
         return tag;
     }
@@ -84,12 +92,14 @@ public record DatabaseSearchConfig(
                 readWeight(tag.getString(ITEM_ID_KEY), DatabaseSearchField.ITEM_ID.defaultWeight()),
                 readWeight(tag.getString(PINYIN_KEY), DatabaseSearchField.PINYIN.defaultWeight()),
                 readWeight(tag.getString(MOD_NAMESPACE_KEY), DatabaseSearchField.MOD_NAMESPACE.defaultWeight()),
+                readWeight(tag.getString(NOTE_KEY), DatabaseSearchField.NOTE.defaultWeight()),
                 readWeight(tag.getString(COUNT_BOOST_KEY), DatabaseSearchField.COUNT_BOOST.defaultWeight())
         );
     }
 
     public static DatabaseSearchConfig read(FriendlyByteBuf buffer) {
         return new DatabaseSearchConfig(
+                buffer.readEnum(DatabaseSearchWeight.class),
                 buffer.readEnum(DatabaseSearchWeight.class),
                 buffer.readEnum(DatabaseSearchWeight.class),
                 buffer.readEnum(DatabaseSearchWeight.class),
@@ -104,6 +114,7 @@ public record DatabaseSearchConfig(
         buffer.writeEnum(normalizedConfig.itemIdWeight());
         buffer.writeEnum(normalizedConfig.pinyinWeight());
         buffer.writeEnum(normalizedConfig.modNamespaceWeight());
+        buffer.writeEnum(normalizedConfig.noteWeight());
         buffer.writeEnum(normalizedConfig.countBoostWeight());
     }
 
@@ -115,12 +126,14 @@ public record DatabaseSearchConfig(
             DatabaseSearchWeight displayNameWeight,
             DatabaseSearchWeight itemIdWeight,
             DatabaseSearchWeight pinyinWeight,
-            DatabaseSearchWeight modNamespaceWeight
+            DatabaseSearchWeight modNamespaceWeight,
+            DatabaseSearchWeight noteWeight
     ) {
         return displayNameWeight == DatabaseSearchWeight.OFF
                 && itemIdWeight == DatabaseSearchWeight.OFF
                 && pinyinWeight == DatabaseSearchWeight.OFF
-                && modNamespaceWeight == DatabaseSearchWeight.OFF;
+                && modNamespaceWeight == DatabaseSearchWeight.OFF
+                && noteWeight == DatabaseSearchWeight.OFF;
     }
 
     private static DatabaseSearchWeight readWeight(String serializedWeight, DatabaseSearchWeight fallbackValue) {

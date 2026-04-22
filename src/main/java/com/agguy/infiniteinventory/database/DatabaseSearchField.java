@@ -5,6 +5,7 @@ public enum DatabaseSearchField {
     ITEM_ID("screen.infiniteinventory.search_field.item_id", true, DatabaseSearchWeight.MEDIUM),
     PINYIN("screen.infiniteinventory.search_field.pinyin", true, DatabaseSearchWeight.HIGH),
     MOD_NAMESPACE("screen.infiniteinventory.search_field.mod_namespace", true, DatabaseSearchWeight.LOW),
+    NOTE("screen.infiniteinventory.search_field.note", true, DatabaseSearchWeight.MEDIUM),
     COUNT_BOOST("screen.infiniteinventory.search_field.count_boost", false, DatabaseSearchWeight.LOW);
 
     private final String translationKey;

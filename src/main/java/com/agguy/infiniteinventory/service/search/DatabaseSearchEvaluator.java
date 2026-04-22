@@ -96,6 +96,13 @@ public final class DatabaseSearchEvaluator {
             case ITEM_ID -> this.matchIdentifierField(term, weight, index.registryNameNormalized(), index.registryNameCompact(), index.registryPathTokens(), index.registryPathNormalized(), index.registryPathCompact());
             case PINYIN -> this.matchPinyinField(term, weight, index.pinyinTokens(), index.pinyinFull(), index.pinyinInitials());
             case MOD_NAMESPACE -> this.matchCompactField(term, weight, index.modNamespace());
+            case NOTE -> this.matchNaturalField(
+                    term,
+                    weight,
+                    index.noteTokens(),
+                    index.noteSearchNormalizedTexts(),
+                    index.noteSearchCompactTexts()
+            );
             case COUNT_BOOST -> TokenMatch.noMatch();
         };
         return matched.withField(field);
@@ -319,6 +326,14 @@ public final class DatabaseSearchEvaluator {
             case ITEM_ID -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.registryPathNormalized(), index.registryPathCompact(), index.registryPathTokens());
             case PINYIN -> this.phraseBonusForText(weight, normalizedPhrase, compactPhrase, index.pinyinFull(), index.pinyinFull(), index.pinyinTokens());
             case MOD_NAMESPACE -> this.phraseBonusForCompact(weight, compactPhrase, index.modNamespace());
+            case NOTE -> this.phraseBonusForTexts(
+                    weight,
+                    normalizedPhrase,
+                    compactPhrase,
+                    index.noteSearchNormalizedTexts(),
+                    index.noteSearchCompactTexts(),
+                    index.noteTokens()
+            );
             case COUNT_BOOST -> 0.0D;
         };
     }
@@ -438,52 +453,5 @@ public final class DatabaseSearchEvaluator {
                 + weight.multiplier() * 200.0D
                 - positionPenalty * 5.0D
                 - Math.max(0, lengthPenalty);
-    }
-
-    private enum MatchLevel {
-        NONE(0),
-        FUZZY(1),
-        CONTAINS(2),
-        PREFIX(3),
-        EXACT(4);
-
-        private final int rank;
-
-        MatchLevel(int rank) {
-            this.rank = rank;
-        }
-    }
-
-    private record TokenMatch(DatabaseSearchField field, MatchLevel level, double score) {
-        private static final TokenMatch NO_MATCH = new TokenMatch(null, MatchLevel.NONE, Double.NEGATIVE_INFINITY);
-
-        static TokenMatch noMatch() {
-            return NO_MATCH;
-        }
-
-        private TokenMatch withField(DatabaseSearchField field) {
-            if (!this.matched()) {
-                return this;
-            }
-            return new TokenMatch(field, this.level, this.score);
-        }
-
-        boolean matched() {
-            return this.level != MatchLevel.NONE;
-        }
-
-        boolean isBetterThan(TokenMatch other) {
-            return this.betterOf(other) == this;
-        }
-
-        TokenMatch betterOf(TokenMatch other) {
-            if (other == null || other.level.rank < this.level.rank) {
-                return this;
-            }
-            if (other.level.rank > this.level.rank) {
-                return other;
-            }
-            return other.score > this.score ? other : this;
-        }
     }
 }

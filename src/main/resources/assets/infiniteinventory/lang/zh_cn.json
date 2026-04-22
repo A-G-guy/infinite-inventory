@@ -16,6 +16,7 @@
   "screen.infiniteinventory.search_field.item_id": "物品 ID",
   "screen.infiniteinventory.search_field.pinyin": "拼音",
   "screen.infiniteinventory.search_field.mod_namespace": "模组命名空间",
+  "screen.infiniteinventory.search_field.note": "备注",
   "screen.infiniteinventory.search_field.count_boost": "数量加权",
   "screen.infiniteinventory.search_weight.off": "关",
   "screen.infiniteinventory.search_weight.low": "低",
