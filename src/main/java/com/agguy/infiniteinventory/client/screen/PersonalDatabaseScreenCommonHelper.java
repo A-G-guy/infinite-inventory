@@ -426,4 +426,21 @@ final class PersonalDatabaseScreenCommonHelper {
         DatabaseScopedTabRef onlyVisibleTab = query.visibleTabs().getFirst();
         return onlyVisibleTab.isSystemTab() ? null : onlyVisibleTab;
     }
+
+    static String truncateToWidth(PersonalDatabaseScreen screen, String text, int maxWidth) {
+        if (maxWidth <= 0 || screen.screenFont().width(text) <= maxWidth) {
+            return text;
+        }
+        String suffix = "...";
+        int suffixWidth = screen.screenFont().width(suffix);
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < text.length(); index++) {
+            char character = text.charAt(index);
+            if (screen.screenFont().width(builder.toString() + character) + suffixWidth > maxWidth) {
+                break;
+            }
+            builder.append(character);
+        }
+        return builder.isEmpty() ? "" : builder.append(suffix).toString();
+    }
 }

@@ -184,5 +184,11 @@
   "screen.infiniteinventory.log.empty": "No operation records",
   "screen.infiniteinventory.log.tooltip.action": "Action: %s",
   "screen.infiniteinventory.log.tooltip.amount": "Amount: %s",
-  "screen.infiniteinventory.log.tooltip.player": "Player: %s"
+  "screen.infiniteinventory.log.tooltip.player": "Player: %s",
+  "screen.infiniteinventory.jei.amount.personal": "Personal: %s",
+  "screen.infiniteinventory.jei.amount.public": "Public: %s",
+  "screen.infiniteinventory.jei.crafting_tab_source.title": "JEI Crafting Material Sources",
+  "screen.infiniteinventory.jei.crafting_tab_source.select_all": "Select All",
+  "screen.infiniteinventory.jei.crafting_tab_source.clear_all": "Clear All",
+  "screen.infiniteinventory.enhancement.jei_crafting_tab_source": "JEI Crafting Material Sources"
 }

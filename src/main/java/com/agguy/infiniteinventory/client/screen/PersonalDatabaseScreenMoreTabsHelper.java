@@ -43,7 +43,7 @@ final class PersonalDatabaseScreenMoreTabsHelper {
             guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, scopedTab).getString(),
                             Math.max(0, rowRect.width() - 28)

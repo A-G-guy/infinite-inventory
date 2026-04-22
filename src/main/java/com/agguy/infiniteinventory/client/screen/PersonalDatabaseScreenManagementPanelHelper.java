@@ -104,7 +104,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
         );
         guiGraphics.drawString(
                 screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(
+                PersonalDatabaseScreenCommonHelper.truncateToWidth(
                         screen,
                         Component.translatable("screen.infiniteinventory.management.pick_icon").getString() + " / " + screen.pendingIconItemId,
                         Math.max(0, iconFieldRect.width() - 26)

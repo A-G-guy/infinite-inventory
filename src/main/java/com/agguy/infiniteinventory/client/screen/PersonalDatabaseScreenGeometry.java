@@ -8,9 +8,6 @@ import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenGeometry {
-    private static final int PANEL_HEADER_TITLE_HEIGHT = 12;
-    private static final int PANEL_HEADER_ROW_GAP = 2;
-    private static final int PANEL_SORT_BUTTON_WIDTH = 100;
     private static final int OVERLAY_CLOSE_BUTTON_SIZE = PersonalDatabaseLayout.CONTROL_HEIGHT;
     private static final int OVERLAY_CLOSE_BUTTON_MARGIN = 4;
 
@@ -150,23 +147,23 @@ final class PersonalDatabaseScreenGeometry {
     }
 
     static PersonalDatabaseLayout.Rect panelSearchFieldRect(PersonalDatabaseScreen screen, int panelIndex) {
-        return panelHeaderLayout(screen, panelIndex).searchRect();
+        return PersonalDatabaseScreenHeaderGeometry.panelHeaderLayout(screen, panelIndex).searchRect();
     }
 
     static PersonalDatabaseLayout.Rect panelSortButtonRect(PersonalDatabaseScreen screen, int panelIndex) {
-        return panelHeaderLayout(screen, panelIndex).sortRect();
+        return PersonalDatabaseScreenHeaderGeometry.panelHeaderLayout(screen, panelIndex).sortRect();
     }
 
     static PersonalDatabaseLayout.Rect panelPreviousPageButtonRect(PersonalDatabaseScreen screen, int panelIndex) {
-        return panelHeaderLayout(screen, panelIndex).previousRect();
+        return PersonalDatabaseScreenHeaderGeometry.panelHeaderLayout(screen, panelIndex).previousRect();
     }
 
     static PersonalDatabaseLayout.Rect panelPageButtonRect(PersonalDatabaseScreen screen, int panelIndex) {
-        return panelHeaderLayout(screen, panelIndex).pageRect();
+        return PersonalDatabaseScreenHeaderGeometry.panelHeaderLayout(screen, panelIndex).pageRect();
     }
 
     static PersonalDatabaseLayout.Rect panelNextPageButtonRect(PersonalDatabaseScreen screen, int panelIndex) {
-        return panelHeaderLayout(screen, panelIndex).nextRect();
+        return PersonalDatabaseScreenHeaderGeometry.panelHeaderLayout(screen, panelIndex).nextRect();
     }
 
     static PersonalDatabaseLayout.Rect selectorRowRect(
@@ -212,23 +209,6 @@ final class PersonalDatabaseScreenGeometry {
         int x = screen.layout.frameRect().x() + Math.max(0, (screen.layout.frameRect().width() - resolvedWidth) / 2);
         int y = screen.layout.frameRect().y() + Math.max(0, (screen.layout.frameRect().height() - resolvedHeight) / 2);
         return new PersonalDatabaseLayout.Rect(x, y, resolvedWidth, resolvedHeight);
-    }
-
-    static String truncateToWidth(PersonalDatabaseScreen screen, String text, int maxWidth) {
-        if (maxWidth <= 0 || screen.screenFont().width(text) <= maxWidth) {
-            return text;
-        }
-        String suffix = "...";
-        int suffixWidth = screen.screenFont().width(suffix);
-        StringBuilder builder = new StringBuilder();
-        for (int index = 0; index < text.length(); index++) {
-            char character = text.charAt(index);
-            if (screen.screenFont().width(builder.toString() + character) + suffixWidth > maxWidth) {
-                break;
-            }
-            builder.append(character);
-        }
-        return builder.isEmpty() ? "" : builder.append(suffix).toString();
     }
 
     static PersonalDatabaseLayout.Rect advancedSearchPanelRect(PersonalDatabaseScreen screen) {
@@ -278,11 +258,15 @@ final class PersonalDatabaseScreenGeometry {
         }
         PersonalDatabaseLayout.Rect anchorRect = screen.layout.enhancementButtonRect();
         int width = PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH;
+        int extraJeiHeight = com.agguy.infiniteinventory.compat.jei.JeiCompat.isAvailable()
+                ? PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT + PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP
+                : 0;
         int height = PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2
                 + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
                 + DatabaseEnhancementOption.orderedValues().size() * PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
                 + Math.max(0, DatabaseEnhancementOption.orderedValues().size()) * PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP
-                + PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT;
+                + PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
+                + extraJeiHeight;
         int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         int x = Mth.clamp(anchorRect.right() - width, minX, maxX);
@@ -304,6 +288,93 @@ final class PersonalDatabaseScreenGeometry {
                 panelRect.width() - PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2,
                 PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
         );
+    }
+
+    static PersonalDatabaseLayout.Rect enhancementJeiTabSourceRowRect(PersonalDatabaseScreen screen) {
+        PersonalDatabaseLayout.Rect panelRect = enhancementPanelRect(screen);
+        int rowY = panelRect.y()
+                + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING
+                + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
+                + (DatabaseEnhancementOption.orderedValues().size() + 1)
+                * (PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT + PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP);
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
+                rowY,
+                panelRect.width() - PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2,
+                PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
+        );
+    }
+
+    static PersonalDatabaseLayout.Rect jeiTabSourceOverlayRect(PersonalDatabaseScreen screen) {
+        if (screen.layout == null) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
+        java.util.List<com.agguy.infiniteinventory.database.DatabaseTab> tabs = screen.databaseMenu.viewState().tabsForScope(screen.jeiTabSourceScopeFilter);
+        int rowCount = tabs.size();
+        int visibleRows = Math.min(rowCount, 10);
+        int height = PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2
+                + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                + 8
+                + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                + 6
+                + visibleRows * PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT;
+        if (rowCount > 10) {
+            height += 8;
+        }
+        height += 8 + PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT;
+        return centeredOverlayRect(screen, PersonalDatabaseScreen.JEI_TAB_SOURCE_PANEL_WIDTH, height);
+    }
+
+    static PersonalDatabaseLayout.Rect jeiTabSourceScopeHeaderRect(PersonalDatabaseScreen screen, boolean personal) {
+        PersonalDatabaseLayout.Rect panelRect = jeiTabSourceOverlayRect(screen);
+        int availableWidth = panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2;
+        int width = Math.max(1, (availableWidth - 8) / 2);
+        int x = personal
+                ? panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                : panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + width + 8;
+        return new PersonalDatabaseLayout.Rect(
+                x,
+                panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 8,
+                width,
+                PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT - 1
+        );
+    }
+
+    static PersonalDatabaseLayout.Rect jeiTabSourceRowRect(PersonalDatabaseScreen screen, int rowIndex) {
+        PersonalDatabaseLayout.Rect panelRect = jeiTabSourceOverlayRect(screen);
+        int top = panelRect.y()
+                + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                + 8
+                + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                + 6
+                + rowIndex * PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT;
+        return new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING,
+                top,
+                panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2,
+                PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT - 1
+        );
+    }
+
+    static PersonalDatabaseLayout.Rect jeiTabSourceButtonRect(PersonalDatabaseScreen screen, boolean selectAll) {
+        PersonalDatabaseLayout.Rect panelRect = jeiTabSourceOverlayRect(screen);
+        int rowCount = screen.databaseMenu.viewState().tabsForScope(screen.jeiTabSourceScopeFilter).size();
+        int visibleRows = Math.min(rowCount, 10);
+        int top = panelRect.y()
+                + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT
+                + 8
+                + PersonalDatabaseScreen.TAB_SELECTOR_ROW_HEIGHT
+                + 6
+                + visibleRows * PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT
+                + 8;
+        int availableWidth = panelRect.width() - PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING * 2;
+        int width = Math.max(1, (availableWidth - 8) / 2);
+        int x = selectAll
+                ? panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING
+                : panelRect.x() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + width + 8;
+        return new PersonalDatabaseLayout.Rect(x, top, width, PersonalDatabaseScreen.JEI_TAB_SOURCE_ROW_HEIGHT - 1);
     }
 
     static boolean isWithinEnhancementPanel(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
@@ -421,80 +492,4 @@ final class PersonalDatabaseScreenGeometry {
         return Mth.clamp(belowY, minY, maxY);
     }
 
-    private static PanelHeaderLayout panelHeaderLayout(PersonalDatabaseScreen screen, int panelIndex) {
-        if (screen.layout == null || panelIndex < 0 || panelIndex >= screen.layout.databaseViewportCount()) {
-            return PanelHeaderLayout.empty();
-        }
-        PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
-        PersonalDatabaseLayout.Rect headerRect = viewportLayout.headerRect();
-        if (headerRect.height() <= 0 || headerRect.width() <= 0) {
-            return PanelHeaderLayout.empty();
-        }
-
-        int controlHeight = PersonalDatabaseLayout.CONTROL_HEIGHT;
-        int headerX = headerRect.x();
-        int titleY = headerRect.y();
-        int searchY = titleY + PANEL_HEADER_TITLE_HEIGHT + PANEL_HEADER_ROW_GAP;
-        int controlsY = searchY + controlHeight + PANEL_HEADER_ROW_GAP;
-        PersonalDatabaseLayout.Rect searchRect = new PersonalDatabaseLayout.Rect(
-                headerX,
-                searchY,
-                headerRect.width(),
-                controlHeight
-        );
-
-        int pagerButtonWidth = PersonalDatabaseLayout.PAGE_BUTTON_WIDTH;
-        int minPageWidth = 52;
-        int maxPageWidth = 74;
-        int pageWidth = Mth.clamp(headerRect.width() / 5, minPageWidth, maxPageWidth);
-        int pagerWidth = pagerButtonWidth * 2 + pageWidth + PersonalDatabaseLayout.PAGE_BUTTON_GAP * 2;
-        int availableSortWidth = headerRect.width() - pagerWidth - PersonalDatabaseLayout.PAGE_BUTTON_GAP;
-        int sortWidth = Math.max(64, Math.min(PANEL_SORT_BUTTON_WIDTH, availableSortWidth));
-        if (sortWidth + PersonalDatabaseLayout.PAGE_BUTTON_GAP + pagerWidth > headerRect.width()) {
-            sortWidth = Math.max(
-                    48,
-                    headerRect.width() - pagerWidth - PersonalDatabaseLayout.PAGE_BUTTON_GAP
-            );
-        }
-        int pagerX = headerRect.right() - pagerWidth;
-        PersonalDatabaseLayout.Rect sortRect = new PersonalDatabaseLayout.Rect(
-                headerX,
-                controlsY,
-                Math.max(1, Math.min(sortWidth, pagerX - headerX - PersonalDatabaseLayout.PAGE_BUTTON_GAP)),
-                controlHeight
-        );
-        int previousX = Math.max(sortRect.right() + PersonalDatabaseLayout.PAGE_BUTTON_GAP, pagerX);
-        PersonalDatabaseLayout.Rect previousRect = new PersonalDatabaseLayout.Rect(
-                previousX,
-                controlsY,
-                pagerButtonWidth,
-                controlHeight
-        );
-        PersonalDatabaseLayout.Rect pageRect = new PersonalDatabaseLayout.Rect(
-                previousRect.right() + PersonalDatabaseLayout.PAGE_BUTTON_GAP,
-                controlsY,
-                pageWidth,
-                controlHeight
-        );
-        PersonalDatabaseLayout.Rect nextRect = new PersonalDatabaseLayout.Rect(
-                pageRect.right() + PersonalDatabaseLayout.PAGE_BUTTON_GAP,
-                controlsY,
-                pagerButtonWidth,
-                controlHeight
-        );
-        return new PanelHeaderLayout(searchRect, sortRect, previousRect, pageRect, nextRect);
-    }
-
-    private record PanelHeaderLayout(
-            PersonalDatabaseLayout.Rect searchRect,
-            PersonalDatabaseLayout.Rect sortRect,
-            PersonalDatabaseLayout.Rect previousRect,
-            PersonalDatabaseLayout.Rect pageRect,
-            PersonalDatabaseLayout.Rect nextRect
-    ) {
-        private static PanelHeaderLayout empty() {
-            PersonalDatabaseLayout.Rect empty = PersonalDatabaseLayout.Rect.empty();
-            return new PanelHeaderLayout(empty, empty, empty, empty, empty);
-        }
-    }
 }

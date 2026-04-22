@@ -98,7 +98,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             );
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             Component.translatable(field.translationKey()).getString(),
                             labelWidth
@@ -175,7 +175,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             int labelWidth = Math.max(0, rowRect.width() - PersonalDatabaseScreen.ENHANCEMENT_TOGGLE_WIDTH - 8);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             Component.translatable(option.translationKey()).getString(),
                             labelWidth
@@ -191,7 +191,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         VanillaWidgetRenderer.renderOverlayRow(guiGraphics, autoStoreRowRect, hovered, false);
         guiGraphics.drawString(
                 screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(
+                PersonalDatabaseScreenCommonHelper.truncateToWidth(
                         screen,
                         Component.translatable("screen.infiniteinventory.enhancement.auto_store_target").getString(),
                         Math.max(0, autoStoreRowRect.width() - 132)
@@ -207,7 +207,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         int targetTextX = Math.max(autoStoreRowRect.x() + 92, autoStoreRowRect.right() - 16 - textWidth);
         guiGraphics.drawString(
                 screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(
+                PersonalDatabaseScreenCommonHelper.truncateToWidth(
                         screen,
                         targetLabel.getString(),
                         Math.max(0, autoStoreRowRect.right() - 16 - targetTextX)
@@ -223,6 +223,29 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 autoStoreRowRect.y() + autoStoreRowRect.height() / 2,
                 0xFF3F3F3F
         );
+        if (com.agguy.infiniteinventory.compat.jei.JeiCompat.isAvailable()) {
+            PersonalDatabaseLayout.Rect jeiRowRect = PersonalDatabaseScreenGeometry.enhancementJeiTabSourceRowRect(screen);
+            boolean jeiHovered = jeiRowRect.contains(mouseX, mouseY);
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, jeiRowRect, jeiHovered, false);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
+                            screen,
+                            Component.translatable("screen.infiniteinventory.enhancement.jei_crafting_tab_source").getString(),
+                            Math.max(0, jeiRowRect.width() - 132)
+                    ),
+                    jeiRowRect.x() + 6,
+                    jeiRowRect.y() + 6,
+                    PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                    false
+            );
+            VanillaWidgetRenderer.renderDropdownIndicator(
+                    guiGraphics,
+                    jeiRowRect.right() - 9,
+                    jeiRowRect.y() + jeiRowRect.height() / 2,
+                    0xFF3F3F3F
+            );
+        }
         guiGraphics.pose().popPose();
     }
 

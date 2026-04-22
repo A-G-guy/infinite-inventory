@@ -174,7 +174,7 @@ final class PersonalDatabaseScreenTabHelper {
                     : PersonalDatabaseScreen.TOP_TAB_INACTIVE_TEXT_COLOR;
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.scopedTabLabel(screen, scopedTab).getString(),
                             labelWidth

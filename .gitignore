@@ -62,3 +62,6 @@ screenshots/
 
 ### Local Release Scratch ###
 infiniteinventory-template-*.zip
+
+### Dependency extraction artifacts ###
+mezz/

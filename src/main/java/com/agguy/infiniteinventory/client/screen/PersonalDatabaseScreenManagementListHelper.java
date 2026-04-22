@@ -74,7 +74,7 @@ final class PersonalDatabaseScreenManagementListHelper {
             guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.tabIcon(screen, tab), rowRect.x() + 3, rowRect.y() + 2);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
                             Math.max(0, rowRect.width() - 28)

@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory;
 
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.compat.jei.JeiCompat;
 import com.agguy.infiniteinventory.network.ModNetwork;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
@@ -23,10 +24,12 @@ public final class InfiniteInventory {
         modEventBus.addListener(ModNetwork::register);
         modEventBus.addListener(ModItems::addCreativeTabContents);
         modEventBus.addListener(AccessoriesCompat::onCommonSetup);
+        modEventBus.addListener(JeiCompat::onCommonSetup);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(InfiniteInventoryClient::registerScreens);
             modEventBus.addListener(InfiniteInventoryClient::registerKeyMappings);
             NeoForge.EVENT_BUS.addListener(InfiniteInventoryClient::onClientTick);
+            NeoForge.EVENT_BUS.addListener(InfiniteInventoryClient::onItemTooltip);
         }
     }
 }

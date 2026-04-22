@@ -29,6 +29,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && PersonalDatabaseScreenLogHelper.handleLogPanelClick(screen, mouseX, mouseY, button)) {
             return true;
         }
+        if (screen.jeiTabSourceOverlayExpanded
+                && PersonalDatabaseScreenJeiTabSourceHelper.handleJeiTabSourceOverlayClick(screen, mouseX, mouseY)) {
+            return true;
+        }
         if (screen.advancedSearchExpanded
                 && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
                         PersonalDatabaseScreenGeometry.advancedSearchPanelRect(screen),
@@ -83,6 +87,11 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (screen.enhancementPanelExpanded && PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
             if (PersonalDatabaseScreenTargetHelper.handleEnhancementPanelClick(screen, mouseX, mouseY)) {
+                return true;
+            }
+            if (com.agguy.infiniteinventory.compat.jei.JeiCompat.isAvailable()
+                    && PersonalDatabaseScreenGeometry.enhancementJeiTabSourceRowRect(screen).contains(mouseX, mouseY)) {
+                PersonalDatabaseScreenJeiTabSourceHelper.openJeiTabSourceOverlay(screen);
                 return true;
             }
             screen.invokeSuperMouseClicked(mouseX, mouseY, button);
@@ -163,6 +172,11 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (screen.targetSelectorExpanded
                 && PersonalDatabaseScreenGeometry.targetSelectorRect(screen).contains(mouseX, mouseY)
                 && PersonalDatabaseScreenTargetHelper.scrollTargetSelector(screen, (int) -Math.signum(scrollY))) {
+            return true;
+        }
+        if (screen.jeiTabSourceOverlayExpanded
+                && PersonalDatabaseScreenGeometry.jeiTabSourceOverlayRect(screen).contains(mouseX, mouseY)
+                && PersonalDatabaseScreenJeiTabSourceHelper.scrollJeiTabSourceOverlay(screen, (int) -Math.signum(scrollY))) {
             return true;
         }
         if (screen.accessoriesExpanded

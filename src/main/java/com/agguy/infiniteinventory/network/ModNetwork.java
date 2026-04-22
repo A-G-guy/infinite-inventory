@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.network;
 
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.compat.jei.JeiAmountCache;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
@@ -28,6 +29,7 @@ public final class ModNetwork {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         PayloadRegistrar optionalRegistrar = registrar.optional();
         registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
+        registrar.playToClient(JeiAmountSyncPayload.TYPE, JeiAmountSyncPayload.STREAM_CODEC, ModNetwork::handleJeiAmountSync);
         optionalRegistrar.playToServer(DatabaseViewerLocalePayload.TYPE, DatabaseViewerLocalePayload.STREAM_CODEC, ModNetwork::handleViewerLocale);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
@@ -41,6 +43,8 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
         registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
         registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
+        registrar.playToServer(JeiCraftingTabSourcePayload.TYPE, JeiCraftingTabSourcePayload.STREAM_CODEC, ModNetwork::handleJeiCraftingTabSource);
+        registrar.playToServer(JeiCraftingExtractPayload.TYPE, JeiCraftingExtractPayload.STREAM_CODEC, ModNetwork::handleJeiCraftingExtract);
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
@@ -226,6 +230,24 @@ public final class ModNetwork {
         if (menu != null) {
             menu.handleNoteUpdate(payload.scope(), payload.targetStacks(), payload.note());
         }
+    }
+
+    private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {
+        JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap());
+    }
+
+    private static void handleJeiCraftingTabSource(JeiCraftingTabSourcePayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseService.INSTANCE.setJeiCraftingTabSource(player, payload.scope(), payload.tabId(), payload.enabled());
+    }
+
+    private static void handleJeiCraftingExtract(JeiCraftingExtractPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseService.INSTANCE.extractForJeiCrafting(player, payload.gaps());
     }
 
     @Nullable

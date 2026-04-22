@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.JeiCraftingTabSourceConfig;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
@@ -175,6 +176,7 @@ class PersonalDatabaseTargetSelectorModelTest {
                 DatabaseQuery.defaultQuery(queryScope),
                 DatabaseEnhancementConfig.defaultConfig(),
                 DatabaseAutoStoreTarget.defaultTarget(),
+                JeiCraftingTabSourceConfig.allEnabled(),
                 personalTabs,
                 publicTabs,
                 List.of()

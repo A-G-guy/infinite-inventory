@@ -113,12 +113,12 @@ public final class PersonalDatabaseTransferHelper {
         }
         String resolvedTargetTabId = service.resolveConcreteTargetTabId(player, normalizedTargetScope, targetTabId);
         for (Map.Entry<StoredStackKey, Long> entry : preTransferEntries.entrySet()) {
-            service.recordLog(player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
+            PersonalDatabaseServiceLogHelper.recordLog(service, player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
                     entry.getKey().displayStack(), entry.getValue(),
                     normalizedSourceTabId, resolvedTargetTabId,
                     normalizedTargetScope != normalizedSourceScope ? normalizedTargetScope : null);
             if (normalizedTargetScope != normalizedSourceScope) {
-                service.recordLog(player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
+                PersonalDatabaseServiceLogHelper.recordLog(service, player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
                         entry.getKey().displayStack(), entry.getValue(),
                         normalizedSourceTabId, resolvedTargetTabId, normalizedSourceScope);
             }
@@ -155,12 +155,12 @@ public final class PersonalDatabaseTransferHelper {
         }
         for (Map.Entry<StoredStackKey, TransferEntryInfo> entry : preTransferEntries.entrySet()) {
             TransferEntryInfo info = entry.getValue();
-            service.recordLog(player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
+            PersonalDatabaseServiceLogHelper.recordLog(service, player, normalizedSourceScope, DatabaseLogAction.TRANSFER,
                     entry.getKey().displayStack(), info.amount(),
                     info.sourceTabId(), resolvedTargetTabId,
                     normalizedTargetScope != normalizedSourceScope ? normalizedTargetScope : null);
             if (normalizedTargetScope != normalizedSourceScope) {
-                service.recordLog(player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
+                PersonalDatabaseServiceLogHelper.recordLog(service, player, normalizedTargetScope, DatabaseLogAction.TRANSFER,
                         entry.getKey().displayStack(), info.amount(),
                         info.sourceTabId(), resolvedTargetTabId, normalizedSourceScope);
             }

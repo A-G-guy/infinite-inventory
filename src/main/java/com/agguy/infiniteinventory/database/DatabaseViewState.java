@@ -9,6 +9,7 @@ public record DatabaseViewState(
         DatabaseQuery query,
         DatabaseEnhancementConfig enhancementConfig,
         DatabaseAutoStoreTarget autoStoreTarget,
+        JeiCraftingTabSourceConfig jeiCraftingTabSources,
         List<DatabaseTab> personalTabs,
         List<DatabaseTab> publicTabs,
         List<DatabasePanelView> panels
@@ -17,6 +18,7 @@ public record DatabaseViewState(
         query = query == null ? DatabaseQuery.defaultQuery() : query;
         enhancementConfig = enhancementConfig == null ? DatabaseEnhancementConfig.defaultConfig() : enhancementConfig;
         autoStoreTarget = autoStoreTarget == null ? DatabaseAutoStoreTarget.defaultTarget() : autoStoreTarget;
+        jeiCraftingTabSources = jeiCraftingTabSources == null ? JeiCraftingTabSourceConfig.allEnabled() : jeiCraftingTabSources;
         sessionId = Math.max(0L, sessionId);
         personalTabs = copyTabs(personalTabs);
         publicTabs = copyTabs(publicTabs);
@@ -38,6 +40,7 @@ public record DatabaseViewState(
                 query,
                 DatabaseEnhancementConfig.defaultConfig(),
                 DatabaseAutoStoreTarget.defaultTarget(),
+                JeiCraftingTabSourceConfig.allEnabled(),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of()
@@ -95,6 +98,7 @@ public record DatabaseViewState(
         DatabaseQuery query = DatabaseQuery.read(buffer);
         DatabaseEnhancementConfig enhancementConfig = DatabaseEnhancementConfig.read(buffer);
         DatabaseAutoStoreTarget autoStoreTarget = DatabaseAutoStoreTarget.read(buffer);
+        JeiCraftingTabSourceConfig jeiCraftingTabSources = JeiCraftingTabSourceConfig.read(buffer);
         List<DatabaseTab> personalTabs = readTabs(buffer);
         List<DatabaseTab> publicTabs = readTabs(buffer);
         int panelCount = buffer.readVarInt();
@@ -108,6 +112,7 @@ public record DatabaseViewState(
                 query,
                 enhancementConfig,
                 autoStoreTarget,
+                jeiCraftingTabSources,
                 personalTabs,
                 publicTabs,
                 panels
@@ -120,6 +125,7 @@ public record DatabaseViewState(
         DatabaseQuery.write(buffer, this.query);
         DatabaseEnhancementConfig.write(buffer, this.enhancementConfig);
         DatabaseAutoStoreTarget.write(buffer, this.autoStoreTarget);
+        this.jeiCraftingTabSources.write(buffer);
         writeTabs(buffer, this.personalTabs);
         writeTabs(buffer, this.publicTabs);
         buffer.writeVarInt(this.panels.size());

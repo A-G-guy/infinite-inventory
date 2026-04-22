@@ -209,7 +209,7 @@ final class PersonalDatabaseScreenRenderHelper {
             renderFrameBadgeText(
                     screen,
                     guiGraphics,
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             PersonalDatabaseScreenCommonHelper.viewTitleLabel(screen, panel.scopedTab()).getString(),
                             Math.max(0, titleRect.width() - 8)
@@ -233,7 +233,7 @@ final class PersonalDatabaseScreenRenderHelper {
             renderFrameBadgeText(
                     screen,
                     guiGraphics,
-                    PersonalDatabaseScreenGeometry.truncateToWidth(
+                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
                             toolbarStats,
                             screen.layout.toolbarRect().width()
@@ -366,7 +366,7 @@ final class PersonalDatabaseScreenRenderHelper {
 
             PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
             DatabaseSortOption sortOption = PersonalDatabaseScreenCommonHelper.sortOptionForPanel(screen, panelIndex);
-            String sortLabel = PersonalDatabaseScreenGeometry.truncateToWidth(
+            String sortLabel = PersonalDatabaseScreenCommonHelper.truncateToWidth(
                     screen,
                     PersonalDatabaseScreenCommonHelper.sortButtonLabel(sortOption).getString(),
                     Math.max(0, sortRect.width() - 26)

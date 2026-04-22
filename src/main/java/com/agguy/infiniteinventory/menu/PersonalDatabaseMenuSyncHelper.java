@@ -42,6 +42,7 @@ final class PersonalDatabaseMenuSyncHelper {
                 menu.query,
                 menu.enhancementConfig,
                 menu.autoStoreTarget,
+                PersonalDatabaseService.INSTANCE.getViewPreferences(serverPlayer).jeiCraftingTabSources(),
                 PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PERSONAL),
                 PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC),
                 menu.currentPages.stream().map(DatabasePage::toPanelView).toList()

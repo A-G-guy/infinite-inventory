@@ -51,6 +51,12 @@ repositories {
     maven {
         url = 'https://maven.shedaniel.me/'
     }
+    maven {
+        url = 'https://modmaven.dev/'
+        content {
+            includeGroup 'mezz.jei'
+        }
+    }
 }
 
 base {
@@ -145,6 +151,9 @@ configurations {
 dependencies {
     compileOnly "io.wispforest:accessories-common:${project.accessories_version}-mojmap"
     localRuntime "io.wispforest:accessories-neoforge:${project.accessories_version}"
+
+    compileOnly "mezz.jei:jei-${project.minecraft_version}-neoforge-api:${project.jei_version}"
+    localRuntime "mezz.jei:jei-${project.minecraft_version}-neoforge:${project.jei_version}"
 
     testImplementation platform('org.junit:junit-bom:5.12.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'

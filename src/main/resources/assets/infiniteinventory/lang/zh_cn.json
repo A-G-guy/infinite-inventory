@@ -184,5 +184,11 @@
   "screen.infiniteinventory.log.empty": "暂无操作记录",
   "screen.infiniteinventory.log.tooltip.action": "操作：%s",
   "screen.infiniteinventory.log.tooltip.amount": "数量：%s",
-  "screen.infiniteinventory.log.tooltip.player": "玩家：%s"
+  "screen.infiniteinventory.log.tooltip.player": "玩家：%s",
+  "screen.infiniteinventory.jei.amount.personal": "个人：%s",
+  "screen.infiniteinventory.jei.amount.public": "公共：%s",
+  "screen.infiniteinventory.jei.crafting_tab_source.title": "JEI 合成材料提取源",
+  "screen.infiniteinventory.jei.crafting_tab_source.select_all": "全选",
+  "screen.infiniteinventory.jei.crafting_tab_source.clear_all": "清空",
+  "screen.infiniteinventory.enhancement.jei_crafting_tab_source": "JEI 合成材料提取源"
 }

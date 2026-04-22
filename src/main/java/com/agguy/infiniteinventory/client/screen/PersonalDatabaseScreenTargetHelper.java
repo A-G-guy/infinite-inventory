@@ -414,7 +414,7 @@ final class PersonalDatabaseScreenTargetHelper {
         }
         guiGraphics.drawString(
                 screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(
+                PersonalDatabaseScreenCommonHelper.truncateToWidth(
                         screen,
                         PersonalDatabaseScreenCommonHelper.tabLabel(screen, tab).getString(),
                         Math.max(0, textRight - (rowRect.x() + 24))

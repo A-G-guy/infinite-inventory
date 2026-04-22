@@ -222,7 +222,7 @@ final class PersonalDatabaseScreenIconPickerHelper {
         ).getString();
         guiGraphics.drawString(
                 screen.screenFont(),
-                PersonalDatabaseScreenGeometry.truncateToWidth(screen, previewText, Math.max(0, previewRect.width() - 28)),
+                PersonalDatabaseScreenCommonHelper.truncateToWidth(screen, previewText, Math.max(0, previewRect.width() - 28)),
                 previewRect.x() + 24,
                 previewRect.y() + 6,
                 PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,

@@ -81,7 +81,7 @@ public final class PersonalDatabaseService {
         this.markScopeDirty(player, scope);
         slot.setByPlayer(ItemStack.EMPTY, stack.copy());
         slot.setChanged();
-        this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
+        PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
         return true;
     }
 
@@ -102,7 +102,7 @@ public final class PersonalDatabaseService {
             movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
             movedAny = true;
             database.store(stack.copy(), resolvedTargetTabId);
-            this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
+            PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
             inventory.items.set(slotIndex, ItemStack.EMPTY);
         }
         if (movedAny) {
@@ -119,7 +119,7 @@ public final class PersonalDatabaseService {
         String resolvedTargetTabId = this.resolveConcreteTargetTabId(player, scope, targetTabId);
         this.resolveDatabaseForMutation(player, scope).store(stack, resolvedTargetTabId);
         this.markScopeDirty(player, scope);
-        this.recordLog(player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
+        PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
         return true;
     }
 
@@ -149,7 +149,7 @@ public final class PersonalDatabaseService {
         player.awardStat(Stats.ITEM_PICKED_UP.get(stack.getItem()), pickedUpAmount);
         player.onItemPickup(itemEntity);
         itemEntity.discard();
-        this.recordLog(player, autoStoreTarget.scope(), DatabaseLogAction.DEPOSIT, stack, pickedUpAmount, "", autoStoreTarget.tabId(), null);
+        PersonalDatabaseServiceLogHelper.recordLog(this, player, autoStoreTarget.scope(), DatabaseLogAction.DEPOSIT, stack, pickedUpAmount, "", autoStoreTarget.tabId(), null);
         if (autoStoreTarget.scope() == DatabaseScope.PUBLIC) {
             this.syncPublicViewers(player.server);
         } else if (player.containerMenu instanceof PersonalDatabaseMenu menu && menu.activeScope() == DatabaseScope.PERSONAL) {
@@ -163,7 +163,7 @@ public final class PersonalDatabaseService {
         ItemStack extracted = this.resolveDatabaseForMutation(player, scope).extract(key, requestedAmount);
         if (!extracted.isEmpty()) {
             this.markScopeDirty(player, scope);
-            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, extracted, extracted.getCount(), sourceTabId, "", null);
+            PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.EXTRACT, extracted, extracted.getCount(), sourceTabId, "", null);
         }
         return extracted;
     }
@@ -176,7 +176,7 @@ public final class PersonalDatabaseService {
         String sourceTabId = PersonalDatabaseServiceHelper.entryTabId(this.resolveDatabaseForMutation(player, scope), key);
         long moved = PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
         if (moved > 0L) {
-            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
+            PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
         }
         return moved;
     }
@@ -185,7 +185,7 @@ public final class PersonalDatabaseService {
         String sourceTabId = PersonalDatabaseServiceHelper.entryTabId(this.resolveDatabaseForMutation(player, scope), key);
         long moved = PersonalDatabaseExtractionHelper.extractToWorld(this, player, scope, this.resolveDatabaseForMutation(player, scope), key, requestedAmount);
         if (moved > 0L) {
-            this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
+            PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, sourceTabId, "", null);
         }
         return moved;
     }
@@ -219,7 +219,7 @@ public final class PersonalDatabaseService {
             long moved = PersonalDatabaseExtractionHelper.extractToInventory(this, player, scope, database, key, resolvedRequestedAmount);
             if (moved > 0L) {
                 totalMoved = PersonalDatabaseServiceHelper.safeAddMovedItems(totalMoved, moved);
-                this.recordLog(player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, selectionEntry.sourceTabId(), "", null);
+                PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.EXTRACT, key.displayStack(), moved, selectionEntry.sourceTabId(), "", null);
             }
         }
         return totalMoved;
@@ -346,7 +346,7 @@ public final class PersonalDatabaseService {
         if (databaseChanged || directoryChanged) {
             this.markScopeDirty(player, scope);
             for (java.util.Map.Entry<StoredStackKey, Long> entry : entriesToDelete.entrySet()) {
-                this.recordLog(player, scope, DatabaseLogAction.DELETE, entry.getKey().displayStack(), entry.getValue(), normalizedTabId, resolvedTargetTabId, null);
+                PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.DELETE, entry.getKey().displayStack(), entry.getValue(), normalizedTabId, resolvedTargetTabId, null);
             }
         }
         return databaseChanged || directoryChanged;
@@ -395,6 +395,18 @@ public final class PersonalDatabaseService {
 
     public List<DatabaseLogEntry> getLogEntries(ServerPlayer player, DatabaseScope scope) {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
+    }
+
+    public void setJeiCraftingTabSource(ServerPlayer player, DatabaseScope scope, String tabId, boolean enabled) {
+        PersonalDatabaseServiceJeiHelper.setJeiCraftingTabSource(player, scope, tabId, enabled);
+    }
+
+    public void extractForJeiCrafting(ServerPlayer player, java.util.List<com.agguy.infiniteinventory.network.JeiCraftingExtractPayload.MaterialGap> gaps) {
+        PersonalDatabaseServiceJeiHelper.extractForJeiCrafting(player, gaps);
+    }
+
+    public void syncJeiAmountsToPlayer(ServerPlayer player) {
+        PersonalDatabaseServiceJeiHelper.syncAmountsToPlayer(player);
     }
 
     public void syncPublicViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncPublicViewers(server); }
@@ -448,7 +460,7 @@ public final class PersonalDatabaseService {
         return database;
     }
 
-    private DatabaseTabDirectory resolveTabsForMutation(ServerPlayer player, DatabaseScope scope) {
+    DatabaseTabDirectory resolveTabsForMutation(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());
@@ -467,33 +479,7 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-    }
-
-    void recordLog(
-            ServerPlayer player,
-            DatabaseScope scope,
-            DatabaseLogAction action,
-            ItemStack stack,
-            long amount,
-            String sourceTabId,
-            String targetTabId,
-            DatabaseScope relatedScope
-    ) {
-        if (player == null || stack == null || stack.isEmpty() || amount <= 0L) {
-            return;
-        }
-        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
-        database.appendLogEntry(new DatabaseLogEntry(
-                System.currentTimeMillis(),
-                player.getUUID(),
-                player.getGameProfile().getName(),
-                action,
-                stack.copyWithCount(1),
-                amount,
-                sourceTabId == null ? "" : sourceTabId,
-                targetTabId == null ? "" : targetTabId,
-                relatedScope
-        ));
+        PersonalDatabaseServiceJeiHelper.syncAmountsToPlayer(player);
     }
 
 }

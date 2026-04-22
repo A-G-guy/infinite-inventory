@@ -163,6 +163,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
             return true;
         }
+        if (screen.jeiTabSourceOverlayExpanded) {
+            PersonalDatabaseScreenJeiTabSourceHelper.closeJeiTabSourceOverlay(screen);
+            return true;
+        }
         if (screen.topTabReplaceExpanded || screen.topTabActionPromptExpanded) {
             PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
             return true;

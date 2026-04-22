@@ -7,6 +7,7 @@ import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
+import com.agguy.infiniteinventory.database.JeiCraftingTabSourceConfig;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
@@ -63,6 +64,7 @@ class DatabasePageTest {
                 publicQuery,
                 enhancementConfig,
                 DatabaseAutoStoreTarget.defaultTarget(),
+                JeiCraftingTabSourceConfig.allEnabled(),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(DatabaseTabs.allTab(), DatabaseTabs.defaultConcreteTab()),
                 List.of(panelView)
