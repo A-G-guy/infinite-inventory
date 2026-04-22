@@ -151,6 +151,11 @@ final class PersonalDatabaseScreenRenderHelper {
                             itemY,
                             CompactNumberFormatter.format(entry.amount())
                     );
+                    if (entry.starred()) {
+                        int starX = itemX + 13;
+                        int starY = itemY + 13;
+                        guiGraphics.fill(starX, starY, starX + 3, starY + 3, 0xFFFFD700);
+                    }
                 } else if (slotRect.contains(mouseX, mouseY)) {
                     VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
                 }
@@ -313,6 +318,9 @@ final class PersonalDatabaseScreenRenderHelper {
             if (hitResult.slotIndex() < panel.entries().size()) {
                 VisibleDatabaseEntry entry = panel.entries().get(hitResult.slotIndex());
                 List<Component> tooltip = new ArrayList<>(screen.containerTooltip(entry.stack()));
+                if (entry.starred()) {
+                    tooltip.add(Component.literal("★ " + I18n.get("screen.infiniteinventory.context.toggle_star")).withStyle(ChatFormatting.GOLD));
+                }
                 if (!entry.note().isEmpty()) {
                     tooltip.add(Component.literal(entry.note()).withStyle(ChatFormatting.YELLOW));
                 }

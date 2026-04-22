@@ -3,7 +3,7 @@ package com.agguy.infiniteinventory.database;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 
-public record VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long amount, String tabId, String registryName, String note) {
+public record VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long amount, String tabId, String registryName, String note, boolean starred) {
     public VisibleDatabaseEntry {
         scope = DatabaseScope.normalize(scope);
         stack = stack.copyWithCount(1);
@@ -14,7 +14,11 @@ public record VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long am
     }
 
     public VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long amount, String tabId, String registryName) {
-        this(scope, stack, amount, tabId, registryName, "");
+        this(scope, stack, amount, tabId, registryName, "", false);
+    }
+
+    public VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long amount, String tabId, String registryName, String note) {
+        this(scope, stack, amount, tabId, registryName, note, false);
     }
 
     public DatabaseScopedTabRef scopedTab() {
@@ -28,7 +32,8 @@ public record VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long am
                 buffer.readVarLong(),
                 buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH),
                 buffer.readUtf(128),
-                buffer.readUtf(256)
+                buffer.readUtf(256),
+                buffer.readBoolean()
         );
     }
 
@@ -39,5 +44,6 @@ public record VisibleDatabaseEntry(DatabaseScope scope, ItemStack stack, long am
         buffer.writeUtf(this.tabId, DatabaseQuery.MAX_TAB_ID_LENGTH);
         buffer.writeUtf(this.registryName, 128);
         buffer.writeUtf(this.note, 256);
+        buffer.writeBoolean(this.starred);
     }
 }

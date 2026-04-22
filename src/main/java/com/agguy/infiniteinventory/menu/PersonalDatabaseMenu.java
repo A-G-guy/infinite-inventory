@@ -178,6 +178,22 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         if (changed) { this.broadcastChanges(); this.syncAfterScopeMutation(serverPlayer, scope); }
     }
 
+    public void handleStarToggle(DatabaseScope scope, List<ItemStack> targetStacks) {
+        if (!(this.owner instanceof ServerPlayer serverPlayer)) return;
+        boolean changed = false;
+        for (ItemStack stack : targetStacks) {
+            if (stack.isEmpty()) continue;
+            StoredStackKey key = StoredStackKey.of(stack);
+            if (PersonalDatabaseService.INSTANCE.toggleStar(serverPlayer, scope, key)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            this.broadcastChanges();
+            this.syncAfterScopeMutation(serverPlayer, scope);
+        }
+    }
+
     public void updateQuery(DatabaseQuery newQuery) {
         PersonalDatabaseMenuSyncHelper.updateQuery(this, newQuery);
     }

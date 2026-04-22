@@ -9,9 +9,13 @@ public record DatabaseScopedTabRef(DatabaseScope scope, String tabId) {
 
     public DatabaseScopedTabRef {
         scope = DatabaseScope.normalize(scope);
-        tabId = DatabaseTabs.isAllTabId(tabId)
-                ? DatabaseTabs.ALL_TAB_ID
-                : DatabaseTabs.normalizeConcreteTarget(tabId);
+        if (DatabaseTabs.isAllTabId(tabId)) {
+            tabId = DatabaseTabs.ALL_TAB_ID;
+        } else if (DatabaseTabs.isFavoritesTabId(tabId)) {
+            tabId = DatabaseTabs.FAVORITES_TAB_ID;
+        } else {
+            tabId = DatabaseTabs.normalizeConcreteTarget(tabId);
+        }
     }
 
     public static DatabaseScopedTabRef defaultTab() {
@@ -22,6 +26,10 @@ public record DatabaseScopedTabRef(DatabaseScope scope, String tabId) {
         return new DatabaseScopedTabRef(scope, DatabaseTabs.ALL_TAB_ID);
     }
 
+    public static DatabaseScopedTabRef favoritesTab(DatabaseScope scope) {
+        return new DatabaseScopedTabRef(scope, DatabaseTabs.FAVORITES_TAB_ID);
+    }
+
     public static DatabaseScopedTabRef concreteTab(DatabaseScope scope, String tabId) {
         return new DatabaseScopedTabRef(scope, tabId);
     }
@@ -30,8 +38,16 @@ public record DatabaseScopedTabRef(DatabaseScope scope, String tabId) {
         return DatabaseTabs.isAllTabId(this.tabId);
     }
 
+    public boolean isFavoritesTab() {
+        return DatabaseTabs.isFavoritesTabId(this.tabId);
+    }
+
+    public boolean isSystemTab() {
+        return DatabaseTabs.isSystemTabId(this.tabId);
+    }
+
     public boolean isConcreteTab() {
-        return !this.isAllTab();
+        return !this.isSystemTab();
     }
 
     public DatabaseScopedTabRef withScope(DatabaseScope nextScope) {

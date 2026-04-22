@@ -305,7 +305,7 @@ final class PersonalDatabaseScreenInteractionHelper {
                 return false;
             }
             PersonalDatabaseScreenGestureHelper.prepareForPrimaryDatabaseInteraction(screen);
-            if (panel.tab().isAllTab()) {
+            if (panel.tab().isAllTab() || panel.tab().isFavoritesTab()) {
                 screen.pendingTargetStoresSingle = action == DatabaseClickAction.STORE_SINGLE;
                 PersonalDatabaseScreenTargetHelper.openTargetSelector(
                         screen,

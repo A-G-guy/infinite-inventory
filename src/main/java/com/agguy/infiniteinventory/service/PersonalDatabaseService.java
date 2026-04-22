@@ -124,9 +124,7 @@ public final class PersonalDatabaseService {
     }
 
     public boolean tryAutoStorePickedUpItem(ServerPlayer player, ItemEntity itemEntity) {
-        if (player == null || itemEntity == null) {
-            return false;
-        }
+        if (player == null || itemEntity == null) return false;
         if (!this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS)) {
             return false;
         }
@@ -384,6 +382,17 @@ public final class PersonalDatabaseService {
         return key == null ? "" : this.resolveDatabaseForView(player, scope).noteFor(key);
     }
 
+    public boolean toggleStar(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
+        if (key == null) return false;
+        boolean changed = this.resolveDatabaseForMutation(player, scope).toggleStar(key);
+        if (changed) this.markScopeDirty(player, scope);
+        return changed;
+    }
+
+    public boolean isStarred(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
+        return key != null && this.resolveDatabaseForView(player, scope).isStarred(key);
+    }
+
     public List<DatabaseLogEntry> getLogEntries(ServerPlayer player, DatabaseScope scope) {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
     }
@@ -487,10 +496,4 @@ public final class PersonalDatabaseService {
         ));
     }
 
-    private static long safeAddMovedItems(long currentTotal, long movedItems) {
-        if (Long.MAX_VALUE - currentTotal < movedItems) {
-            return Long.MAX_VALUE;
-        }
-        return currentTotal + movedItems;
-    }
 }

@@ -299,11 +299,12 @@ public final class DatabaseQueryEngine {
             StoredStackEntry entry,
             ItemStack displayStack,
             String note,
+            boolean starred,
             DatabaseSearchIndex searchIndex,
             DatabaseItemSearchMetadata searchMetadata,
             DatabaseSortSnapshot baseSortSnapshot
     ) {
-        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, String note, ViewerLanguage viewerLanguage) {
+        private static DatabaseRuntimeEntryRecord of(StoredStackKey key, StoredStackEntry entry, String note, boolean starred, ViewerLanguage viewerLanguage) {
             ItemStack displayStack = key.displayStack();
             DatabaseSearchIndex searchIndex = DatabaseItemSearchResolver.INSTANCE.resolve(key, viewerLanguage);
             DatabaseItemSearchMetadata searchMetadata = DatabaseItemSearchMetadataResolver.INSTANCE.resolve(key);
@@ -312,6 +313,7 @@ public final class DatabaseQueryEngine {
                     entry,
                     displayStack,
                     note,
+                    starred,
                     searchIndex,
                     searchMetadata,
                     new DatabaseSortSnapshot(
@@ -337,7 +339,8 @@ public final class DatabaseQueryEngine {
                             this.entry.amount(),
                             this.entry.tabId(),
                             this.key.registryName(),
-                            this.note
+                            this.note,
+                            this.starred
                     )
             );
         }
@@ -397,15 +400,22 @@ public final class DatabaseQueryEngine {
             Map<String, Long> tabTotals = new LinkedHashMap<>();
             tabBuckets.put(DatabaseTabs.ALL_TAB_ID, new ArrayList<>());
             tabTotals.put(DatabaseTabs.ALL_TAB_ID, 0L);
+            tabBuckets.put(DatabaseTabs.FAVORITES_TAB_ID, new ArrayList<>());
+            tabTotals.put(DatabaseTabs.FAVORITES_TAB_ID, 0L);
 
             for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
                 String note = database.noteFor(mapEntry.getKey());
-                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue(), note, viewerLanguage);
+                boolean starred = database.isStarred(mapEntry.getKey());
+                DatabaseRuntimeEntryRecord record = DatabaseRuntimeEntryRecord.of(mapEntry.getKey(), mapEntry.getValue(), note, starred, viewerLanguage);
                 String tabId = DatabaseTabs.normalizeConcreteTarget(record.entry().tabId());
                 tabBuckets.computeIfAbsent(tabId, ignored -> new ArrayList<>()).add(record);
                 tabBuckets.get(DatabaseTabs.ALL_TAB_ID).add(record);
                 tabTotals.put(tabId, safeAdd(tabTotals.getOrDefault(tabId, 0L), record.entry().amount()));
                 tabTotals.put(DatabaseTabs.ALL_TAB_ID, safeAdd(tabTotals.get(DatabaseTabs.ALL_TAB_ID), record.entry().amount()));
+                if (record.starred) {
+                    tabBuckets.get(DatabaseTabs.FAVORITES_TAB_ID).add(record);
+                    tabTotals.put(DatabaseTabs.FAVORITES_TAB_ID, safeAdd(tabTotals.get(DatabaseTabs.FAVORITES_TAB_ID), record.entry().amount()));
+                }
             }
 
             Map<String, List<DatabaseRuntimeEntryRecord>> immutableBuckets = new LinkedHashMap<>();

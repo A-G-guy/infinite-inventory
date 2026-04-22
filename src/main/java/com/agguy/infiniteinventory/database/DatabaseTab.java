@@ -22,18 +22,27 @@ public record DatabaseTab(
 
     public DatabaseTab {
         boolean allTab = DatabaseTabs.isAllTabId(id);
+        boolean favoritesTab = DatabaseTabs.isFavoritesTabId(id);
         id = DatabaseTabs.normalizeTabId(id, allTab ? DatabaseTabs.ALL_TAB_ID : DatabaseTabs.DEFAULT_TAB_ID);
         customName = DatabaseTabs.normalizeTabName(customName, translationKey);
         translationKey = translationKey == null ? "" : translationKey.trim();
-        iconItemId = DatabaseTabs.normalizeIconItemId(iconItemId, allTab);
+        iconItemId = DatabaseTabs.normalizeIconItemId(iconItemId, allTab, favoritesTab);
     }
 
     public boolean isAllTab() {
         return DatabaseTabs.isAllTabId(this.id);
     }
 
+    public boolean isFavoritesTab() {
+        return DatabaseTabs.isFavoritesTabId(this.id);
+    }
+
+    public boolean isSystemTab() {
+        return DatabaseTabs.isSystemTabId(this.id);
+    }
+
     public boolean isConcreteTab() {
-        return !this.isAllTab();
+        return !this.isSystemTab();
     }
 
     public boolean usesTranslationKey() {
@@ -41,7 +50,7 @@ public record DatabaseTab(
     }
 
     public boolean canRename() {
-        return !this.isAllTab();
+        return !this.isSystemTab();
     }
 
     public boolean canDelete() {
@@ -53,7 +62,7 @@ public record DatabaseTab(
     }
 
     public DatabaseTab withName(String name) {
-        if (this.isAllTab()) {
+        if (this.isSystemTab()) {
             return this;
         }
         String normalizedName = DatabaseTabs.normalizeTabName(name, this.translationKey);
@@ -68,7 +77,7 @@ public record DatabaseTab(
                 this.id,
                 this.customName,
                 this.translationKey,
-                DatabaseTabs.normalizeIconItemId(newIconItemId, this.isAllTab()),
+                DatabaseTabs.normalizeIconItemId(newIconItemId, this.isAllTab(), this.isFavoritesTab()),
                 this.systemTab,
                 this.protectedTab
         );

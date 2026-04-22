@@ -2,9 +2,11 @@ package com.agguy.infiniteinventory.database;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -13,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
-    public static final int CURRENT_SCHEMA_VERSION = 5;
+    public static final int CURRENT_SCHEMA_VERSION = 6;
 
     private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final String ENTRIES_KEY = "entries";
@@ -28,11 +30,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private static final String NOTES_KEY = "notes";
     private static final String NOTE_KEY = "note_key";
     private static final String NOTE_TEXT_KEY = "note_text";
+    private static final String STARRED_ENTRIES_KEY = "starred_entries";
     private static final int MAX_LOG_ENTRIES = 500;
     private static final int MAX_NOTE_LENGTH = 256;
 
     private final Map<StoredStackKey, StoredStackEntry> entries = new LinkedHashMap<>();
     private final Map<StoredStackKey, String> notes = new LinkedHashMap<>();
+    private final Set<StoredStackKey> starredEntries = new LinkedHashSet<>();
     private final java.util.List<UnresolvedStoredEntry> unresolvedEntries = new java.util.ArrayList<>();
     private final java.util.List<DatabaseLogEntry> logEntries = new java.util.ArrayList<>();
     private long nextSequence = 1L;
@@ -41,6 +45,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     public Map<StoredStackKey, StoredStackEntry> entries() { return Collections.unmodifiableMap(this.entries); }
     public Map<StoredStackKey, String> notes() { return Collections.unmodifiableMap(this.notes); }
+    public Set<StoredStackKey> starredEntries() { return Collections.unmodifiableSet(this.starredEntries); }
     public List<UnresolvedStoredEntry> unresolvedEntries() { return List.copyOf(this.unresolvedEntries); }
 
     public List<DatabaseLogEntry> logEntries() {
@@ -57,19 +62,20 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     public long getAmount(StoredStackKey key) { StoredStackEntry entry = this.entries.get(key); return entry == null ? 0L : entry.amount(); }
     public int entryCount() { return this.entries.size(); }
-    public long totalItemCount() {
-        long total = 0L;
-        for (StoredStackEntry entry : this.entries.values()) {
-            if (Long.MAX_VALUE - total < entry.amount()) return Long.MAX_VALUE;
-            total += entry.amount();
-        }
-        return total;
-    }
     public long revision() { return this.revision; }
     public boolean needsResave() { return this.needsResave; }
     public void clear() { if (this.hasStoredContent()) { this.resetContent(); this.markRuntimeStateDirty(); } }
 
     public String noteFor(StoredStackKey key) { return key == null ? "" : this.notes.getOrDefault(key, ""); }
+
+    public boolean isStarred(StoredStackKey key) { return key != null && this.starredEntries.contains(key); }
+
+    public boolean toggleStar(StoredStackKey key) {
+        if (key == null) return false;
+        boolean changed = this.starredEntries.contains(key) ? this.starredEntries.remove(key) : this.starredEntries.add(key);
+        if (changed) this.markRuntimeStateDirty();
+        return changed;
+    }
 
     public void setNote(StoredStackKey key, String note) {
         if (key == null) return;
@@ -95,6 +101,11 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                 this.notes.put(noteEntry.getKey(), noteEntry.getValue()); changed = true;
             }
         }
+        for (StoredStackKey starredKey : other.starredEntries()) {
+            if (!this.starredEntries.contains(starredKey)) {
+                this.starredEntries.add(starredKey); changed = true;
+            }
+        }
         for (UnresolvedStoredEntry unresolvedEntry : other.unresolvedEntries()) {
             if (!unresolvedEntry.isEmpty()) {
                 this.unresolvedEntries.add(new UnresolvedStoredEntry(
@@ -117,9 +128,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public void store(ItemStack stack, String tabId) {
-        if (stack.isEmpty()) {
-            return;
-        }
+        if (stack.isEmpty()) return;
         long sequence = this.nextSequence();
         String normalizedTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
         StoredStackKey key = StoredStackKey.of(stack);
@@ -136,9 +145,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     public boolean transferTab(String sourceTabId, String targetTabId) {
         String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId), normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
-        if (normalizedSourceTabId.equals(normalizedTargetTabId)) {
-            return false;
-        }
+        if (normalizedSourceTabId.equals(normalizedTargetTabId)) return false;
         long sequence = this.nextSequence();
         boolean changed = false;
         for (StoredStackEntry entry : this.entries.values()) {
@@ -164,9 +171,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public boolean moveEntryToTab(StoredStackKey key, String sourceTabId, String targetTabId) {
-        if (key == null) {
-            return false;
-        }
+        if (key == null) return false;
         StoredStackEntry entry = this.entries.get(key);
         if (entry == null || !entry.tabId().equals(DatabaseTabs.normalizeConcreteTarget(sourceTabId))) {
             return false;
@@ -179,9 +184,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
-        if (tabDirectory == null) {
-            return false;
-        }
+        if (tabDirectory == null) return false;
         String defaultTabId = tabDirectory.defaultConcreteTab().id();
         boolean changed = false;
         for (StoredStackEntry entry : this.entries.values()) {
@@ -218,13 +221,9 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public ItemStack extract(StoredStackKey key, int requestedAmount) {
-        if (requestedAmount <= 0) {
-            return ItemStack.EMPTY;
-        }
+        if (requestedAmount <= 0) return ItemStack.EMPTY;
         StoredStackEntry entry = this.entries.get(key);
-        if (entry == null) {
-            return ItemStack.EMPTY;
-        }
+        if (entry == null) return ItemStack.EMPTY;
         int maxExtractableAmount = Math.max(1, key.maxStackSize());
         int extractedAmount = (int) Math.min(entry.amount(), Math.min((long) requestedAmount, (long) maxExtractableAmount));
         if (extractedAmount <= 0) {
@@ -272,10 +271,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
         }
         root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
-        if (!this.logEntries.isEmpty() || !this.notes.isEmpty()) {
-            if (resolvedProvider == null) {
-                resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
-            }
+        if (!this.logEntries.isEmpty() || !this.notes.isEmpty() || !this.starredEntries.isEmpty()) {
+            if (resolvedProvider == null) resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
             if (!this.logEntries.isEmpty()) {
                 root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
             }
@@ -291,6 +288,17 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
                 }
                 root.put(NOTES_KEY, serializedNotes);
             }
+            if (!this.starredEntries.isEmpty()) {
+                ListTag serializedStarred = new ListTag();
+                for (StoredStackKey starredKey : this.starredEntries) {
+                    Tag serializedStack = starredKey.displayStack().saveOptional(resolvedProvider);
+                    if (!(serializedStack instanceof CompoundTag stackTag)) continue;
+                    CompoundTag starredTag = new CompoundTag();
+                    starredTag.put(NOTE_KEY, stackTag);
+                    serializedStarred.add(starredTag);
+                }
+                root.put(STARRED_ENTRIES_KEY, serializedStarred);
+            }
         }
         root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);
         return root;
@@ -300,10 +308,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
         this.resetContent();
-        if (tag == null || tag.isEmpty()) {
-            this.markRuntimeStateDirty();
-            return;
-        }
+        if (tag == null || tag.isEmpty()) { this.markRuntimeStateDirty(); return; }
         if (tag.contains(SCHEMA_VERSION_KEY)) {
             this.readCurrentFormat(resolvedProvider, tag, Math.max(0, tag.getInt(SCHEMA_VERSION_KEY)));
         } else {
@@ -315,13 +320,9 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private void readCurrentFormat(HolderLookup.Provider provider, CompoundTag tag, int storedSchemaVersion) {
         long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true, storedSchemaVersion);
         for (Tag element : tag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag unresolvedEntryTag)) {
-                continue;
-            }
+            if (!(element instanceof CompoundTag unresolvedEntryTag)) continue;
             UnresolvedStoredEntry unresolvedEntry = UnresolvedStoredEntry.fromTag(unresolvedEntryTag);
-            if (unresolvedEntry.isEmpty()) {
-                continue;
-            }
+            if (unresolvedEntry.isEmpty()) continue;
             this.unresolvedEntries.add(unresolvedEntry);
             highestSequence = Math.max(highestSequence, unresolvedEntry.lastModified());
         }
@@ -335,6 +336,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             if (stackTag.isEmpty() || noteText.isEmpty() || provider == null) continue;
             ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
             if (!stack.isEmpty()) this.notes.put(StoredStackKey.of(stack), noteText);
+        }
+        for (Tag element : tag.getList(STARRED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
+            if (!(element instanceof CompoundTag starredTag)) continue;
+            CompoundTag stackTag = starredTag.getCompound(NOTE_KEY);
+            if (stackTag.isEmpty() || provider == null) continue;
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            if (!stack.isEmpty()) this.starredEntries.add(StoredStackKey.of(stack));
         }
         this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
         this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
@@ -350,14 +358,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private long readResolvedEntries(HolderLookup.Provider provider, ListTag entryList, boolean preserveInvalidEntries, int storedSchemaVersion) {
         long highestSequence = 0L;
         for (Tag element : entryList) {
-            if (!(element instanceof CompoundTag entryTag)) {
-                continue;
-            }
+            if (!(element instanceof CompoundTag entryTag)) continue;
             CompoundTag stackTag = entryTag.getCompound(STACK_KEY);
             long amount = Math.max(0L, entryTag.getLong(COUNT_KEY));
-            if (amount <= 0L) {
-                continue;
-            }
+            if (amount <= 0L) continue;
             long lastModified = Math.max(0L, entryTag.getLong(LAST_MODIFIED_KEY));
             long firstAdded = StoredItemDatabaseHelper.readFirstAdded(entryTag, lastModified);
             String tabId = StoredItemDatabaseHelper.readTabId(entryTag, storedSchemaVersion, CURRENT_SCHEMA_VERSION);
@@ -377,13 +381,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
             if (stack.isEmpty()) {
                 if (preserveInvalidEntries && !stackTag.isEmpty()) {
-                    this.unresolvedEntries.add(new UnresolvedStoredEntry(
-                            stackTag,
-                            amount,
-                            tabId,
-                            lastModified,
-                            firstAdded
-                    ));
+                    this.unresolvedEntries.add(new UnresolvedStoredEntry(stackTag, amount, tabId, lastModified, firstAdded));
                     highestSequence = Math.max(highestSequence, lastModified);
                 }
                 continue;
@@ -460,6 +458,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private void resetContent() {
         this.entries.clear();
         this.notes.clear();
+        this.starredEntries.clear();
         this.unresolvedEntries.clear();
         this.logEntries.clear();
         this.nextSequence = 1L;
@@ -467,9 +466,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     }
 
     public void appendLogEntry(DatabaseLogEntry entry) {
-        if (entry == null || entry.isEmpty()) {
-            return;
-        }
+        if (entry == null || entry.isEmpty()) return;
         this.logEntries.add(entry);
         if (this.logEntries.size() > MAX_LOG_ENTRIES) {
             this.logEntries.removeFirst();

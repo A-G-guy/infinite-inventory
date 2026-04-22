@@ -7,11 +7,14 @@ import java.util.UUID;
 
 public final class DatabaseTabs {
     public static final String ALL_TAB_ID = "__all";
+    public static final String FAVORITES_TAB_ID = "__favorites";
     public static final String DEFAULT_TAB_ID = "__default";
     public static final String ALL_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.all";
+    public static final String FAVORITES_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.favorites";
     public static final String DEFAULT_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.default";
     public static final String NEW_CUSTOM_TAB_TRANSLATION_KEY = "screen.infiniteinventory.tab.new_custom";
     public static final String DEFAULT_ALL_ICON_ITEM_ID = "minecraft:compass";
+    public static final String DEFAULT_FAVORITES_ICON_ITEM_ID = "minecraft:nether_star";
     public static final String DEFAULT_CONCRETE_ICON_ITEM_ID = "minecraft:writable_book";
     public static final int MAX_VISIBLE_TAB_COUNT = 4;
     public static final int MAX_TAB_NAME_LENGTH = 32;
@@ -30,6 +33,17 @@ public final class DatabaseTabs {
         );
     }
 
+    public static DatabaseTab favoritesTab() {
+        return new DatabaseTab(
+                FAVORITES_TAB_ID,
+                "",
+                FAVORITES_TAB_TRANSLATION_KEY,
+                DEFAULT_FAVORITES_ICON_ITEM_ID,
+                true,
+                true
+        );
+    }
+
     public static DatabaseTab defaultConcreteTab() {
         return new DatabaseTab(
                 DEFAULT_TAB_ID,
@@ -42,15 +56,23 @@ public final class DatabaseTabs {
     }
 
     public static boolean isReservedId(String tabId) {
-        return ALL_TAB_ID.equals(tabId) || DEFAULT_TAB_ID.equals(tabId);
+        return ALL_TAB_ID.equals(tabId) || FAVORITES_TAB_ID.equals(tabId) || DEFAULT_TAB_ID.equals(tabId);
     }
 
     public static boolean isAllTabId(String tabId) {
         return ALL_TAB_ID.equals(tabId);
     }
 
+    public static boolean isFavoritesTabId(String tabId) {
+        return FAVORITES_TAB_ID.equals(tabId);
+    }
+
+    public static boolean isSystemTabId(String tabId) {
+        return isAllTabId(tabId) || isFavoritesTabId(tabId);
+    }
+
     public static boolean isConcreteTabId(String tabId) {
-        return !isAllTabId(tabId) && tabId != null && !tabId.isBlank();
+        return !isSystemTabId(tabId) && tabId != null && !tabId.isBlank();
     }
 
     public static String normalizeTabId(String tabId, String fallback) {
@@ -81,11 +103,17 @@ public final class DatabaseTabs {
         return trimmed.substring(0, MAX_TAB_NAME_LENGTH);
     }
 
-    public static String normalizeIconItemId(String iconItemId, boolean allTab) {
+    public static String normalizeIconItemId(String iconItemId, boolean allTab, boolean favoritesTab) {
         if (iconItemId == null || iconItemId.isBlank()) {
-            return allTab ? DEFAULT_ALL_ICON_ITEM_ID : DEFAULT_CONCRETE_ICON_ITEM_ID;
+            if (allTab) return DEFAULT_ALL_ICON_ITEM_ID;
+            if (favoritesTab) return DEFAULT_FAVORITES_ICON_ITEM_ID;
+            return DEFAULT_CONCRETE_ICON_ITEM_ID;
         }
         return iconItemId.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public static String normalizeIconItemId(String iconItemId, boolean allTab) {
+        return normalizeIconItemId(iconItemId, allTab, false);
     }
 
     public static String newCustomTabId() {

@@ -39,6 +39,7 @@ public final class ModNetwork {
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
         registrar.playToServer(DatabaseLogRequestPayload.TYPE, DatabaseLogRequestPayload.STREAM_CODEC, ModNetwork::handleLogRequest);
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
+        registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
         registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
     }
 
@@ -205,6 +206,16 @@ public final class ModNetwork {
 
     private static void handleLogSnapshot(DatabaseLogSnapshotPayload payload, IPayloadContext context) {
         PersonalDatabaseClient.applyLogSnapshot(payload);
+    }
+
+    private static void handleStarToggle(DatabaseStarPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+        if (menu != null) {
+            menu.handleStarToggle(payload.scope(), payload.targetStacks());
+        }
     }
 
     private static void handleNoteUpdate(DatabaseNotePayload payload, IPayloadContext context) {

@@ -2,9 +2,17 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
+import com.agguy.infiniteinventory.network.DatabaseStarPayload;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenContextHelper {
@@ -98,7 +106,32 @@ final class PersonalDatabaseScreenContextHelper {
             PersonalDatabaseScreenCustomExtractOverlayHelper.openOverlay(screen);
         } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY) {
             PersonalDatabaseScreenNoteOverlayHelper.openOverlay(screen);
+        } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.TOGGLE_STAR) {
+            sendStarToggle(screen);
         }
+    }
+
+    private static void sendStarToggle(PersonalDatabaseScreen screen) {
+        List<DatabaseSelectionEntry> selectedEntries = PersonalDatabaseScreenSelectionHelper.selectedEntries(screen);
+        if (selectedEntries.isEmpty()) {
+            return;
+        }
+        Map<DatabaseScope, List<ItemStack>> stacksByScope = new LinkedHashMap<>();
+        for (DatabaseSelectionEntry entry : selectedEntries) {
+            if (entry.isEmpty()) {
+                continue;
+            }
+            stacksByScope.computeIfAbsent(entry.scope(), ignored -> new ArrayList<>()).add(entry.displayStack());
+        }
+        for (Map.Entry<DatabaseScope, List<ItemStack>> entry : stacksByScope.entrySet()) {
+            PacketDistributor.sendToServer(new DatabaseStarPayload(
+                    screen.databaseMenu.containerId,
+                    screen.databaseMenu.viewState().sessionId(),
+                    entry.getKey(),
+                    entry.getValue()
+            ));
+        }
+        PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
     }
 
     static void closeContextMenu(PersonalDatabaseScreen screen) {

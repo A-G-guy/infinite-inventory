@@ -20,8 +20,9 @@ public final class DatabaseTabDirectory {
     }
 
     public List<DatabaseTab> orderedTabs() {
-        List<DatabaseTab> orderedTabs = new ArrayList<>(this.concreteTabs.size() + 1);
+        List<DatabaseTab> orderedTabs = new ArrayList<>(this.concreteTabs.size() + 2);
         orderedTabs.add(DatabaseTabs.allTab());
+        orderedTabs.add(DatabaseTabs.favoritesTab());
         orderedTabs.addAll(this.concreteTabs);
         return List.copyOf(orderedTabs);
     }
@@ -35,7 +36,7 @@ public final class DatabaseTabDirectory {
     }
 
     public boolean contains(String tabId) {
-        if (DatabaseTabs.isAllTabId(tabId)) {
+        if (DatabaseTabs.isSystemTabId(tabId)) {
             return true;
         }
         return this.concreteTabs.stream().anyMatch(tab -> tab.id().equals(tabId));
@@ -49,6 +50,9 @@ public final class DatabaseTabDirectory {
         if (DatabaseTabs.isAllTabId(tabId)) {
             return java.util.Optional.of(DatabaseTabs.allTab());
         }
+        if (DatabaseTabs.isFavoritesTabId(tabId)) {
+            return java.util.Optional.of(DatabaseTabs.favoritesTab());
+        }
         return this.concreteTabs.stream().filter(tab -> tab.id().equals(tabId)).findFirst();
     }
 
@@ -61,8 +65,8 @@ public final class DatabaseTabDirectory {
             return DatabaseTabs.ALL_TAB_ID;
         }
         String normalizedTabId = requestedTabId.trim();
-        if (DatabaseTabs.isAllTabId(normalizedTabId)) {
-            return DatabaseTabs.ALL_TAB_ID;
+        if (DatabaseTabs.isSystemTabId(normalizedTabId)) {
+            return normalizedTabId;
         }
         if (this.containsConcreteTab(normalizedTabId)) {
             return normalizedTabId;
