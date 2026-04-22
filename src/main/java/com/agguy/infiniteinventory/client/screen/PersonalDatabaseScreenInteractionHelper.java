@@ -229,13 +229,24 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && screen.iconSearchBox.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
+        if (screen.iconSearchBox != null && screen.iconSearchBox.isFocused()) {
+            return true;
+        }
         if (screen.tabManagementExpanded
                 && screen.managementNameBox != null
                 && screen.managementNameBox.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
+        if (screen.managementNameBox != null && screen.managementNameBox.isFocused()) {
+            return true;
+        }
         for (var searchBox : screen.panelSearchBoxes) {
             if (searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
+        }
+        for (var searchBox : screen.panelSearchBoxes) {
+            if (searchBox.isFocused()) {
                 return true;
             }
         }
