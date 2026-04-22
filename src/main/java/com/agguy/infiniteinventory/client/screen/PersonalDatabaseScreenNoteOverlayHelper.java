@@ -7,7 +7,9 @@ import com.agguy.infiniteinventory.database.VisibleDatabaseEntry;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseNotePayload;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -238,19 +240,19 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
         if (noteValue.length() > MAX_NOTE_LENGTH) {
             noteValue = noteValue.substring(0, MAX_NOTE_LENGTH);
         }
-        DatabaseScope scope = selectedEntries.get(0).scope();
-        List<ItemStack> targetStacks = new ArrayList<>();
+        Map<DatabaseScope, List<ItemStack>> stacksByScope = new LinkedHashMap<>();
         for (DatabaseSelectionEntry entry : selectedEntries) {
-            if (!entry.isEmpty()) {
-                targetStacks.add(entry.displayStack());
+            if (entry.isEmpty()) {
+                continue;
             }
+            stacksByScope.computeIfAbsent(entry.scope(), ignored -> new ArrayList<>()).add(entry.displayStack());
         }
-        if (!targetStacks.isEmpty()) {
+        for (Map.Entry<DatabaseScope, List<ItemStack>> entry : stacksByScope.entrySet()) {
             PacketDistributor.sendToServer(new DatabaseNotePayload(
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
-                    scope,
-                    targetStacks,
+                    entry.getKey(),
+                    entry.getValue(),
                     noteValue
             ));
         }
