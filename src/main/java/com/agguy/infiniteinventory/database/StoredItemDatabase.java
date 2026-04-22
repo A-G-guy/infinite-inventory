@@ -285,7 +285,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             }
         }
         root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
-        if (!this.logEntries.isEmpty() && resolvedProvider != null) {
+        if (!this.logEntries.isEmpty()) {
+            if (resolvedProvider == null) {
+                resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
+            }
             root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
         }
         root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);

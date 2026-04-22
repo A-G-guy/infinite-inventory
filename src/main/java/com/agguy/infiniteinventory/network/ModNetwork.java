@@ -195,6 +195,7 @@ public final class ModNetwork {
         }
         DatabaseScope scope = DatabaseScope.normalize(payload.scope());
         if (scope == DatabaseScope.PUBLIC && !player.hasPermissions(2)) {
+            context.reply(new DatabaseLogSnapshotPayload(scope, List.of()));
             return;
         }
         List<DatabaseLogEntry> entries = PersonalDatabaseService.INSTANCE.getLogEntries(player, scope);
