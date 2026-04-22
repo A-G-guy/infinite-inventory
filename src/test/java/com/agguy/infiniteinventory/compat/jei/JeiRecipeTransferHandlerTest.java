@@ -24,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -65,14 +66,22 @@ class JeiRecipeTransferHandlerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void specificDatabaseHandlerShouldReturnPersonalDatabaseMenuClass() {
+        IRecipeTransferHandler<PersonalDatabaseMenu, RecipeHolder<CraftingRecipe>> handler =
+                JeiRecipeTransferHandler.createSpecificHandler(PersonalDatabaseMenu.class, RecipeTypes.CRAFTING, MockTransferHelper.INSTANCE);
+
+        assertEquals(PersonalDatabaseMenu.class, handler.getContainerClass());
+    }
+
+    @Test
     void transferRecipeShouldNotCrashWithEmptySlots() {
         IUniversalRecipeTransferHandler<AbstractContainerMenu> handler =
                 new JeiRecipeTransferHandler(MockTransferHelper.INSTANCE);
 
         IRecipeSlotsView emptySlots = new MockRecipeSlotsView(List.of());
 
-        // 使用 null player 和 container 测试空配方不会崩溃
-        // 实际游戏中不会传入 null，这里仅验证空槽位的健壮性
+        // null player 时 handleTransfer 的 null guard 应直接返回 null，不会崩溃
         IRecipeTransferError result = handler.transferRecipe(null, null, emptySlots, null, false, false);
         assertEquals(null, result);
     }

@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.network.JeiCraftingExtractPayload;
 import java.util.ArrayList;
 import java.util.List;
+import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.RecipeType;
@@ -56,6 +57,12 @@ final class JeiRecipeTransferHandler implements IUniversalRecipeTransferHandler<
         IRecipeTransferHandler<InventoryMenu, RecipeHolder<CraftingRecipe>> inventoryHandler =
                 new SpecificHandler<>(InventoryMenu.class, RecipeTypes.CRAFTING, helper);
         registration.addRecipeTransferHandler(inventoryHandler, RecipeTypes.CRAFTING);
+
+        // JEI 使用精确类匹配查找 handler，universal handler（AbstractContainerMenu）永远不会被调用；
+        // 必须为 PersonalDatabaseMenu 注册特定 handler 才能在数据库界面内触发提取。
+        IRecipeTransferHandler<PersonalDatabaseMenu, RecipeHolder<CraftingRecipe>> databaseHandler =
+                new SpecificHandler<>(PersonalDatabaseMenu.class, RecipeTypes.CRAFTING, helper);
+        registration.addRecipeTransferHandler(databaseHandler, RecipeTypes.CRAFTING);
     }
 
     @Override
@@ -88,6 +95,9 @@ final class JeiRecipeTransferHandler implements IUniversalRecipeTransferHandler<
             IRecipeTransferHandlerHelper helper
     ) {
         if (!PersonalDatabaseClient.lastKnownEnhancementConfig().isEnabled(DatabaseEnhancementOption.JEI_AUTO_EXTRACT_FOR_CRAFTING)) {
+            return null;
+        }
+        if (player == null || recipeSlots == null) {
             return null;
         }
 
