@@ -14,10 +14,22 @@ public final class DatabaseTabDirectory {
     private static final String TABS_KEY = "tabs";
 
     private final List<DatabaseTab> concreteTabs = new ArrayList<>();
+    private long revision;
 
     public DatabaseTabDirectory() {
         this.ensureSystemTabs();
         this.ensureDefaultConcreteTab();
+    }
+
+    /**
+     * 获取当前标签页目录的版本号，每次结构性变更后自动递增。
+     *
+     * <p>用于上层缓存校验，避免对未发生变化的目录重复执行一致性检查。</p>
+     *
+     * @return 当前目录版本号
+     */
+    public long revision() {
+        return this.revision;
     }
 
     public List<DatabaseTab> orderedTabs() {
@@ -115,6 +127,7 @@ public final class DatabaseTabDirectory {
             );
         }
         this.concreteTabs.add(newTab);
+        this.revision++;
         return newTab;
     }
 
@@ -128,6 +141,7 @@ public final class DatabaseTabDirectory {
             return false;
         }
         this.concreteTabs.set(index, renamedTab);
+        this.revision++;
         return true;
     }
 
@@ -141,6 +155,7 @@ public final class DatabaseTabDirectory {
             return false;
         }
         this.concreteTabs.set(index, updatedTab);
+        this.revision++;
         return true;
     }
 
@@ -155,6 +170,7 @@ public final class DatabaseTabDirectory {
         }
         DatabaseTab movedTab = this.concreteTabs.remove(index);
         this.concreteTabs.add(nextIndex, movedTab);
+        this.revision++;
         return true;
     }
 
@@ -168,6 +184,7 @@ public final class DatabaseTabDirectory {
         }
         this.concreteTabs.remove(index);
         this.ensureDefaultConcreteTab();
+        this.revision++;
         return true;
     }
 
@@ -196,6 +213,7 @@ public final class DatabaseTabDirectory {
         directory.ensureSystemTabs();
         directory.ensureDefaultConcreteTab();
         directory.deduplicateConcreteTabs();
+        directory.revision++;
         return directory;
     }
 

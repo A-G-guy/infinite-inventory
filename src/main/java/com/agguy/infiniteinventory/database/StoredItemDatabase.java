@@ -10,6 +10,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 单个数据库实例的数据容器，负责管理已解析物品条目、未解析条目、备注、收藏状态及操作日志。
@@ -22,6 +24,7 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
  */
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public static final int CURRENT_SCHEMA_VERSION = 6;
+    private static final Logger LOGGER = LogManager.getLogger();
 
     static final String TAB_ID_KEY = "tab_id";
     static final String FIRST_ADDED_KEY = "first_added";
@@ -34,6 +37,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private long nextSequence = 1L;
     private long revision;
     private boolean needsResave;
+    private boolean nextSequenceOverflowWarned;
+    private long lastValidatedTabDirectoryRevision = -1L;
 
     /**
      * 获取所有已解析物品条目的不可变视图。
@@ -279,7 +284,15 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @return 若发生了任何回退操作则返回 {@code true}
      */
     public synchronized boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
-        return StoredItemDatabaseTabHelper.ensureTabAssignments(this, tabDirectory);
+        if (tabDirectory == null) {
+            return false;
+        }
+        if (this.lastValidatedTabDirectoryRevision == tabDirectory.revision()) {
+            return false;
+        }
+        boolean changed = StoredItemDatabaseTabHelper.ensureTabAssignments(this, tabDirectory);
+        this.lastValidatedTabDirectoryRevision = tabDirectory.revision();
+        return changed;
     }
 
     /**
@@ -323,6 +336,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     long nextSequence() {
         if (this.nextSequence == Long.MAX_VALUE) {
+            if (!this.nextSequenceOverflowWarned) {
+                LOGGER.warn("StoredItemDatabase sequence number has reached Long.MAX_VALUE and will remain fixed. Timestamps may collide.");
+                this.nextSequenceOverflowWarned = true;
+            }
             return Long.MAX_VALUE;
         }
         return this.nextSequence++;

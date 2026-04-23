@@ -359,7 +359,10 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
 
     @Override
     public boolean stillValid(Player player) {
-        return true;
+        if (player == null || !player.isAlive()) {
+            return false;
+        }
+        return player.containerMenu == this;
     }
 
     @Override

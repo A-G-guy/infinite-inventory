@@ -6,6 +6,7 @@ import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
+import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
@@ -389,5 +390,12 @@ public final class PersonalDatabaseService {
         }
         storage.setDirty();
         this.syncJeiAmountsToPlayer(player);
+        if (this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.FORCE_SAVE_ON_CRITICAL_MUTATION)) {
+            try {
+                player.server.overworld().getDataStorage().save();
+            } catch (Exception e) {
+                LOGGER.warn("强制保存数据库数据时发生异常", e);
+            }
+        }
     }
 }

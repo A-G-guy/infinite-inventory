@@ -4,7 +4,8 @@ import java.util.List;
 
 public enum DatabaseEnhancementOption {
     AUTO_STORE_PICKED_UP_ITEMS("screen.infiniteinventory.enhancement.option.auto_store_picked_up_items"),
-    SHOW_JEI_AMOUNT_IN_TOOLTIP("screen.infiniteinventory.enhancement.option.show_jei_amount_in_tooltip");
+    SHOW_JEI_AMOUNT_IN_TOOLTIP("screen.infiniteinventory.enhancement.option.show_jei_amount_in_tooltip"),
+    FORCE_SAVE_ON_CRITICAL_MUTATION("screen.infiniteinventory.enhancement.option.force_save_on_critical_mutation");
 
     private static final List<DatabaseEnhancementOption> ORDERED_VALUES = List.of(values());
 
