@@ -179,7 +179,12 @@ public final class DatabaseStorageSavedData extends SavedData {
      */
     public void prunePersonalDatabase(UUID playerId) {
         StoredItemDatabase database = this.personalDatabases.get(playerId);
-        if (database != null && database.entryCount() == 0 && database.unresolvedEntryCount() == 0) {
+        if (database != null
+                && database.entryCount() == 0
+                && database.unresolvedEntryCount() == 0
+                && database.notes().isEmpty()
+                && database.starredEntries().isEmpty()
+                && database.logEntries().isEmpty()) {
             this.personalDatabases.remove(playerId);
         }
     }
@@ -255,7 +260,11 @@ public final class DatabaseStorageSavedData extends SavedData {
         ListTag serializedPersonalDatabases = new ListTag();
         for (Map.Entry<UUID, StoredItemDatabase> entry : this.personalDatabases.entrySet()) {
             StoredItemDatabase database = entry.getValue();
-            if (database.entryCount() == 0 && database.unresolvedEntryCount() == 0) {
+            if (database.entryCount() == 0
+                    && database.unresolvedEntryCount() == 0
+                    && database.notes().isEmpty()
+                    && database.starredEntries().isEmpty()
+                    && database.logEntries().isEmpty()) {
                 continue;
             }
             CompoundTag personalDatabaseTag = new CompoundTag();

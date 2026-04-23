@@ -1,37 +1,29 @@
 package com.agguy.infiniteinventory.database;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.ItemStack;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * 通过序列化标签跨数据库搬运条目，确保显式目标分类优先且保留原始元数据。
+ * 通过直接内存操作跨数据库搬运条目，避免 NBT 序列化往返与数据丢失风险。
+ *
+ * <p>设计意图：将跨库转移从“序列化-操作-反序列化”的非原子流程改为纯内存操作。
+ * 转移过程中若发生异常，源库数据不会被部分修改；成功时在同一事务中完成源库扣减与目标库增加。</p>
  */
 public final class DatabaseCrossTransferHelper {
     private static final Logger LOGGER = LogManager.getLogger();
-
-    private static final String ENTRIES_KEY = "entries";
-    private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
-    private static final String STACK_KEY = "stack";
-    private static final String COUNT_KEY = "count";
-    private static final String TAB_ID_KEY = "tab_id";
-    private static final String FIRST_ADDED_KEY = "first_added";
-    private static final String LAST_MODIFIED_KEY = "last_modified";
-    private static final String NEXT_SEQUENCE_KEY = "next_sequence";
 
     private DatabaseCrossTransferHelper() {
     }
 
     public static boolean transferSelection(
-            HolderLookup.Provider provider,
+            @SuppressWarnings("unused") HolderLookup.Provider provider,
             StoredItemDatabase sourceDatabase,
             StoredItemDatabase targetDatabase,
             List<DatabaseSelectionEntry> selectionEntries,
@@ -40,47 +32,69 @@ public final class DatabaseCrossTransferHelper {
         if (sourceDatabase == null || targetDatabase == null || selectionEntries == null || selectionEntries.isEmpty()) {
             return false;
         }
-        HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
         LinkedHashMap<StoredStackKey, String> requestedEntries = normalizeSelectionEntries(selectionEntries);
         if (requestedEntries.isEmpty()) {
             return false;
         }
 
-        CompoundTag sourceTag = sourceDatabase.serializeNBT(resolvedProvider);
-        CompoundTag targetTag = targetDatabase.serializeNBT(resolvedProvider);
-        LinkedHashMap<StoredStackKey, CompoundTag> targetEntriesByKey = indexResolvedEntries(resolvedProvider, targetTag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND));
-        ListTag updatedSourceEntries = new ListTag();
+        String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
+        List<TransferCandidate> candidates = new ArrayList<>();
         long highestMovedSequence = 0L;
-        boolean changed = false;
 
-        for (Tag element : sourceTag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag entryTag)) {
+        for (Map.Entry<StoredStackKey, StoredStackEntry> entry : new LinkedHashMap<>(sourceDatabase.entriesInternal()).entrySet()) {
+            String expectedSourceTabId = requestedEntries.get(entry.getKey());
+            if (expectedSourceTabId == null) {
                 continue;
             }
-            StoredStackKey key = readResolvedKey(resolvedProvider, entryTag);
-            String expectedSourceTabId = key == null ? null : requestedEntries.get(key);
-            if (expectedSourceTabId != null && readTabId(entryTag).equals(expectedSourceTabId)) {
-                mergeResolvedEntry(targetEntriesByKey, key, entryTag, targetTabId);
-                highestMovedSequence = Math.max(highestMovedSequence, readLastModified(entryTag));
-                changed = true;
+            StoredStackEntry sourceEntry = entry.getValue();
+            if (!sourceEntry.tabId().equals(expectedSourceTabId)) {
                 continue;
             }
-            updatedSourceEntries.add(entryTag.copy());
+            candidates.add(new TransferCandidate(entry.getKey(), sourceEntry));
+            highestMovedSequence = Math.max(highestMovedSequence, sourceEntry.lastModified());
         }
 
-        if (!changed) {
+        if (candidates.isEmpty()) {
             return false;
         }
-        sourceTag.put(ENTRIES_KEY, updatedSourceEntries);
-        targetTag.put(ENTRIES_KEY, toListTag(targetEntriesByKey));
-        bumpNextSequence(targetTag, highestMovedSequence);
-        sourceDatabase.deserializeNBT(resolvedProvider, sourceTag);
-        targetDatabase.deserializeNBT(resolvedProvider, targetTag);
+
+        long nextAfterMoved = highestMovedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMovedSequence + 1L;
+        long newTargetNextSequence = Math.max(targetDatabase.nextSequenceInternal(), nextAfterMoved);
+        targetDatabase.setNextSequence(newTargetNextSequence);
+
+        for (TransferCandidate candidate : candidates) {
+            StoredStackKey key = candidate.key;
+            StoredStackEntry sourceEntry = candidate.entry;
+
+            // 从源库移除
+            sourceDatabase.entriesInternal().remove(key);
+
+            // 合并到目标库
+            StoredStackEntry targetEntry = targetDatabase.entriesInternal().get(key);
+            if (targetEntry == null) {
+                targetDatabase.entriesInternal().put(key, new StoredStackEntry(
+                        normalizedTargetTabId,
+                        sourceEntry.amount(),
+                        sourceEntry.lastModified(),
+                        sourceEntry.firstAdded()
+                ));
+            } else {
+                targetDatabase.entriesInternal().put(key, new StoredStackEntry(
+                        normalizedTargetTabId,
+                        StoredItemDatabaseHelper.safeAdd(targetEntry.amount(), sourceEntry.amount()),
+                        Math.max(targetEntry.lastModified(), sourceEntry.lastModified()),
+                        StoredItemDatabaseHelper.mergeFirstAdded(targetEntry.firstAdded(), sourceEntry.firstAdded())
+                ));
+            }
+        }
+
+        sourceDatabase.markRuntimeStateDirty();
+        targetDatabase.markRuntimeStateDirty();
         return true;
     }
 
     public static boolean transferTab(
-            HolderLookup.Provider provider,
+            @SuppressWarnings("unused") HolderLookup.Provider provider,
             StoredItemDatabase sourceDatabase,
             StoredItemDatabase targetDatabase,
             String sourceTabId,
@@ -89,62 +103,68 @@ public final class DatabaseCrossTransferHelper {
         if (sourceDatabase == null || targetDatabase == null) {
             return false;
         }
-        HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
         String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId);
         String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
 
-        CompoundTag sourceTag = sourceDatabase.serializeNBT(resolvedProvider);
-        CompoundTag targetTag = targetDatabase.serializeNBT(resolvedProvider);
-        LinkedHashMap<StoredStackKey, CompoundTag> targetEntriesByKey = indexResolvedEntries(resolvedProvider, targetTag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND));
-        ListTag updatedSourceEntries = new ListTag();
-        ListTag updatedSourceUnresolvedEntries = new ListTag();
-        ListTag updatedTargetUnresolvedEntries = copyList(targetTag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND));
         long highestMovedSequence = 0L;
         boolean changed = false;
 
-        for (Tag element : sourceTag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag entryTag)) {
+        Iterator<Map.Entry<StoredStackKey, StoredStackEntry>> resolvedIterator =
+                sourceDatabase.entriesInternal().entrySet().iterator();
+        while (resolvedIterator.hasNext()) {
+            Map.Entry<StoredStackKey, StoredStackEntry> entry = resolvedIterator.next();
+            StoredStackEntry sourceEntry = entry.getValue();
+            if (!sourceEntry.tabId().equals(normalizedSourceTabId)) {
                 continue;
             }
-            if (!readTabId(entryTag).equals(normalizedSourceTabId)) {
-                updatedSourceEntries.add(entryTag.copy());
-                continue;
+            StoredStackKey key = entry.getKey();
+
+            resolvedIterator.remove();
+
+            StoredStackEntry targetEntry = targetDatabase.entriesInternal().get(key);
+            if (targetEntry == null) {
+                targetDatabase.entriesInternal().put(key, new StoredStackEntry(
+                        normalizedTargetTabId,
+                        sourceEntry.amount(),
+                        sourceEntry.lastModified(),
+                        sourceEntry.firstAdded()
+                ));
+            } else {
+                targetDatabase.entriesInternal().put(key, new StoredStackEntry(
+                        normalizedTargetTabId,
+                        StoredItemDatabaseHelper.safeAdd(targetEntry.amount(), sourceEntry.amount()),
+                        Math.max(targetEntry.lastModified(), sourceEntry.lastModified()),
+                        StoredItemDatabaseHelper.mergeFirstAdded(targetEntry.firstAdded(), sourceEntry.firstAdded())
+                ));
             }
-            StoredStackKey key = readResolvedKey(resolvedProvider, entryTag);
-            if (key == null) {
-                updatedSourceEntries.add(entryTag.copy());
-                continue;
-            }
-            mergeResolvedEntry(targetEntriesByKey, key, entryTag, normalizedTargetTabId);
-            highestMovedSequence = Math.max(highestMovedSequence, readLastModified(entryTag));
+            highestMovedSequence = Math.max(highestMovedSequence, sourceEntry.lastModified());
             changed = true;
         }
 
-        for (Tag element : sourceTag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag entryTag)) {
+        Iterator<UnresolvedStoredEntry> unresolvedIterator = sourceDatabase.unresolvedEntriesInternal().iterator();
+        while (unresolvedIterator.hasNext()) {
+            UnresolvedStoredEntry entry = unresolvedIterator.next();
+            if (!entry.tabId().equals(normalizedSourceTabId)) {
                 continue;
             }
-            if (!readTabId(entryTag).equals(normalizedSourceTabId)) {
-                updatedSourceUnresolvedEntries.add(entryTag.copy());
-                continue;
-            }
-            CompoundTag movedEntry = entryTag.copy();
-            movedEntry.putString(TAB_ID_KEY, normalizedTargetTabId);
-            updatedTargetUnresolvedEntries.add(movedEntry);
-            highestMovedSequence = Math.max(highestMovedSequence, readLastModified(entryTag));
+            unresolvedIterator.remove();
+            targetDatabase.unresolvedEntriesInternal().add(
+                    entry.withTabId(normalizedTargetTabId, entry.lastModified())
+            );
+            highestMovedSequence = Math.max(highestMovedSequence, entry.lastModified());
             changed = true;
         }
 
         if (!changed) {
             return false;
         }
-        sourceTag.put(ENTRIES_KEY, updatedSourceEntries);
-        sourceTag.put(UNRESOLVED_ENTRIES_KEY, updatedSourceUnresolvedEntries);
-        targetTag.put(ENTRIES_KEY, toListTag(targetEntriesByKey));
-        targetTag.put(UNRESOLVED_ENTRIES_KEY, updatedTargetUnresolvedEntries);
-        bumpNextSequence(targetTag, highestMovedSequence);
-        sourceDatabase.deserializeNBT(resolvedProvider, sourceTag);
-        targetDatabase.deserializeNBT(resolvedProvider, targetTag);
+
+        long nextAfterMoved = highestMovedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMovedSequence + 1L;
+        long newTargetNextSequence = Math.max(targetDatabase.nextSequenceInternal(), nextAfterMoved);
+        targetDatabase.setNextSequence(newTargetNextSequence);
+
+        sourceDatabase.markRuntimeStateDirty();
+        targetDatabase.markRuntimeStateDirty();
         return true;
     }
 
@@ -163,114 +183,6 @@ public final class DatabaseCrossTransferHelper {
         return normalizedEntries;
     }
 
-    private static LinkedHashMap<StoredStackKey, CompoundTag> indexResolvedEntries(HolderLookup.Provider provider, ListTag entries) {
-        LinkedHashMap<StoredStackKey, CompoundTag> indexedEntries = new LinkedHashMap<>();
-        for (Tag element : entries) {
-            if (!(element instanceof CompoundTag entryTag)) {
-                continue;
-            }
-            StoredStackKey key = readResolvedKey(provider, entryTag);
-            if (key == null) {
-                continue;
-            }
-            indexedEntries.putIfAbsent(key, entryTag.copy());
-        }
-        return indexedEntries;
-    }
-
-    private static StoredStackKey readResolvedKey(HolderLookup.Provider provider, CompoundTag entryTag) {
-        if (provider == null || entryTag == null || !entryTag.contains(STACK_KEY)) {
-            return null;
-        }
-        ItemStack stack = ItemStack.parseOptional(provider, entryTag.getCompound(STACK_KEY).copy());
-        if (stack.isEmpty()) {
-            return null;
-        }
-        return StoredStackKey.of(stack);
-    }
-
-    private static void mergeResolvedEntry(
-            Map<StoredStackKey, CompoundTag> targetEntriesByKey,
-            StoredStackKey key,
-            CompoundTag incomingEntryTag,
-            String targetTabId
-    ) {
-        if (key == null || incomingEntryTag == null) {
-            return;
-        }
-        String normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
-        CompoundTag existingEntryTag = targetEntriesByKey.get(key);
-        if (existingEntryTag == null) {
-            CompoundTag copiedEntryTag = incomingEntryTag.copy();
-            copiedEntryTag.putString(TAB_ID_KEY, normalizedTargetTabId);
-            targetEntriesByKey.put(key, copiedEntryTag);
-            return;
-        }
-        existingEntryTag.putLong(COUNT_KEY, safeAdd(readAmount(existingEntryTag), readAmount(incomingEntryTag)));
-        existingEntryTag.putString(TAB_ID_KEY, normalizedTargetTabId);
-        existingEntryTag.putLong(LAST_MODIFIED_KEY, Math.max(readLastModified(existingEntryTag), readLastModified(incomingEntryTag)));
-        existingEntryTag.putLong(FIRST_ADDED_KEY, mergeFirstAdded(readFirstAdded(existingEntryTag), readFirstAdded(incomingEntryTag)));
-    }
-
-    private static ListTag toListTag(Map<StoredStackKey, CompoundTag> entriesByKey) {
-        ListTag entries = new ListTag();
-        for (CompoundTag entryTag : entriesByKey.values()) {
-            entries.add(entryTag.copy());
-        }
-        return entries;
-    }
-
-    private static ListTag copyList(ListTag sourceEntries) {
-        ListTag copiedEntries = new ListTag();
-        for (Tag element : sourceEntries) {
-            copiedEntries.add(element.copy());
-        }
-        return copiedEntries;
-    }
-
-    private static void bumpNextSequence(CompoundTag tag, long highestMovedSequence) {
-        long nextAfterMovedEntries = highestMovedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMovedSequence + 1L;
-        tag.putLong(NEXT_SEQUENCE_KEY, Math.max(tag.getLong(NEXT_SEQUENCE_KEY), nextAfterMovedEntries));
-    }
-
-    private static String readTabId(CompoundTag tag) {
-        return DatabaseTabs.normalizeConcreteTarget(tag.getString(TAB_ID_KEY));
-    }
-
-    private static long readAmount(CompoundTag tag) {
-        return Math.max(0L, tag.getLong(COUNT_KEY));
-    }
-
-    private static long readLastModified(CompoundTag tag) {
-        return Math.max(0L, tag.getLong(LAST_MODIFIED_KEY));
-    }
-
-    private static long readFirstAdded(CompoundTag tag) {
-        if (!tag.contains(FIRST_ADDED_KEY)) {
-            return readLastModified(tag);
-        }
-        return Math.max(0L, tag.getLong(FIRST_ADDED_KEY));
-    }
-
-    private static long mergeFirstAdded(long left, long right) {
-        long normalizedLeft = Math.max(0L, left);
-        long normalizedRight = Math.max(0L, right);
-        if (normalizedLeft == 0L) {
-            return normalizedRight;
-        }
-        if (normalizedRight == 0L) {
-            return normalizedLeft;
-        }
-        return Math.min(normalizedLeft, normalizedRight);
-    }
-
-    private static long safeAdd(long left, long right) {
-        if (right <= 0L) {
-            return left;
-        }
-        if (Long.MAX_VALUE - left < right) {
-            return Long.MAX_VALUE;
-        }
-        return left + right;
+    private record TransferCandidate(StoredStackKey key, StoredStackEntry entry) {
     }
 }

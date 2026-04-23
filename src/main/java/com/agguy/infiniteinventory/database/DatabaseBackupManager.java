@@ -124,6 +124,9 @@ public final class DatabaseBackupManager {
         }
     }
 
+    private static final String STORAGE_PUBLIC_DATABASE_KEY = "public_database";
+    private static final String STORAGE_PERSONAL_DATABASES_KEY = "personal_databases";
+
     public static DatabaseBackupInfo restoreBackup(MinecraftServer server, String fileName) throws IOException {
         Path backupFile = resolveBackupFile(server, fileName);
         CompoundTag backupTag = NbtIo.readCompressed(backupFile, NbtAccounter.create(MAX_BACKUP_NBT_BYTES));
@@ -138,6 +141,12 @@ public final class DatabaseBackupManager {
         if (storedSchemaVersion > DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION) {
             throw new IOException("备份文件 schema_version (" + storedSchemaVersion + ") 高于当前支持版本 ("
                     + DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION + "): " + fileName);
+        }
+        if (!storageSnapshot.contains(STORAGE_PUBLIC_DATABASE_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+            throw new IOException("备份文件缺少 public_database 字段或类型不匹配，结构已损坏: " + fileName);
+        }
+        if (!storageSnapshot.contains(STORAGE_PERSONAL_DATABASES_KEY, net.minecraft.nbt.Tag.TAG_LIST)) {
+            throw new IOException("备份文件缺少 personal_databases 字段或类型不匹配，结构已损坏: " + fileName);
         }
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(server);
         storage.restoreFromSnapshot(storageSnapshot, server.registryAccess());
