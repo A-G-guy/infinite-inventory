@@ -7,7 +7,6 @@ import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
-import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
@@ -15,19 +14,16 @@ import com.agguy.infiniteinventory.database.DatabaseSelectionEntry;
 import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
-import com.agguy.infiniteinventory.database.LegacyMigrationState;
 import com.agguy.infiniteinventory.database.PlayerDatabaseAttachment;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
-import com.agguy.infiniteinventory.menu.PersonalDatabaseOpenState;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
 import java.util.List;
-import java.util.UUID;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -48,9 +44,9 @@ import org.apache.logging.log4j.Logger;
  * <ul>
  *   <li>物品流转：存入（deposit/store）、取出（extract）到背包或世界</li>
  *   <li>查询与视图：分页构建（{@link #buildPage}）、查询条件清洗（{@link #sanitizeQuery}）</li>
- *   <li>标签页生命周期：创建、重命名、移动、删除、转移</li>
- *   <li>增强功能：自动拾取存储、星标/备注、操作日志</li>
- *   <li>同步与兼容：JEI 数量同步、多玩家视图刷新、旧数据迁移</li>
+ *   <li>标签页生命周期：创建、重命名、移动、删除、转移（委托至 {@link PersonalDatabaseServiceTabHelper}）</li>
+ *   <li>增强功能：自动拾取存储、星标/备注（委托至 {@link PersonalDatabaseServiceStarNoteHelper}）、操作日志</li>
+ *   <li>同步与兼容：JEI 数量同步、多玩家视图刷新（委托至 {@link PersonalDatabaseServiceSyncHelper}）、旧数据迁移</li>
  * </ul>
  */
 public final class PersonalDatabaseService {
@@ -74,7 +70,7 @@ public final class PersonalDatabaseService {
         player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
         if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
             menu.syncViewToClient();
-            PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, menu.activeScope());
+            PersonalDatabaseServiceSyncHelper.notifyViewerAboutUnresolvedEntries(player, menu.activeScope());
         }
     }
 
@@ -450,12 +446,7 @@ public final class PersonalDatabaseService {
      * @return 若可见性状态发生实际变化返回 true；无变化返回 false
      */
     public boolean toggleTopTabVisibility(ServerPlayer player, DatabaseScope scope, String tabId) {
-        DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
-        DatabaseQuery currentQuery = preferences.query();
-        DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.normalize(scope), tabId);
-        DatabaseQuery updatedQuery = currentQuery.withHiddenTopTabToggled(scopedTab);
-        preferences.setQuery(updatedQuery);
-        return !updatedQuery.hiddenTopTabs().equals(currentQuery.hiddenTopTabs());
+        return PersonalDatabaseServiceTabHelper.toggleTopTabVisibility(this, player, scope, tabId);
     }
 
     /**
@@ -480,7 +471,7 @@ public final class PersonalDatabaseService {
      * @return 经校验后的有效具体标签页标识
      */
     public String resolveConcreteTargetTabId(ServerPlayer player, DatabaseScope scope, String requestedTabId) {
-        return this.resolveTabsForMutation(player, scope).sanitizeConcreteTarget(requestedTabId);
+        return PersonalDatabaseServiceTabHelper.resolveConcreteTargetTabId(this, player, scope, requestedTabId);
     }
 
     /**
@@ -511,10 +502,7 @@ public final class PersonalDatabaseService {
      * @return 固定返回 true（创建操作目前不会失败）
      */
     public boolean createTab(ServerPlayer player, DatabaseScope scope, String name, String iconItemId) {
-        DatabaseTabDirectory tabDirectory = this.resolveTabsForMutation(player, scope);
-        tabDirectory.addCustomTab(name, iconItemId);
-        this.markScopeDirty(player, scope);
-        return true;
+        return PersonalDatabaseServiceTabHelper.createTab(this, player, scope, name, iconItemId);
     }
 
     /**
@@ -527,11 +515,7 @@ public final class PersonalDatabaseService {
      * @return 若名称发生实际变化返回 true；否则返回 false
      */
     public boolean renameTab(ServerPlayer player, DatabaseScope scope, String tabId, String name) {
-        boolean changed = this.resolveTabsForMutation(player, scope).renameTab(tabId, name);
-        if (changed) {
-            this.markScopeDirty(player, scope);
-        }
-        return changed;
+        return PersonalDatabaseServiceTabHelper.renameTab(this, player, scope, tabId, name);
     }
 
     /**
@@ -544,11 +528,7 @@ public final class PersonalDatabaseService {
      * @return 若图标发生实际变化返回 true；否则返回 false
      */
     public boolean updateTabIcon(ServerPlayer player, DatabaseScope scope, String tabId, String iconItemId) {
-        boolean changed = this.resolveTabsForMutation(player, scope).updateTabIcon(tabId, iconItemId);
-        if (changed) {
-            this.markScopeDirty(player, scope);
-        }
-        return changed;
+        return PersonalDatabaseServiceTabHelper.updateTabIcon(this, player, scope, tabId, iconItemId);
     }
 
     /**
@@ -561,11 +541,7 @@ public final class PersonalDatabaseService {
      * @return 若位置发生实际变化返回 true；否则返回 false
      */
     public boolean moveTab(ServerPlayer player, DatabaseScope scope, String tabId, int direction) {
-        boolean changed = this.resolveTabsForMutation(player, scope).moveTab(tabId, direction);
-        if (changed) {
-            this.markScopeDirty(player, scope);
-        }
-        return changed;
+        return PersonalDatabaseServiceTabHelper.moveTab(this, player, scope, tabId, direction);
     }
 
     /**
@@ -586,34 +562,7 @@ public final class PersonalDatabaseService {
      * @return 若数据库或目录发生实际变化返回 true；不可删除或无任何变化返回 false
      */
     public boolean deleteTab(ServerPlayer player, DatabaseScope scope, String tabId, String targetTabId) {
-        DatabaseTabDirectory tabDirectory = this.resolveTabsForMutation(player, scope);
-        String resolvedTargetTabId = tabDirectory.sanitizeConcreteTarget(targetTabId);
-        if (!tabDirectory.find(tabId).map(DatabaseTab::canDelete).orElse(false)) {
-            return false;
-        }
-        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
-        String normalizedTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
-        java.util.Map<StoredStackKey, Long> entriesToDelete = new java.util.LinkedHashMap<>();
-        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : database.entries().entrySet()) {
-            if (entry.getValue().tabId().equals(normalizedTabId)) {
-                entriesToDelete.put(entry.getKey(), entry.getValue().amount());
-            }
-        }
-        boolean databaseChanged = database.transferTab(tabId, resolvedTargetTabId);
-        boolean directoryChanged = tabDirectory.deleteTab(tabId);
-        DatabaseScope normalizedScope = DatabaseScope.normalize(scope);
-        DatabaseViewPreferencesAttachment preferences = this.getViewPreferences(player);
-        DatabaseAutoStoreTarget autoStoreTarget = preferences.autoStoreTarget();
-        if (autoStoreTarget.scope() == normalizedScope && autoStoreTarget.tabId().equals(tabId)) {
-            preferences.setAutoStoreTarget(new DatabaseAutoStoreTarget(normalizedScope, resolvedTargetTabId));
-        }
-        if (databaseChanged || directoryChanged) {
-            this.markScopeDirty(player, scope);
-            for (java.util.Map.Entry<StoredStackKey, Long> entry : entriesToDelete.entrySet()) {
-                PersonalDatabaseServiceLogHelper.recordLog(this, player, scope, DatabaseLogAction.DELETE, entry.getKey().displayStack(), entry.getValue(), normalizedTabId, resolvedTargetTabId, null);
-            }
-        }
-        return databaseChanged || directoryChanged;
+        return PersonalDatabaseServiceTabHelper.deleteTab(this, player, scope, tabId, targetTabId);
     }
 
     /**
@@ -672,9 +621,7 @@ public final class PersonalDatabaseService {
      * @param note   备注内容；可为空字符串
      */
     public void setNote(ServerPlayer player, DatabaseScope scope, StoredStackKey key, String note) {
-        if (key == null) return;
-        this.resolveDatabaseForMutation(player, scope).setNote(key, note);
-        this.markScopeDirty(player, scope);
+        PersonalDatabaseServiceStarNoteHelper.setNote(this, player, scope, key, note);
     }
 
     /**
@@ -686,7 +633,7 @@ public final class PersonalDatabaseService {
      * @return 当前备注内容；无备注时返回空字符串
      */
     public String noteFor(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
-        return key == null ? "" : this.resolveDatabaseForView(player, scope).noteFor(key);
+        return PersonalDatabaseServiceStarNoteHelper.noteFor(this, player, scope, key);
     }
 
     /**
@@ -700,10 +647,7 @@ public final class PersonalDatabaseService {
      * @return 若星标状态发生实际变化返回 true；否则返回 false
      */
     public boolean toggleStar(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
-        if (key == null) return false;
-        boolean changed = this.resolveDatabaseForMutation(player, scope).toggleStar(key);
-        if (changed) this.markScopeDirty(player, scope);
-        return changed;
+        return PersonalDatabaseServiceStarNoteHelper.toggleStar(this, player, scope, key);
     }
 
     /**
@@ -716,10 +660,7 @@ public final class PersonalDatabaseService {
      * @return 若星标状态发生实际变化返回 true；否则返回 false
      */
     public boolean setStarred(ServerPlayer player, DatabaseScope scope, StoredStackKey key, boolean starred) {
-        if (key == null) return false;
-        boolean changed = this.resolveDatabaseForMutation(player, scope).setStarred(key, starred);
-        if (changed) this.markScopeDirty(player, scope);
-        return changed;
+        return PersonalDatabaseServiceStarNoteHelper.setStarred(this, player, scope, key, starred);
     }
 
     /**
@@ -731,7 +672,7 @@ public final class PersonalDatabaseService {
      * @return 已星标返回 true；否则返回 false
      */
     public boolean isStarred(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
-        return key != null && this.resolveDatabaseForView(player, scope).isStarred(key);
+        return PersonalDatabaseServiceStarNoteHelper.isStarred(this, player, scope, key);
     }
 
     /**
@@ -755,15 +696,7 @@ public final class PersonalDatabaseService {
      * @param player 目标玩家
      */
     public void syncJeiAmountsToPlayer(ServerPlayer player) {
-        java.util.Map<ItemStack, Long> personalAmounts = new java.util.LinkedHashMap<>();
-        java.util.Map<ItemStack, Long> publicAmounts = new java.util.LinkedHashMap<>();
-        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : this.resolveDatabaseForView(player, DatabaseScope.PERSONAL).entries().entrySet()) {
-            personalAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
-        }
-        for (java.util.Map.Entry<StoredStackKey, StoredStackEntry> entry : this.resolveDatabaseForView(player, DatabaseScope.PUBLIC).entries().entrySet()) {
-            publicAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
-        }
-        com.agguy.infiniteinventory.compat.jei.JeiCompat.syncAmounts(player, personalAmounts, publicAmounts);
+        PersonalDatabaseServiceSyncHelper.syncJeiAmountsToPlayer(this, player);
     }
 
     /**
@@ -773,14 +706,18 @@ public final class PersonalDatabaseService {
      *
      * @param server 当前 Minecraft 服务端实例
      */
-    public void syncPublicViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncPublicViewers(server); }
+    public void syncPublicViewers(MinecraftServer server) {
+        PersonalDatabaseServiceSyncHelper.syncPublicViewers(server);
+    }
 
     /**
      * 同步所有正在查看无限仓库的玩家视图（含个人与公共）。
      *
      * @param server 当前 Minecraft 服务端实例
      */
-    public void syncAllViewers(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncAllViewers(server); }
+    public void syncAllViewers(MinecraftServer server) {
+        PersonalDatabaseServiceSyncHelper.syncAllViewers(server);
+    }
 
     /**
      * 同步所有玩家视图，并额外通知当前正在查看仓库的玩家其所在作用域的变更。
@@ -789,7 +726,9 @@ public final class PersonalDatabaseService {
      *
      * @param server 当前 Minecraft 服务端实例
      */
-    public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) { PersonalDatabaseServiceViewerHelper.syncAllViewersAndNotifyCurrentScope(server); }
+    public void syncAllViewersAndNotifyCurrentScope(MinecraftServer server) {
+        PersonalDatabaseServiceSyncHelper.syncAllViewersAndNotifyCurrentScope(server);
+    }
 
     /**
      * 通知指定玩家当前作用域下是否存在未解析的日志条目（如其他玩家造成的变更）。
@@ -799,11 +738,15 @@ public final class PersonalDatabaseService {
      * @param player 目标玩家
      * @param scope  当前作用域
      */
-    public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) { PersonalDatabaseServiceViewerHelper.notifyViewerAboutUnresolvedEntries(player, scope); }
-    private static long safeAddMovedItems(long currentTotal, ItemStack stack) { return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack); }
+    public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
+        PersonalDatabaseServiceSyncHelper.notifyViewerAboutUnresolvedEntries(player, scope);
+    }
 
+    private static long safeAddMovedItems(long currentTotal, ItemStack stack) {
+        return PersonalDatabaseServiceStorageHelper.safeAddMovedItems(currentTotal, stack);
+    }
 
-    private StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
+    StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
             return storage.publicDatabase();
@@ -823,16 +766,6 @@ public final class PersonalDatabaseService {
         DatabaseTabDirectory tabDirectory = storage.personalTabsView(player.getUUID());
         database.ensureTabAssignments(tabDirectory);
         return tabDirectory;
-    }
-
-    private DatabaseScopedTabRef resolveScopedTabForView(ServerPlayer player, DatabaseScopedTabRef scopedTab) {
-        DatabaseScopedTabRef normalizedScopedTab = scopedTab == null ? DatabaseScopedTabRef.defaultTab() : scopedTab;
-        DatabaseTabDirectory tabDirectory = this.resolveTabsForView(player, normalizedScopedTab.scope());
-        String resolvedVisibleTabId = tabDirectory.resolveVisibleTabId(normalizedScopedTab.tabId());
-        if (resolvedVisibleTabId == null) {
-            return DatabaseScopedTabRef.allTab(normalizedScopedTab.scope());
-        }
-        return DatabaseScopedTabRef.concreteTab(normalizedScopedTab.scope(), resolvedVisibleTabId);
     }
 
     StoredItemDatabase resolveDatabaseForMutation(ServerPlayer player, DatabaseScope scope) {
@@ -868,5 +801,4 @@ public final class PersonalDatabaseService {
         storage.setDirty();
         this.syncJeiAmountsToPlayer(player);
     }
-
 }
