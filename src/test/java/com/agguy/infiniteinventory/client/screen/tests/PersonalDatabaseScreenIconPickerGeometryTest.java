@@ -2,17 +2,28 @@ package com.agguy.infiniteinventory.client.screen.tests;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * PersonalDatabaseScreenIconPickerGeometry 的单元测试。
  *
- * <p>图标选择器几何计算依赖屏幕布局实例，此处仅验证工具类不可实例化。</p>
+ * <p>由于目标类为包级可见，测试通过反射调用。
  */
 class PersonalDatabaseScreenIconPickerGeometryTest {
 
+    private static final String CLASS_NAME =
+            "com.agguy.infiniteinventory.client.screen.PersonalDatabaseScreenIconPickerGeometry";
+
+    private Class<?> geometryClass() throws ClassNotFoundException {
+        return Class.forName(CLASS_NAME);
+    }
+
     @Test
-    void shouldNotBeInstantiable() {
-        assertTrue(true, "IconPickerGeometry 是纯工具类，通过静态方法提供图标选择器布局计算");
+    void shouldHavePrivateConstructor() throws Exception {
+        Constructor<?> constructor = geometryClass().getDeclaredConstructor();
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()), "工具类构造器应为 private");
     }
 }

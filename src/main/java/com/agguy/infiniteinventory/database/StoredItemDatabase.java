@@ -71,7 +71,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     /**
      * 获取操作日志条目的不可变副本。
      *
-     * <p>日志上限由 {@code MAX_LOG_ENTRIES}（500）控制，超出时自动移除最旧的条目。</p>
+     * <p>日志上限为 500 条，超出时自动移除最旧的条目。</p>
      *
      * @return 日志条目列表的不可变副本
      */
@@ -194,7 +194,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     /**
      * 为指定物品设置备注。
      *
-     * <p>业务约束：备注长度超过 {@code MAX_NOTE_LENGTH}（256）时会被截断；
+     * <p>业务约束：备注长度超过 256 时会被截断；
      * 空字符串或仅空白字符会清除已有备注。只有实际内容发生变化时才触发脏标记。</p>
      *
      * @param key  物品键
@@ -345,7 +345,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     /**
      * 追加一条操作日志。
      *
-     * <p>业务约束：空日志或无效日志会被忽略。日志总量超过 {@code MAX_LOG_ENTRIES}（500）时，
+     * <p>业务约束：空日志或无效日志会被忽略。日志总量超过 500 时，
      * 自动移除最旧的条目，防止存档无限膨胀。</p>
      *
      * @param entry 要追加的日志条目

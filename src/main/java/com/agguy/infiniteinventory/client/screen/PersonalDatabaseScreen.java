@@ -242,7 +242,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.titleLabelY = Integer.MAX_VALUE;
     }
 
-    /** 初始化屏幕尺寸与所有 UI 控件，在屏幕首次显示或尺寸变化时调用。 */
+    /** 初始化屏幕尺寸与所有 UI 控件，在屏幕首次显示时调用。 */
     @Override
     protected void init() {
         this.imageWidth = this.width;
