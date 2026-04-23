@@ -256,6 +256,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             List<DatabaseScopedTabRef> nextVisibleTabs = query.visibleTabs().stream()
                     .filter(existingTab -> !existingTab.equals(scopedTab))
                     .toList();
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             PersonalDatabaseScreenLayoutHelper.sendQueryKeepingViewSelector(
                     screen,
                     query.withVisibleTabs(nextVisibleTabs)
@@ -267,6 +268,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
         }
         LinkedHashSet<DatabaseScopedTabRef> nextVisibleTabs = new LinkedHashSet<>(query.visibleTabs());
         nextVisibleTabs.add(scopedTab);
+        PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
         PersonalDatabaseScreenLayoutHelper.sendQueryKeepingViewSelector(
                 screen,
                 query.withVisibleTabs(new ArrayList<>(nextVisibleTabs)).withFocusedTab(scopedTab)

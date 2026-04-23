@@ -92,6 +92,7 @@ final class PersonalDatabaseScreenMoreTabsHelper {
                 continue;
             }
             screen.moreTabsExpanded = false;
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             PersonalDatabaseScreenTopTabPromptHelper.handleTopTabSelection(screen, tabs.get(index));
             return true;
         }

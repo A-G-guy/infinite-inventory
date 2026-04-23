@@ -192,6 +192,7 @@ final class PersonalDatabaseScreenTargetHelper {
             PersonalDatabaseTargetSelectorModel.TargetSelection targetSelection = visibleRows.get(index).targetSelection();
             if (targetSelection != null) {
                 applyTargetSelection(screen, targetSelection);
+                PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             }
             return true;
         }

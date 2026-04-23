@@ -46,9 +46,11 @@ public final class ModNetwork {
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
-        if (Minecraft.getInstance().player != null) {
-            PersonalDatabaseClient.applySnapshot(payload.viewState());
-        }
+        context.enqueueWork(() -> {
+            if (Minecraft.getInstance().player != null) {
+                PersonalDatabaseClient.applySnapshot(payload.viewState());
+            }
+        });
     }
 
     private static void handleViewerLocale(DatabaseViewerLocalePayload payload, IPayloadContext context) {
@@ -232,7 +234,7 @@ public final class ModNetwork {
     }
 
     private static void handleLogSnapshot(DatabaseLogSnapshotPayload payload, IPayloadContext context) {
-        PersonalDatabaseClient.applyLogSnapshot(payload);
+        context.enqueueWork(() -> PersonalDatabaseClient.applyLogSnapshot(payload));
     }
 
     private static void handleStarToggle(DatabaseStarPayload payload, IPayloadContext context) {
@@ -260,7 +262,7 @@ public final class ModNetwork {
     }
 
     private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {
-        JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap());
+        context.enqueueWork(() -> JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap()));
     }
 
     @Nullable

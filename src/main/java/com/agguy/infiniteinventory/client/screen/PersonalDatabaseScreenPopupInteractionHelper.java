@@ -37,6 +37,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
                         true
                 );
             }
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         java.util.List<DatabaseSortMethod> sortMethods = DatabaseSortDropdownModel.methodOptions();
@@ -58,6 +59,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
                 screen.sortDropdownExpanded = false;
                 screen.activeSortPanelIndex = -1;
             }
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (dropdownRect.contains(mouseX, mouseY)) {
@@ -67,7 +69,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             screen.sortDropdownExpanded = false;
             screen.activeSortPanelIndex = -1;
         }
-        return false;
+        return true;
     }
 
     static boolean handlePagePickerClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
@@ -112,6 +114,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
                                 .withFocusedTabId(panel.tab().id())
                 );
             }
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (pickerRect.contains(mouseX, mouseY)) {
@@ -119,7 +122,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
         }
         screen.pagePickerExpanded = false;
         screen.activePagePickerPanelIndex = -1;
-        return false;
+        return true;
     }
 
     static boolean handleContextMenuClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
@@ -135,7 +138,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             return true;
         }
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-        return false;
+        return true;
     }
 
     static boolean closeTopOverlay(PersonalDatabaseScreen screen) {

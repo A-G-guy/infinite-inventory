@@ -40,6 +40,7 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (screen.advancedSearchExpanded && !PersonalDatabaseScreenGeometry.isWithinAdvancedSearchPanel(screen, mouseX, mouseY)) {
             screen.advancedSearchExpanded = false;
+            return true;
         }
         if (screen.enhancementPanelExpanded
                 && PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(
@@ -52,6 +53,7 @@ final class PersonalDatabaseScreenInteractionHelper {
         }
         if (screen.enhancementPanelExpanded && !PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
             screen.enhancementPanelExpanded = false;
+            return true;
         }
         if (screen.iconPickerExpanded && PersonalDatabaseScreenManagementHelper.handleIconPickerClick(screen, mouseX, mouseY)) {
             return true;

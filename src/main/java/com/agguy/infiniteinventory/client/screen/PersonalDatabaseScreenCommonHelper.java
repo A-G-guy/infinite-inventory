@@ -31,6 +31,15 @@ final class PersonalDatabaseScreenCommonHelper {
     private PersonalDatabaseScreenCommonHelper() {
     }
 
+    static void playButtonClickSound(PersonalDatabaseScreen screen) {
+        net.minecraft.client.Minecraft.getInstance().getSoundManager().play(
+                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                        net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK,
+                        1.0F
+                )
+        );
+    }
+
     static List<DatabasePanelView> currentPanels(PersonalDatabaseScreen screen) {
         List<DatabasePanelView> panels = screen.databaseMenu.viewState().panels();
         int maxVisiblePanels = Math.max(1, maxVisiblePanels(screen));

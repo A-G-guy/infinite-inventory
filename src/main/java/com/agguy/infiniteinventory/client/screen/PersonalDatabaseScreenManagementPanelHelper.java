@@ -222,7 +222,11 @@ final class PersonalDatabaseScreenManagementPanelHelper {
         DatabaseTab selectedTab = selectedManagementTab(screen);
         int concreteCount = PersonalDatabaseScreenCommonHelper.concreteTabsForScope(screen, selectedScopedTab.scope()).size();
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 0).contains(mouseX, mouseY)) {
-            return PersonalDatabaseScreenManagementLogic.saveSelectedTab(screen, selectedTab);
+            if (PersonalDatabaseScreenManagementLogic.canSaveSelectedTab(screen, selectedTab)) {
+                PersonalDatabaseScreenManagementLogic.saveSelectedTab(screen, selectedTab);
+                PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
+            }
+            return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 0, 1).contains(mouseX, mouseY)) {
             PersonalDatabaseScreenManagementHelper.sendTabMutation(
@@ -234,6 +238,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                     "",
                     ""
             );
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 0).contains(mouseX, mouseY)
@@ -247,6 +252,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                     selectedScopedTab.scope(),
                     selectedTab.id()
             );
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 1, 1).contains(mouseX, mouseY)
@@ -260,6 +266,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                     "",
                     ""
             );
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 0).contains(mouseX, mouseY)
@@ -273,6 +280,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                     "",
                     ""
             );
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenManagementGeometry.managementActionButtonRect(screen, 2, 1).contains(mouseX, mouseY)
@@ -286,6 +294,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                     selectedScopedTab.scope(),
                     selectedTab.id()
             );
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         return true;

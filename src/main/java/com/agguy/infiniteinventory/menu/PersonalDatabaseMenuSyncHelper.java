@@ -25,11 +25,15 @@ final class PersonalDatabaseMenuSyncHelper {
         long currentPersonalRevision = PersonalDatabaseService.INSTANCE.databaseRevisionFor(serverPlayer, DatabaseScope.PERSONAL);
         long currentPublicRevision = PersonalDatabaseService.INSTANCE.databaseRevisionFor(serverPlayer, DatabaseScope.PUBLIC);
         DatabaseQuery activeQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, menu.currentQuery());
+        java.util.List<com.agguy.infiniteinventory.database.DatabaseTab> currentPersonalTabs = PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PERSONAL);
+        java.util.List<com.agguy.infiniteinventory.database.DatabaseTab> currentPublicTabs = PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC);
         if (currentPersonalRevision == menu.lastSentPersonalRevision
                 && currentPublicRevision == menu.lastSentPublicRevision
                 && activeQuery.equals(menu.lastSentQuery)
                 && java.util.Objects.equals(menu.viewState.enhancementConfig(), menu.enhancementConfig)
-                && java.util.Objects.equals(menu.viewState.autoStoreTarget(), menu.autoStoreTarget)) {
+                && java.util.Objects.equals(menu.viewState.autoStoreTarget(), menu.autoStoreTarget)
+                && java.util.Objects.equals(menu.viewState.personalTabs(), currentPersonalTabs)
+                && java.util.Objects.equals(menu.viewState.publicTabs(), currentPublicTabs)) {
             return;
         }
         java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabs().size());

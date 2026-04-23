@@ -166,6 +166,7 @@ final class PersonalDatabaseScreenIconPickerHelper {
             }
             screen.iconPickerCategory = categories[index];
             screen.iconPickerPageIndex = 0;
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
 
@@ -182,23 +183,28 @@ final class PersonalDatabaseScreenIconPickerHelper {
                 screen.iconSearchBox.setFocused(false);
             }
             screen.pendingIconItemId = pageChoices.get(index).itemId();
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
 
         if (PersonalDatabaseScreenIconPickerGeometry.iconPickerPreviousPageButtonRect(screen).contains(mouseX, mouseY)) {
             screen.iconPickerPageIndex = Math.max(0, screen.iconPickerPageIndex - 1);
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenIconPickerGeometry.iconPickerNextPageButtonRect(screen).contains(mouseX, mouseY)) {
             screen.iconPickerPageIndex = Math.min(totalPages - 1, screen.iconPickerPageIndex + 1);
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenIconPickerGeometry.iconPickerCancelButtonRect(screen).contains(mouseX, mouseY)) {
             PersonalDatabaseScreenManagementHelper.closeIconPicker(screen);
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         if (PersonalDatabaseScreenIconPickerGeometry.iconPickerApplyButtonRect(screen).contains(mouseX, mouseY)) {
             applyAndClose(screen);
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
             return true;
         }
         return true;

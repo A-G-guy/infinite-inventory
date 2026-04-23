@@ -90,6 +90,7 @@ final class PersonalDatabaseScreenContextHelper {
         if (item == null) {
             return;
         }
+        PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
         if (item.clickAction() != null) {
             triggerSingleClickAction(screen, item.clickAction());
             return;
