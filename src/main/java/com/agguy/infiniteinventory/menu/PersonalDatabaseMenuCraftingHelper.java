@@ -12,6 +12,10 @@ import net.minecraft.world.item.crafting.RecipeHolder;
  */
 final class PersonalDatabaseMenuCraftingHelper {
 
+    private static final int CRAFT_GRID_WIDTH = 2;
+    private static final int CRAFT_GRID_HEIGHT = 2;
+    private static final int CRAFT_GRID_SIZE = 5;
+
     private final PersonalDatabaseMenu menu;
 
     PersonalDatabaseMenuCraftingHelper(PersonalDatabaseMenu menu) {
@@ -36,15 +40,15 @@ final class PersonalDatabaseMenuCraftingHelper {
     }
 
     int getGridWidth() {
-        return 2;
+        return CRAFT_GRID_WIDTH;
     }
 
     int getGridHeight() {
-        return 2;
+        return CRAFT_GRID_HEIGHT;
     }
 
     int getSize() {
-        return 5;
+        return CRAFT_GRID_SIZE;
     }
 
     RecipeBookType getRecipeBookType() {

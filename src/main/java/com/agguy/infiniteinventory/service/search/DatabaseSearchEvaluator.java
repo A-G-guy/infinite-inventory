@@ -25,6 +25,7 @@ public final class DatabaseSearchEvaluator {
     private static final double PHRASE_PREFIX_BONUS = 800.0D;
     private static final double TOKEN_SEQUENCE_BONUS = 400.0D;
     private static final double MULTI_FIELD_BONUS = 180.0D;
+    private static final int SPAN_PENALTY_MULTIPLIER = 3;
     private static final SequentialFuzzyScore FUZZY_SCORE = new SequentialFuzzyScore(Locale.ROOT);
 
     /**
@@ -308,7 +309,7 @@ public final class DatabaseSearchEvaluator {
             return TokenMatch.noMatch();
         }
         int subsequenceSpan = this.subsequenceSpan(candidate, term);
-        int spanPenalty = Math.max(0, subsequenceSpan - term.length()) * 3;
+        int spanPenalty = Math.max(0, subsequenceSpan - term.length()) * SPAN_PENALTY_MULTIPLIER;
         int candidatePenalty = Math.max(0, candidate.length() - term.length());
         return new TokenMatch(null, MatchLevel.FUZZY, score(FUZZY_BASE_SCORE + fuzzyScore, weight, 0, candidatePenalty + spanPenalty));
     }

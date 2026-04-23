@@ -389,12 +389,15 @@ public final class DatabaseQueryEngine {
     }
 
     private static final class DatabaseRuntimeIndex {
+        private static final int SEARCH_CACHE_INITIAL_CAPACITY = 16;
+        private static final float SEARCH_CACHE_LOAD_FACTOR = 0.75F;
+
         private final long revision;
         private final Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets;
         private final Map<String, Long> tabTotals;
         private final Map<String, java.util.EnumMap<DatabaseSortOption, CachedQueryResult>> noSearchSortedCache = new LinkedHashMap<>();
         private final LinkedHashMap<QueryFingerprint, CachedQueryResult> searchCache =
-                new LinkedHashMap<>(16, 0.75F, true) {
+                new LinkedHashMap<>(SEARCH_CACHE_INITIAL_CAPACITY, SEARCH_CACHE_LOAD_FACTOR, true) {
                     @Override
                     protected boolean removeEldestEntry(Map.Entry<QueryFingerprint, CachedQueryResult> eldest) {
                         return this.size() > MAX_SEARCH_CACHE_SIZE;
