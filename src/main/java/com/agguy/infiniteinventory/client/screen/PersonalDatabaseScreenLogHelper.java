@@ -20,8 +20,11 @@ final class PersonalDatabaseScreenLogHelper {
             .withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter TOOLTIP_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.systemDefault());
-    private static final int ACTION_CHIP_WIDTH = 40;
-    private static final int AMOUNT_WIDTH = 56;
+    private static final int ACTION_CHIP_WIDTH = 28;
+    private static final int AMOUNT_WIDTH = 40;
+    private static final int PLAYER_WIDTH = 60;
+    private static final int TIME_WIDTH = 64;
+    private static final int ITEM_ICON_WIDTH = 18;
     private static final int ROW_GAP = 2;
 
     private PersonalDatabaseScreenLogHelper() {
@@ -96,10 +99,13 @@ final class PersonalDatabaseScreenLogHelper {
             return;
         }
 
-        int timeWidth = 64;
         int actionWidth = ACTION_CHIP_WIDTH;
         int amountWidth = AMOUNT_WIDTH;
-        int itemWidth = Math.max(1, listRect.width() - timeWidth - actionWidth - amountWidth - ROW_GAP * 4);
+        int playerWidth = PLAYER_WIDTH;
+        int timeWidth = TIME_WIDTH;
+        int iconWidth = ITEM_ICON_WIDTH;
+        int fixedWidth = timeWidth + actionWidth + iconWidth + playerWidth + amountWidth + ROW_GAP * 5;
+        int itemTextWidth = Math.max(1, listRect.width() - fixedWidth);
 
         int endIndex = Math.min(entries.size(), screen.logPanelScrollIndex + visibleRows);
         for (int i = screen.logPanelScrollIndex; i < endIndex; i++) {
@@ -127,18 +133,27 @@ final class PersonalDatabaseScreenLogHelper {
             if (!entry.stackSnapshot().isEmpty()) {
                 ItemStack stack = entry.stackSnapshot();
                 guiGraphics.renderItem(stack, x, rowRect.y() + 1);
-                x += 18;
             }
+            x += iconWidth + ROW_GAP;
 
             // 物品名称 + 页签信息
             String itemName = entry.stackSnapshot().getHoverName().getString();
             String tabInfo = formatTabInfo(screen, entry);
             String displayText = tabInfo.isEmpty() ? itemName : itemName + " " + tabInfo;
-            displayText = screen.screenFont().plainSubstrByWidth(displayText, itemWidth - 20);
+            displayText = screen.screenFont().plainSubstrByWidth(displayText, itemTextWidth);
             guiGraphics.drawString(screen.screenFont(), displayText, x, y, PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
-            x = rowRect.right() - amountWidth;
+            x += itemTextWidth + ROW_GAP;
+
+            // 玩家名称
+            String playerName = entry.playerNameSnapshot();
+            if (!playerName.isEmpty()) {
+                playerName = screen.screenFont().plainSubstrByWidth(playerName, playerWidth);
+                guiGraphics.drawString(screen.screenFont(), playerName, x, y, PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR, false);
+            }
+            x += playerWidth + ROW_GAP;
 
             // 数量
+            x = rowRect.right() - amountWidth;
             String amountStr = "x" + entry.amount();
             guiGraphics.drawString(screen.screenFont(), amountStr, x, y, PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR, false);
         }

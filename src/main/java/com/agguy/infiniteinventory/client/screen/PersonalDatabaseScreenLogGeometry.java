@@ -14,6 +14,8 @@ final class PersonalDatabaseScreenLogGeometry {
     static final int LOG_HEADER_HEIGHT = 16;
     static final int LOG_SCROLLBAR_WIDTH = 6;
     static final int LOG_SCROLLBAR_MARGIN = 4;
+    // 为右上角关闭按钮预留的宽度（按钮20 + 右间距4 + 间隙4）
+    static final int LOG_CLOSE_BUTTON_RESERVED_WIDTH = 28;
 
     private PersonalDatabaseScreenLogGeometry() {
     }
@@ -40,8 +42,8 @@ final class PersonalDatabaseScreenLogGeometry {
         PersonalDatabaseLayout.Rect titleRect = logPanelTitleRect(screen);
         boolean isPersonal = scope == DatabaseScope.PERSONAL;
         int x = isPersonal
-                ? titleRect.right() - LOG_SCOPE_TOGGLE_WIDTH * 2 - LOG_SCOPE_TOGGLE_GAP
-                : titleRect.right() - LOG_SCOPE_TOGGLE_WIDTH;
+                ? titleRect.right() - LOG_SCOPE_TOGGLE_WIDTH * 2 - LOG_SCOPE_TOGGLE_GAP - LOG_CLOSE_BUTTON_RESERVED_WIDTH
+                : titleRect.right() - LOG_SCOPE_TOGGLE_WIDTH - LOG_CLOSE_BUTTON_RESERVED_WIDTH;
         return new PersonalDatabaseLayout.Rect(
                 x,
                 titleRect.y() + (LOG_TITLE_HEIGHT - PersonalDatabaseLayout.CONTROL_HEIGHT) / 2,
