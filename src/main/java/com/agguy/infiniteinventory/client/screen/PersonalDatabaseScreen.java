@@ -31,6 +31,21 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 个人数据库客户端渲染与交互屏幕，负责数据库 UI 的整体生命周期管理。
+ *
+ * <p>职责边界：
+ * <ul>
+ *   <li>响应式布局：根据屏幕尺寸动态计算各面板位置与尺寸
+ *   <li>覆盖层渲染：搜索、排序、标签页选择器、高级搜索、增强配置等弹层面板
+ *   <li>输入事件：鼠标点击/滚动/拖拽、键盘按键、字符输入的捕获与分发
+ *   <li>自定义工具提示：替代原版提示渲染，支持多行富文本与动态内容
+ * </ul>
+ *
+ * <p>设计决策：
+ * 所有渲染逻辑委托给专门的 Helper 类（如 {@code PersonalDatabaseScreenRenderHelper}），
+ * 本类仅维护 UI 状态机与事件路由，避免单个类过度膨胀。
+ */
 public final class PersonalDatabaseScreen extends AbstractContainerScreen<PersonalDatabaseMenu> {
     static final int OVERLAY_TEXT_COLOR = 0x231C16;
     static final int OVERLAY_MUTED_TEXT_COLOR = 0x605547;
@@ -227,6 +242,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     record IconChoice(String itemId, ItemStack previewStack, String searchableText, DatabaseCategory category) {
     }
 
+    /**
+     * 创建数据库屏幕实例。
+     *
+     * @param menu           关联的服务器端菜单
+     * @param playerInventory 玩家背包，用于原版容器屏幕的基础初始化
+     * @param title          屏幕标题组件
+     */
     public PersonalDatabaseScreen(PersonalDatabaseMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         this.databaseMenu = menu;
@@ -235,6 +257,16 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.titleLabelY = Integer.MAX_VALUE;
     }
 
+    /**
+     * 初始化屏幕尺寸与所有 UI 控件，在屏幕首次显示或尺寸变化时调用。
+     *
+     * <p>业务约束：
+     * <ul>
+     *   <li>若当前设备无饰品槽位，强制收起饰品面板并重置滚动位置
+     *   <li>所有展开状态在初始化时重置为收起，防止跨会话状态泄漏
+     *   <li>搜索同步冷却与待处理搜索文本清空，确保新会话从干净状态开始
+     * </ul>
+     */
     @Override
     protected void init() {
         this.imageWidth = this.width;
@@ -284,6 +316,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
 
+    /**
+     * 每 tick 更新屏幕状态，负责布局刷新、控件同步、搜索防抖与覆盖层校验。
+     *
+     * <p>设计决策：将各类周期性逻辑拆分到独立 Helper，保持屏幕类仅作为调度中心。
+     */
     @Override
     public void containerTick() {
         super.containerTick();
@@ -295,6 +332,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(this);
     }
 
+    /**
+     * 主渲染入口，按分层顺序绘制背景、原版容器、各覆盖层与自定义工具提示。
+     *
+     * <p>渲染顺序（后绘制的覆盖先绘制的）：
+     * <ol>
+     *   <li>背景与原版容器槽位
+     *   <li>饰品槽位悬停高亮与工具栏覆盖层
+     *   <li>各类弹层面板（高级搜索、增强配置、排序下拉、页码选择器等）
+     *   <li>自定义工具提示（替代原版渲染以支持富文本）
+     * </ol>
+     *
+     * <p>业务约束：若屏幕尺寸不足以支持完整 UI，则仅显示分辨率不足提示。
+     *
+     * @param guiGraphics 图形绘制上下文
+     * @param mouseX      当前鼠标 X 坐标
+     * @param mouseY      当前鼠标 Y 坐标
+     * @param partialTick 部分 tick 时间，用于动画插值
+     */
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
@@ -360,6 +415,13 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         PersonalDatabaseScreenRenderHelper.renderScreenTooltips(this, guiGraphics, mouseX, mouseY);
     }
 
+    /**
+     * 渲染物品提示。当自定义提示渲染激活时跳过原版实现，防止双重绘制。
+     *
+     * @param guiGraphics 图形绘制上下文
+     * @param mouseX      鼠标 X 坐标
+     * @param mouseY      鼠标 Y 坐标
+     */
     @Override
     protected void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (this.suppressVanillaTooltipRender) {
@@ -368,21 +430,47 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
+    /**
+     * 渲染屏幕背景，包括数据库主体框架与各面板底色。
+     *
+     * @param guiGraphics 图形绘制上下文
+     * @param partialTick 部分 tick 时间
+     * @param mouseX      鼠标 X 坐标
+     * @param mouseY      鼠标 Y 坐标
+     */
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         PersonalDatabaseScreenRenderHelper.renderBg(this, guiGraphics, partialTick, mouseX, mouseY);
     }
 
+    /**
+     * 渲染容器标签。本屏幕使用完全自定义的文本绘制，故留空。
+     */
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
     }
 
+    /**
+     * 渲染单个槽位，先由自定义 Helper 绘制附加装饰（如选中框、数量覆盖），再调用原版槽位渲染。
+     *
+     * @param guiGraphics 图形绘制上下文
+     * @param slot        待渲染的槽位
+     */
     @Override
     protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
         PersonalDatabaseScreenRenderHelper.renderSlot(this, guiGraphics, slot);
         super.renderSlot(guiGraphics, slot);
     }
 
+    /**
+     * 渲染槽位悬停高亮。若 Helper 判定需要跳过（如多选拖拽期间），则抑制高亮以避免视觉干扰。
+     *
+     * @param guiGraphics 图形绘制上下文
+     * @param slot        目标槽位
+     * @param mouseX      鼠标 X 坐标
+     * @param mouseY      鼠标 Y 坐标
+     * @param partialTick 部分 tick 时间
+     */
     @Override
     protected void renderSlotHighlight(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, float partialTick) {
         if (PersonalDatabaseScreenRenderHelper.shouldSkipSlotHighlight(this, slot)) {
@@ -391,75 +479,178 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         super.renderSlotHighlight(guiGraphics, slot, mouseX, mouseY, partialTick);
     }
 
+    /**
+     * 处理鼠标点击事件，分发给交互 Helper 以支持覆盖层优先、多选手势等自定义逻辑。
+     *
+     * @param mouseX 鼠标 X 坐标
+     * @param mouseY 鼠标 Y 坐标
+     * @param button 鼠标按键编码
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         return PersonalDatabaseScreenInteractionHelper.mouseClicked(this, mouseX, mouseY, button);
     }
 
+    /**
+     * 处理鼠标滚轮事件，用于面板滚动、下拉列表滚动等。
+     *
+     * @param mouseX 鼠标 X 坐标
+     * @param mouseY 鼠标 Y 坐标
+     * @param scrollX 水平滚动量
+     * @param scrollY 垂直滚动量
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         return PersonalDatabaseScreenInteractionHelper.mouseScrolled(this, mouseX, mouseY, scrollX, scrollY);
     }
 
+    /**
+     * 处理鼠标拖拽事件，主要用于多选框手势与槽位拖拽。
+     *
+     * @param mouseX 鼠标当前 X 坐标
+     * @param mouseY 鼠标当前 Y 坐标
+     * @param button 拖拽按键编码
+     * @param dragX  本次拖拽 X 偏移
+     * @param dragY  本次拖拽 Y 偏移
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         return PersonalDatabaseScreenInteractionHelper.mouseDragged(this, mouseX, mouseY, button, dragX, dragY);
     }
 
+    /**
+     * 处理鼠标释放事件，用于结束多选手势、关闭临时覆盖层等。
+     *
+     * @param mouseX 鼠标 X 坐标
+     * @param mouseY 鼠标 Y 坐标
+     * @param button 释放的按键编码
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         return PersonalDatabaseScreenInteractionHelper.mouseReleased(this, mouseX, mouseY, button);
     }
 
+    /**
+     * 处理键盘按下事件，支持快捷键（如 ESC 关闭覆盖层、Ctrl+A 全选）。
+     *
+     * @param keyCode   按键编码
+     * @param scanCode  扫描码
+     * @param modifiers 修饰键位掩码
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         return PersonalDatabaseScreenInteractionHelper.keyPressed(this, keyCode, scanCode, modifiers);
     }
 
+    /**
+     * 处理键盘释放事件，用于修饰键状态跟踪（如多选丢弃键释放检测）。
+     *
+     * @param keyCode   按键编码
+     * @param scanCode  扫描码
+     * @param modifiers 修饰键位掩码
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         return PersonalDatabaseScreenInteractionHelper.keyReleased(this, keyCode, scanCode, modifiers);
     }
 
+    /**
+     * 处理字符输入事件，用于搜索框、备注编辑框等文本控件的输入。
+     *
+     * @param codePoint 输入的 Unicode 码点
+     * @param modifiers 修饰键位掩码
+     * @return true 表示事件已被消费
+     */
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         return PersonalDatabaseScreenInteractionHelper.charTyped(this, codePoint, modifiers);
     }
 
+    /**
+     * 返回当前屏幕使用的字体渲染器，供外部 Helper 统一文本绘制。
+     *
+     * @return 屏幕字体实例
+     */
     Font screenFont() {
         return this.font;
     }
 
+    /**
+     * 返回 Minecraft 客户端实例，供网络包发送等操作使用。
+     *
+     * @return 客户端实例，可能为 null（如屏幕未完全初始化时）
+     */
     @Nullable
     Minecraft minecraftClient() {
         return this.minecraft;
     }
 
+    /**
+     * 返回当前鼠标悬停的槽位引用，供覆盖层判断与提示渲染使用。
+     *
+     * @return 悬停槽位，可能为 null
+     */
     @Nullable
     Slot hoveredSlotRef() {
         return this.hoveredSlot;
     }
 
+    /**
+     * 返回当前屏幕宽度。
+     *
+     * @return 屏幕宽度（像素）
+     */
     int screenWidthValue() {
         return this.width;
     }
 
+    /**
+     * 返回当前屏幕高度。
+     *
+     * @return 屏幕高度（像素）
+     */
     int screenHeightValue() {
         return this.height;
     }
 
+    /**
+     * 根据当前屏幕尺寸解析适配配置文件，决定 UI 布局策略。
+     *
+     * @return 当前屏幕的适配配置
+     */
     PersonalDatabaseScreenFitProfile screenFitProfile() {
         return PersonalDatabaseScreenFitProfile.resolve(this.width, this.height);
     }
 
+    /**
+     * 向屏幕添加一个按钮控件，封装父类方法以便 Helper 类调用。
+     *
+     * @param button 待添加的按钮
+     * @return 添加后的按钮实例
+     */
     Button addScreenButton(Button button) {
         return super.addRenderableWidget(button);
     }
 
+    /**
+     * 向屏幕添加一个文本编辑框控件，封装父类方法以便 Helper 类调用。
+     *
+     * @param editBox 待添加的编辑框
+     * @return 添加后的编辑框实例
+     */
     EditBox addScreenEditBox(EditBox editBox) {
         return super.addRenderableWidget(editBox);
     }
 
+    /**
+     * 清空屏幕所有已注册的渲染控件，通常在重新初始化布局前调用。
+     */
     void clearScreenWidgets() {
         super.clearWidgets();
     }

@@ -9,6 +9,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * 数据库条目搜索评分器，负责对单个数据库条目执行搜索匹配评分。
+ *
+ * <p>设计意图：将搜索匹配逻辑从数据遍历层剥离，形成独立的评分领域服务，
+ * 支持精确匹配、前缀匹配、包含匹配、模糊匹配四种层级，并通过多字段加权与
+ * 短语奖励机制实现可配置的排序质量。所有评分规则集中于此，便于统一调优。
+ */
 public final class DatabaseSearchEvaluator {
     private static final int EXACT_BASE_SCORE = 40_000;
     private static final int PREFIX_BASE_SCORE = 30_000;
@@ -20,11 +27,31 @@ public final class DatabaseSearchEvaluator {
     private static final double MULTI_FIELD_BONUS = 180.0D;
     private static final SequentialFuzzyScore FUZZY_SCORE = new SequentialFuzzyScore(Locale.ROOT);
 
+    /**
+     * 对指定数据库条目执行搜索评分。
+     *
+     * @param query  当前查询状态，若为 null 则使用默认查询
+     * @param index  待评分条目的搜索索引，包含各字段的预处理文本
+     * @param amount 条目堆叠数量，用于数量加权评分
+     * @return 综合排名结果，若未匹配则返回 {@link DatabaseSearchRanking#noMatch()}
+     */
     public DatabaseSearchRanking evaluate(DatabaseQuery query, DatabaseSearchIndex index, long amount) {
         DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
         return this.evaluate(normalizedQuery.tabStateFor(normalizedQuery.focusedTab()), index, amount);
     }
 
+    /**
+     * 对指定标签页的查询状态执行搜索评分。
+     *
+     * <p>业务约束：若搜索词为空，则返回 {@link DatabaseSearchRanking#unfiltered()}；
+     * 若任一搜索词在所有字段均未匹配，则直接返回 {@link DatabaseSearchRanking#noMatch()}，
+     * 体现“全词必须命中”的搜索语义。
+     *
+     * @param tabQueryState 标签页查询状态，包含搜索文本与搜索配置，若为 null 则使用默认状态
+     * @param index         待评分条目的搜索索引
+     * @param amount        条目堆叠数量
+     * @return 综合排名结果
+     */
     public DatabaseSearchRanking evaluate(DatabaseTabQueryState tabQueryState, DatabaseSearchIndex index, long amount) {
         DatabaseTabQueryState normalizedState = tabQueryState == null ? DatabaseTabQueryState.defaultState() : tabQueryState;
         List<String> terms = SearchTextNormalizer.splitTerms(normalizedState.searchText());
