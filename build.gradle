@@ -211,6 +211,22 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
+tasks.named('javadoc', Javadoc).configure {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.author = true
+    options.version = true
+    options.use = true
+    options.addStringOption('Xdoclint:none', '-quiet')
+
+    // 链接到 JDK 21 官方文档
+    options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
+
+    // 过滤掉 client/compat 包（这些不生成公开 API 文档）
+    exclude('com/agguy/infiniteinventory/client/**')
+    exclude('com/agguy/infiniteinventory/compat/**')
+}
+
 tasks.named('jar', Jar).configure {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from('LICENSE') {
