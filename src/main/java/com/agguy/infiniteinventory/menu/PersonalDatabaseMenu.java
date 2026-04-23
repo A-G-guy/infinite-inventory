@@ -178,15 +178,18 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         if (changed) { this.broadcastChanges(); this.syncAfterScopeMutation(serverPlayer, scope); }
     }
 
-    public void handleStarToggle(DatabaseScope scope, List<ItemStack> targetStacks) {
+    public void handleStarAction(DatabaseScope scope, List<ItemStack> targetStacks, com.agguy.infiniteinventory.network.DatabaseStarPayload.StarAction action) {
         if (!(this.owner instanceof ServerPlayer serverPlayer)) return;
         boolean changed = false;
         for (ItemStack stack : targetStacks) {
             if (stack.isEmpty()) continue;
             StoredStackKey key = StoredStackKey.of(stack);
-            if (PersonalDatabaseService.INSTANCE.toggleStar(serverPlayer, scope, key)) {
-                changed = true;
-            }
+            boolean itemChanged = switch (action) {
+                case TOGGLE -> PersonalDatabaseService.INSTANCE.toggleStar(serverPlayer, scope, key);
+                case STAR_ALL -> PersonalDatabaseService.INSTANCE.setStarred(serverPlayer, scope, key, true);
+                case UNSTAR_ALL -> PersonalDatabaseService.INSTANCE.setStarred(serverPlayer, scope, key, false);
+            };
+            if (itemChanged) changed = true;
         }
         if (changed) {
             this.broadcastChanges();

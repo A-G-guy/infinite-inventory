@@ -77,6 +77,19 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return changed;
     }
 
+    public boolean setStarred(StoredStackKey key, boolean starred) {
+        if (key == null) return false;
+        boolean currentlyStarred = this.starredEntries.contains(key);
+        if (currentlyStarred == starred) return false;
+        if (starred) {
+            this.starredEntries.add(key);
+        } else {
+            this.starredEntries.remove(key);
+        }
+        this.markRuntimeStateDirty();
+        return true;
+    }
+
     public void setNote(StoredStackKey key, String note) {
         if (key == null) return;
         String normalized = note == null ? "" : note.trim();

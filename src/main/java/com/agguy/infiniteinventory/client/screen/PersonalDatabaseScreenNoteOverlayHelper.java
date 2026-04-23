@@ -37,8 +37,9 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
         ensureNoteBox(screen);
         syncNoteBoxBounds(screen);
         screen.noteOverlayExpanded = true;
-        String initialValue = resolveInitialNoteValue(screen);
-        screen.noteEditBox.setValue(initialValue);
+        NoteState noteState = resolveInitialNoteState(screen);
+        screen.noteOverlayMixed = noteState.mixed;
+        screen.noteEditBox.setValue(noteState.value);
         screen.noteEditBox.setFocused(true);
         screen.focusScreen(screen.noteEditBox);
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
@@ -46,6 +47,7 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
 
     static void closeOverlay(PersonalDatabaseScreen screen) {
         screen.noteOverlayExpanded = false;
+        screen.noteOverlayMixed = false;
         if (screen.noteEditBox != null) {
             screen.noteEditBox.setFocused(false);
             screen.noteEditBox.setValue("");
@@ -146,6 +148,17 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
                 PersonalDatabaseScreen.OVERLAY_MUTED_TEXT_COLOR,
                 false
         );
+        int hintY = panelRect.y() + 51;
+        if (screen.noteOverlayMixed && hintY + screen.screenFont().lineHeight <= fieldRect.y() - 4) {
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    Component.translatable("screen.infiniteinventory.note.mixed_hint"),
+                    panelRect.x() + OVERLAY_PADDING,
+                    hintY,
+                    0xFFE6A817,
+                    false
+            );
+        }
         guiGraphics.drawString(
                 screen.screenFont(),
                 Component.translatable("screen.infiniteinventory.note.label"),
@@ -187,13 +200,16 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
         guiGraphics.pose().popPose();
     }
 
-    private static String resolveInitialNoteValue(PersonalDatabaseScreen screen) {
+    private record NoteState(String value, boolean mixed) {
+    }
+
+    private static NoteState resolveInitialNoteState(PersonalDatabaseScreen screen) {
         List<DatabaseSelectionEntry> selectedEntries = PersonalDatabaseScreenSelectionHelper.selectedEntries(screen);
         if (selectedEntries.isEmpty()) {
-            return "";
+            return new NoteState("", false);
         }
         if (selectedEntries.size() == 1) {
-            return findNoteForSelectionEntry(screen, selectedEntries.get(0));
+            return new NoteState(findNoteForSelectionEntry(screen, selectedEntries.get(0)), false);
         }
         String commonNote = null;
         boolean hasAnyNote = false;
@@ -204,11 +220,11 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
                 if (commonNote == null) {
                     commonNote = note;
                 } else if (!commonNote.equals(note)) {
-                    return "";
+                    return new NoteState("", true);
                 }
             }
         }
-        return hasAnyNote ? commonNote : "";
+        return new NoteState(hasAnyNote ? commonNote : "", false);
     }
 
     private static String findNoteForSelectionEntry(PersonalDatabaseScreen screen, DatabaseSelectionEntry selectionEntry) {

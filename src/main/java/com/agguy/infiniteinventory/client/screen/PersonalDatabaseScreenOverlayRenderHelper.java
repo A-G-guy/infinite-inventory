@@ -321,16 +321,16 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         if (!screen.contextMenuExpanded) {
             return;
         }
-        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenCommonHelper.contextMenuItems(screen);
+        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenContextMenuBuilder.contextMenuItems(screen);
         if (items.isEmpty()) {
             return;
         }
-        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
+        int menuWidth = PersonalDatabaseScreenContextMenuBuilder.contextMenuWidth(screen);
         PersonalDatabaseLayout.Rect menuRect = new PersonalDatabaseLayout.Rect(
                 screen.contextMenuX,
                 screen.contextMenuY,
                 menuWidth,
-                PersonalDatabaseScreenCommonHelper.contextMenuHeight(screen)
+                PersonalDatabaseScreenContextMenuBuilder.contextMenuHeight(screen)
         );
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
@@ -345,10 +345,10 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             );
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
-            guiGraphics.renderItem(PersonalDatabaseScreenCommonHelper.contextMenuItemIcon(item), rowRect.x() + 4, rowRect.y() + 2);
+            guiGraphics.renderItem(PersonalDatabaseScreenContextMenuBuilder.contextMenuItemIcon(item), rowRect.x() + 4, rowRect.y() + 2);
             guiGraphics.drawString(
                     screen.screenFont(),
-                    PersonalDatabaseScreenCommonHelper.contextMenuLabel(item),
+                    PersonalDatabaseScreenContextMenuBuilder.contextMenuLabel(item),
                     rowRect.x() + 24,
                     rowRect.y() + 5,
                     PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,

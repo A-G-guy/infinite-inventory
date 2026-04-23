@@ -47,8 +47,8 @@ final class PersonalDatabaseScreenContextHelper {
             return;
         }
         PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
-        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
-        int menuHeight = PersonalDatabaseScreenCommonHelper.contextMenuHeight(screen);
+        int menuWidth = PersonalDatabaseScreenContextMenuBuilder.contextMenuWidth(screen);
+        int menuHeight = PersonalDatabaseScreenContextMenuBuilder.contextMenuHeight(screen);
         PersonalDatabaseLayout.Rect frameRect = screen.layout.frameRect();
         int minX = frameRect.x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxX = Math.max(minX, frameRect.right() - menuWidth - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
@@ -71,8 +71,8 @@ final class PersonalDatabaseScreenContextHelper {
         if (!screen.contextMenuExpanded) {
             return null;
         }
-        java.util.List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenCommonHelper.contextMenuItems(screen);
-        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
+        java.util.List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenContextMenuBuilder.contextMenuItems(screen);
+        int menuWidth = PersonalDatabaseScreenContextMenuBuilder.contextMenuWidth(screen);
         for (int index = 0; index < items.size(); index++) {
             int rowY = screen.contextMenuY + index * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
             if (mouseX < screen.contextMenuX
@@ -107,11 +107,15 @@ final class PersonalDatabaseScreenContextHelper {
         } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY) {
             PersonalDatabaseScreenNoteOverlayHelper.openOverlay(screen);
         } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.TOGGLE_STAR) {
-            sendStarToggle(screen);
+            sendStarAction(screen, DatabaseStarPayload.StarAction.TOGGLE);
+        } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.STAR_ALL) {
+            sendStarAction(screen, DatabaseStarPayload.StarAction.STAR_ALL);
+        } else if (item.localAction() == PersonalDatabaseContextMenuItem.LocalAction.UNSTAR_ALL) {
+            sendStarAction(screen, DatabaseStarPayload.StarAction.UNSTAR_ALL);
         }
     }
 
-    private static void sendStarToggle(PersonalDatabaseScreen screen) {
+    private static void sendStarAction(PersonalDatabaseScreen screen, DatabaseStarPayload.StarAction action) {
         List<DatabaseSelectionEntry> selectedEntries = PersonalDatabaseScreenSelectionHelper.selectedEntries(screen);
         if (selectedEntries.isEmpty()) {
             return;
@@ -128,7 +132,8 @@ final class PersonalDatabaseScreenContextHelper {
                     screen.databaseMenu.containerId,
                     screen.databaseMenu.viewState().sessionId(),
                     entry.getKey(),
-                    entry.getValue()
+                    entry.getValue(),
+                    action
             ));
         }
         PersonalDatabaseScreenSelectionHelper.clearSelection(screen);
@@ -144,12 +149,12 @@ final class PersonalDatabaseScreenContextHelper {
         if (!screen.contextMenuExpanded) {
             return false;
         }
-        int menuWidth = PersonalDatabaseScreenCommonHelper.contextMenuWidth(screen);
+        int menuWidth = PersonalDatabaseScreenContextMenuBuilder.contextMenuWidth(screen);
         return mouseX >= screen.contextMenuX
                 && mouseX < screen.contextMenuX + menuWidth
                 && mouseY >= screen.contextMenuY
                 && mouseY < screen.contextMenuY
-                + PersonalDatabaseScreenCommonHelper.contextMenuHeight(screen);
+                + PersonalDatabaseScreenContextMenuBuilder.contextMenuHeight(screen);
     }
 
     private static void triggerSelectionAction(PersonalDatabaseScreen screen, com.agguy.infiniteinventory.network.DatabaseSelectionAction action) {

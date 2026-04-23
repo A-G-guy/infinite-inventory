@@ -397,6 +397,12 @@ public final class PersonalDatabaseService {
         if (changed) this.markScopeDirty(player, scope);
         return changed;
     }
+    public boolean setStarred(ServerPlayer player, DatabaseScope scope, StoredStackKey key, boolean starred) {
+        if (key == null) return false;
+        boolean changed = this.resolveDatabaseForMutation(player, scope).setStarred(key, starred);
+        if (changed) this.markScopeDirty(player, scope);
+        return changed;
+    }
 
     public boolean isStarred(ServerPlayer player, DatabaseScope scope, StoredStackKey key) {
         return key != null && this.resolveDatabaseForView(player, scope).isStarred(key);

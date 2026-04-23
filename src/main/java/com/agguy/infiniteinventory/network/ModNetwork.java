@@ -221,7 +221,7 @@ public final class ModNetwork {
         }
         PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
         if (menu != null) {
-            menu.handleStarToggle(payload.scope(), payload.targetStacks());
+            menu.handleStarAction(payload.scope(), payload.targetStacks(), payload.action());
         }
     }
 

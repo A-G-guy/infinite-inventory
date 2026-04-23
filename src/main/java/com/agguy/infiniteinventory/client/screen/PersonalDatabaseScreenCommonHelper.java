@@ -1,7 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
-import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
+import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
@@ -13,9 +13,7 @@ import com.agguy.infiniteinventory.database.DatabaseSortOption;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
-import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
-import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -26,68 +24,6 @@ import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenCommonHelper {
-    private static final List<PersonalDatabaseContextMenuItem> SINGLE_SELECTION_CONTEXT_MENU_ITEMS = List.of(
-            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_single", DatabaseClickAction.TAKE_SINGLE),
-            PersonalDatabaseContextMenuItem.click(
-                    "screen.infiniteinventory.context.take_half_stack_to_inventory",
-                    DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_stack", DatabaseClickAction.TAKE_STACK),
-            PersonalDatabaseContextMenuItem.click(
-                    "screen.infiniteinventory.context.take_half_entry_to_inventory",
-                    DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.click("screen.infiniteinventory.context.take_all_to_inventory", DatabaseClickAction.TAKE_ALL),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.context.take_custom_to_inventory",
-                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
-            ),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.context.edit_note",
-                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY
-            ),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.context.toggle_star",
-                    PersonalDatabaseContextMenuItem.LocalAction.TOGGLE_STAR
-            ),
-            PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
-    );
-    private static final List<PersonalDatabaseContextMenuItem> MULTI_SELECTION_CONTEXT_MENU_ITEMS = List.of(
-            PersonalDatabaseContextMenuItem.selection(
-                    "screen.infiniteinventory.selection.take_one_each",
-                    DatabaseSelectionAction.EXTRACT_ONE_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.selection(
-                    "screen.infiniteinventory.selection.take_half_stack_each",
-                    DatabaseSelectionAction.EXTRACT_HALF_STACK_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.selection(
-                    "screen.infiniteinventory.selection.take_stack_each",
-                    DatabaseSelectionAction.EXTRACT_STACK_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.selection(
-                    "screen.infiniteinventory.selection.take_half_entry_each",
-                    DatabaseSelectionAction.EXTRACT_HALF_ENTRY_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.selection(
-                    "screen.infiniteinventory.selection.take_all_each",
-                    DatabaseSelectionAction.EXTRACT_ALL_TO_INVENTORY
-            ),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.selection.take_custom_each",
-                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_CUSTOM_EXTRACT_OVERLAY
-            ),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.context.edit_note",
-                    PersonalDatabaseContextMenuItem.LocalAction.OPEN_NOTE_OVERLAY
-            ),
-            PersonalDatabaseContextMenuItem.local(
-                    "screen.infiniteinventory.context.toggle_star",
-                    PersonalDatabaseContextMenuItem.LocalAction.TOGGLE_STAR
-            ),
-            PersonalDatabaseContextMenuItem.selection("screen.infiniteinventory.selection.transfer", DatabaseSelectionAction.TRANSFER_TO_TAB)
-    );
-
     private PersonalDatabaseScreenCommonHelper() {
     }
 
@@ -366,63 +302,6 @@ final class PersonalDatabaseScreenCommonHelper {
 
     static int selectedEntryCount(PersonalDatabaseScreen screen) {
         return screen.selectedDatabaseEntries.size();
-    }
-
-    static List<PersonalDatabaseContextMenuItem> contextMenuItems(PersonalDatabaseScreen screen) {
-        return contextMenuItemsForSelectionCount(selectedEntryCount(screen));
-    }
-
-    static List<PersonalDatabaseContextMenuItem> contextMenuItemsForSelectionCount(int selectedEntryCount) {
-        if (selectedEntryCount <= 0) {
-            return List.of();
-        }
-        return selectedEntryCount > 1 ? MULTI_SELECTION_CONTEXT_MENU_ITEMS : SINGLE_SELECTION_CONTEXT_MENU_ITEMS;
-    }
-
-    static Component contextMenuLabel(PersonalDatabaseContextMenuItem item) {
-        return Component.translatable(item.translationKey());
-    }
-
-    static ItemStack contextMenuItemIcon(PersonalDatabaseContextMenuItem item) {
-        return switch (item.translationKey()) {
-            case "screen.infiniteinventory.context.take_single",
-                 "screen.infiniteinventory.selection.take_one_each" ->
-                    new ItemStack(Items.ARROW);
-            case "screen.infiniteinventory.context.take_half_stack_to_inventory",
-                 "screen.infiniteinventory.selection.take_half_stack_each" ->
-                    new ItemStack(Items.SHEARS);
-            case "screen.infiniteinventory.context.take_stack",
-                 "screen.infiniteinventory.selection.take_stack_each" ->
-                    new ItemStack(Items.BUNDLE);
-            case "screen.infiniteinventory.context.take_half_entry_to_inventory",
-                 "screen.infiniteinventory.selection.take_half_entry_each" ->
-                    new ItemStack(Items.DROPPER);
-            case "screen.infiniteinventory.context.take_all_to_inventory",
-                 "screen.infiniteinventory.selection.take_all_each" ->
-                    new ItemStack(Items.HOPPER);
-            case "screen.infiniteinventory.context.take_custom_to_inventory",
-                 "screen.infiniteinventory.selection.take_custom_each" ->
-                    new ItemStack(Items.COMPARATOR);
-            case "screen.infiniteinventory.context.edit_note" ->
-                    new ItemStack(Items.WRITABLE_BOOK);
-            case "screen.infiniteinventory.context.toggle_star" ->
-                    new ItemStack(Items.NETHER_STAR);
-            case "screen.infiniteinventory.selection.transfer" ->
-                    new ItemStack(Items.ENDER_CHEST);
-            default -> ItemStack.EMPTY;
-        };
-    }
-
-    static int contextMenuWidth(PersonalDatabaseScreen screen) {
-        int width = PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
-        for (PersonalDatabaseContextMenuItem item : contextMenuItems(screen)) {
-            width = Math.max(width, screen.screenFont().width(contextMenuLabel(item)) + 40);
-        }
-        return width;
-    }
-
-    static int contextMenuHeight(PersonalDatabaseScreen screen) {
-        return contextMenuItems(screen).size() * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
     }
 
     static void drawCenteredShadow(

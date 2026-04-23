@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PersonalDatabaseContextMenuModelTest {
     @Test
     void singleSelectionMenuShouldExposeSingleSlotActionsAndCustomExtractOverlay() {
-        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenCommonHelper.contextMenuItemsForSelectionCount(1);
+        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenContextMenuBuilder.contextMenuItemsForSelectionCount(1);
 
         assertEquals(9, items.size());
         assertEquals(DatabaseClickAction.TAKE_SINGLE, items.get(0).clickAction());
@@ -27,7 +27,7 @@ class PersonalDatabaseContextMenuModelTest {
 
     @Test
     void multiSelectionMenuShouldUseSelectionActionsAndHidePickupActions() {
-        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenCommonHelper.contextMenuItemsForSelectionCount(3);
+        List<PersonalDatabaseContextMenuItem> items = PersonalDatabaseScreenContextMenuBuilder.contextMenuItemsForSelectionCount(3);
 
         assertEquals(9, items.size());
         assertEquals(DatabaseSelectionAction.EXTRACT_ONE_TO_INVENTORY, items.get(0).selectionAction());

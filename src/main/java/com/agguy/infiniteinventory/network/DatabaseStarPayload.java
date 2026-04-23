@@ -14,7 +14,8 @@ public record DatabaseStarPayload(
         int containerId,
         long sessionId,
         DatabaseScope scope,
-        List<ItemStack> targetStacks
+        List<ItemStack> targetStacks,
+        StarAction action
 ) implements CustomPacketPayload {
     public static final Type<DatabaseStarPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(InfiniteInventory.MODID, "database_star"));
@@ -26,11 +27,18 @@ public record DatabaseStarPayload(
     public DatabaseStarPayload {
         scope = DatabaseScope.normalize(scope);
         targetStacks = targetStacks == null ? List.of() : List.copyOf(targetStacks);
+        action = action == null ? StarAction.TOGGLE : action;
     }
 
     @Override
     public Type<DatabaseStarPayload> type() {
         return TYPE;
+    }
+
+    public enum StarAction {
+        TOGGLE,
+        STAR_ALL,
+        UNSTAR_ALL
     }
 
     private static DatabaseStarPayload read(RegistryFriendlyByteBuf buffer) {
@@ -42,7 +50,8 @@ public record DatabaseStarPayload(
         for (int index = 0; index < stackCount; index++) {
             targetStacks.add(ItemStack.STREAM_CODEC.decode(buffer));
         }
-        return new DatabaseStarPayload(containerId, sessionId, scope, targetStacks);
+        StarAction action = buffer.readEnum(StarAction.class);
+        return new DatabaseStarPayload(containerId, sessionId, scope, targetStacks, action);
     }
 
     private static void write(RegistryFriendlyByteBuf buffer, DatabaseStarPayload payload) {
@@ -53,5 +62,6 @@ public record DatabaseStarPayload(
         for (ItemStack stack : payload.targetStacks) {
             ItemStack.STREAM_CODEC.encode(buffer, stack);
         }
+        buffer.writeEnum(payload.action);
     }
 }

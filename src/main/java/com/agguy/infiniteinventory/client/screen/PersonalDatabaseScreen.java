@@ -162,6 +162,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean contextMenuExpanded;
     boolean customExtractOverlayExpanded;
     boolean noteOverlayExpanded;
+    boolean noteOverlayMixed;
     boolean logPanelExpanded;
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
