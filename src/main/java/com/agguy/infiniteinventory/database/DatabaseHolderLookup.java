@@ -3,9 +3,13 @@ package com.agguy.infiniteinventory.database;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 final class DatabaseHolderLookup {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     @Nullable
     private static HolderLookup.Provider fallbackProvider;
     private static boolean fallbackResolved;
@@ -37,6 +41,7 @@ final class DatabaseHolderLookup {
         try {
             fallbackProvider = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
         } catch (RuntimeException exception) {
+            LOGGER.warn("无法从 BuiltInRegistries 构建回退 HolderLookup.Provider", exception);
             fallbackProvider = null;
         }
         fallbackResolved = true;

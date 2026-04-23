@@ -11,8 +11,12 @@ import java.util.List;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 final class PersonalDatabaseExtractionHelper {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private PersonalDatabaseExtractionHelper() {
     }
 
@@ -157,6 +161,7 @@ final class PersonalDatabaseExtractionHelper {
         try {
             return StoredStackKey.of(selectionEntry.displayStack());
         } catch (IllegalArgumentException exception) {
+            LOGGER.debug("选择条目的展示物品无法解析为 StoredStackKey：{}", selectionEntry.displayStack(), exception);
             return null;
         }
     }

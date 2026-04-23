@@ -21,9 +21,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenCommonHelper {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private PersonalDatabaseScreenCommonHelper() {
     }
 
@@ -252,6 +256,7 @@ final class PersonalDatabaseScreenCommonHelper {
         try {
             return ResourceLocation.parse(value);
         } catch (RuntimeException exception) {
+            LOGGER.debug("无法解析 ResourceLocation：{}", value, exception);
             return null;
         }
     }

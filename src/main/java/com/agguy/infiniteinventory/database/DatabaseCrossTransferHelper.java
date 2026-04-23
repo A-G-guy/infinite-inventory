@@ -9,11 +9,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 通过序列化标签跨数据库搬运条目，确保显式目标分类优先且保留原始元数据。
  */
 public final class DatabaseCrossTransferHelper {
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static final String ENTRIES_KEY = "entries";
     private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
     private static final String STACK_KEY = "stack";
@@ -152,8 +156,8 @@ public final class DatabaseCrossTransferHelper {
             }
             try {
                 normalizedEntries.put(StoredStackKey.of(selectionEntry.displayStack()), selectionEntry.sourceTabId());
-            } catch (IllegalArgumentException ignored) {
-                // 客户端展示物品异常时直接跳过，避免污染服务端搬运流程。
+            } catch (IllegalArgumentException exception) {
+                LOGGER.debug("跳过异常选择条目：客户端展示物品无法解析为 StoredStackKey", exception);
             }
         }
         return normalizedEntries;

@@ -6,6 +6,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
+    id 'jacoco'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -158,6 +159,8 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.12.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.mockito:mockito-core:5.17.0'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -232,6 +235,19 @@ tasks.named('jar', Jar).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+}
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+tasks.named('jacocoTestReport', JacocoReport).configure {
+    dependsOn(tasks.named('test'))
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 def javaFileLineLimit = 500
