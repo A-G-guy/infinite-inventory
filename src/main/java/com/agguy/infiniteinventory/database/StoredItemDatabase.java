@@ -5,19 +5,16 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 /**
  * 单个数据库实例的数据容器，负责管理已解析物品条目、未解析条目、备注、收藏状态及操作日志。
  *
- * <p>设计意图：将“数据”与“服务”严格分离。本类只持有原始数据并提供最小化的原子操作，
+ * <p>设计意图：将"数据"与"服务"严格分离。本类只持有原始数据并提供最小化的原子操作，
  * 不涉及任何玩家交互、网络同步或业务编排。所有公共写操作都会递增内部版本号（{@link #revision}），
  * 供上层服务快速判断数据是否发生变化，从而决定是否需要重新查询或同步客户端。</p>
  *
@@ -26,22 +23,8 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
 public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public static final int CURRENT_SCHEMA_VERSION = 6;
 
-    private static final String SCHEMA_VERSION_KEY = "schema_version";
-    private static final String ENTRIES_KEY = "entries";
-    private static final String UNRESOLVED_ENTRIES_KEY = "unresolved_entries";
-    private static final String STACK_KEY = "stack";
-    private static final String COUNT_KEY = "count";
     static final String TAB_ID_KEY = "tab_id";
     static final String FIRST_ADDED_KEY = "first_added";
-    private static final String LAST_MODIFIED_KEY = "last_modified";
-    private static final String NEXT_SEQUENCE_KEY = "next_sequence";
-    private static final String LOG_ENTRIES_KEY = "log_entries";
-    private static final String NOTES_KEY = "notes";
-    private static final String NOTE_KEY = "note_key";
-    private static final String NOTE_TEXT_KEY = "note_text";
-    private static final String STARRED_ENTRIES_KEY = "starred_entries";
-    private static final int MAX_LOG_ENTRIES = 500;
-    private static final int MAX_NOTE_LENGTH = 256;
 
     private final Map<StoredStackKey, StoredStackEntry> entries = new LinkedHashMap<>();
     private final Map<StoredStackKey, String> notes = new LinkedHashMap<>();
@@ -88,7 +71,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     /**
      * 获取操作日志条目的不可变副本。
      *
-     * <p>日志上限由 {@code MAX_LOG_ENTRIES} 控制，超出时自动移除最旧的条目。</p>
+     * <p>日志上限由 {@code MAX_LOG_ENTRIES}（500）控制，超出时自动移除最旧的条目。</p>
      *
      * @return 日志条目列表的不可变副本
      */
@@ -220,7 +203,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public void setNote(StoredStackKey key, String note) {
         if (key == null) return;
         String normalized = note == null ? "" : note.trim();
-        if (normalized.length() > MAX_NOTE_LENGTH) normalized = normalized.substring(0, MAX_NOTE_LENGTH);
+        if (normalized.length() > 256) normalized = normalized.substring(0, 256);
         if (normalized.isEmpty()) { if (this.notes.remove(key) != null) this.markRuntimeStateDirty(); return; }
         String existing = this.notes.get(key);
         if (existing == null || !existing.equals(normalized)) { this.notes.put(key, normalized); this.markRuntimeStateDirty(); }
@@ -229,51 +212,12 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     /**
      * 将另一个数据库的数据合并到本数据库。
      *
-     * <p>设计意图：用于跨作用域转移标签页或数据迁移场景。合并策略如下：</p>
-     * <ul>
-     *   <li>已解析条目：按 {@code lastModified} 时间戳决定保留哪个标签页归属，数量做安全加法；</li>
-     *   <li>备注与收藏：以“存在即覆盖”方式合并；</li>
-     *   <li>未解析条目：直接追加，保留原始 NBT；</li>
-     *   <li>序列号：取双方最大值并加一，防止时间戳冲突。</li>
-     * </ul>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseStoreHelper}。</p>
      *
      * @param other 要合并的源数据库，若为 {@code null} 则直接返回
      */
     public void mergeFrom(StoredItemDatabase other) {
-        if (other == null) return;
-        boolean changed = false;
-        long highestMergedSequence = 0L;
-        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : other.entries().entrySet()) {
-            this.mergeResolvedEntryInternal(mapEntry.getKey(), mapEntry.getValue());
-            highestMergedSequence = Math.max(highestMergedSequence, mapEntry.getValue().lastModified());
-            changed = true;
-        }
-        for (Map.Entry<StoredStackKey, String> noteEntry : other.notes().entrySet()) {
-            String existing = this.notes.get(noteEntry.getKey());
-            if (existing == null || !existing.equals(noteEntry.getValue())) {
-                this.notes.put(noteEntry.getKey(), noteEntry.getValue()); changed = true;
-            }
-        }
-        for (StoredStackKey starredKey : other.starredEntries()) {
-            if (!this.starredEntries.contains(starredKey)) {
-                this.starredEntries.add(starredKey); changed = true;
-            }
-        }
-        for (UnresolvedStoredEntry unresolvedEntry : other.unresolvedEntries()) {
-            if (!unresolvedEntry.isEmpty()) {
-                this.unresolvedEntries.add(new UnresolvedStoredEntry(
-                        unresolvedEntry.stackTag(), unresolvedEntry.amount(), unresolvedEntry.tabId(),
-                        unresolvedEntry.lastModified(), unresolvedEntry.firstAdded()
-                ));
-                highestMergedSequence = Math.max(highestMergedSequence, unresolvedEntry.lastModified());
-                changed = true;
-            }
-        }
-        if (!changed) return;
-        long nextAfterMerged = highestMergedSequence == Long.MAX_VALUE ? Long.MAX_VALUE : highestMergedSequence + 1L;
-        this.nextSequence = Math.max(this.nextSequence, Math.max(other.nextSequence, nextAfterMerged));
-        if (this.nextSequence <= 0L) this.nextSequence = 1L;
-        this.markRuntimeStateDirty();
+        StoredItemDatabaseStoreHelper.mergeFrom(this, other);
     }
 
     /**
@@ -284,75 +228,38 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param stack 待存入的物品堆，若为 {@link ItemStack#EMPTY} 则忽略
      */
     public void store(ItemStack stack) {
-        this.store(stack, DatabaseTabs.DEFAULT_TAB_ID);
+        StoredItemDatabaseStoreHelper.store(this, stack);
     }
 
     /**
      * 将物品存入指定标签页。
      *
-     * <p>业务约束：空物品堆会被静默忽略。若该物品键已存在，则累加数量并更新最后修改时间戳；
-     * 否则新建条目。时间戳由内部单调递增序列号生成，保证合并时的因果一致性。</p>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseStoreHelper}。</p>
      *
      * @param stack 待存入的物品堆
      * @param tabId 目标标签页 ID
      */
     public void store(ItemStack stack, String tabId) {
-        if (stack.isEmpty()) return;
-        long sequence = this.nextSequence();
-        String normalizedTabId = DatabaseTabs.normalizeConcreteTarget(tabId);
-        StoredStackKey key = StoredStackKey.of(stack);
-        StoredStackEntry entry = this.entries.get(key);
-        if (entry == null) {
-            entry = new StoredStackEntry(normalizedTabId, 0L, sequence, sequence);
-            this.entries.put(key, entry);
-        } else {
-            entry.moveToTab(normalizedTabId, sequence);
-        }
-        entry.add(stack.getCount(), sequence);
-        this.markRuntimeStateDirty();
+        StoredItemDatabaseStoreHelper.store(this, stack, tabId);
     }
 
     /**
      * 将整个标签页下的所有物品转移到另一个标签页。
      *
-     * <p>业务约束：源标签页与目标标签页相同时直接返回 {@code false}，避免无意义操作。
-     * 同时处理已解析条目与未解析条目，确保数据完整性。</p>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseTabHelper}。</p>
      *
      * @param sourceTabId 源标签页 ID
      * @param targetTabId 目标标签页 ID
      * @return 若至少有一条目发生迁移则返回 {@code true}
      */
     public boolean transferTab(String sourceTabId, String targetTabId) {
-        String normalizedSourceTabId = DatabaseTabs.normalizeConcreteTarget(sourceTabId), normalizedTargetTabId = DatabaseTabs.normalizeConcreteTarget(targetTabId);
-        if (normalizedSourceTabId.equals(normalizedTargetTabId)) return false;
-        long sequence = this.nextSequence();
-        boolean changed = false;
-        for (StoredStackEntry entry : this.entries.values()) {
-            changed = entry.tabId().equals(normalizedSourceTabId) && entry.moveToTab(normalizedTargetTabId, sequence) || changed;
-        }
-        if (!this.unresolvedEntries.isEmpty()) {
-            java.util.ArrayList<UnresolvedStoredEntry> updatedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
-            for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
-                if (unresolvedEntry.tabId().equals(normalizedSourceTabId)) {
-                    updatedEntries.add(unresolvedEntry.withTabId(normalizedTargetTabId, sequence));
-                    changed = true;
-                } else {
-                    updatedEntries.add(unresolvedEntry);
-                }
-            }
-            this.unresolvedEntries.clear();
-            this.unresolvedEntries.addAll(updatedEntries);
-        }
-        if (changed) {
-            this.markRuntimeStateDirty();
-        }
-        return changed;
+        return StoredItemDatabaseTabHelper.transferTab(this, sourceTabId, targetTabId);
     }
 
     /**
      * 将指定物品从源标签页移动到目标标签页。
      *
-     * <p>业务约束：仅当该物品当前确实存在于源标签页时才会执行移动，防止误操作或并发覆盖。</p>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseTabHelper}。</p>
      *
      * @param key         物品键
      * @param sourceTabId 源标签页 ID
@@ -360,101 +267,36 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @return 若移动成功则返回 {@code true}
      */
     public boolean moveEntryToTab(StoredStackKey key, String sourceTabId, String targetTabId) {
-        if (key == null) return false;
-        StoredStackEntry entry = this.entries.get(key);
-        if (entry == null || !entry.tabId().equals(DatabaseTabs.normalizeConcreteTarget(sourceTabId))) {
-            return false;
-        }
-        boolean changed = entry.moveToTab(targetTabId, this.nextSequence());
-        if (changed) {
-            this.markRuntimeStateDirty();
-        }
-        return changed;
+        return StoredItemDatabaseTabHelper.moveEntryToTab(this, key, sourceTabId, targetTabId);
     }
 
     /**
      * 确保所有条目都分配到了有效的标签页。
      *
-     * <p>设计意图：标签页可能被删除或重命名，导致数据库中残留无效 {@code tabId}。
-     * 本方法在每次数据访问前由服务层调用，将无效标签页回退到默认页，保证查询与展示的正确性。
-     * 同时会重建未解析条目的标签页归属。</p>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseTabHelper}。</p>
      *
      * @param tabDirectory 当前有效的标签页目录
      * @return 若发生了任何回退操作则返回 {@code true}
      */
     public boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
-        if (tabDirectory == null) return false;
-        String defaultTabId = tabDirectory.defaultConcreteTab().id();
-        boolean changed = false;
-        for (StoredStackEntry entry : this.entries.values()) {
-            if (!tabDirectory.containsConcreteTab(entry.tabId())) {
-                entry.moveToTab(defaultTabId, entry.lastModified());
-                changed = true;
-            }
-        }
-        if (!this.unresolvedEntries.isEmpty()) {
-            java.util.ArrayList<UnresolvedStoredEntry> updatedUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
-            for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
-                if (!tabDirectory.containsConcreteTab(unresolvedEntry.tabId())) {
-                    updatedUnresolvedEntries.add(new UnresolvedStoredEntry(
-                            unresolvedEntry.stackTag(),
-                            unresolvedEntry.amount(),
-                            defaultTabId,
-                            unresolvedEntry.lastModified(),
-                            unresolvedEntry.firstAdded()
-                    ));
-                    changed = true;
-                } else {
-                    updatedUnresolvedEntries.add(unresolvedEntry);
-                }
-            }
-            if (changed) {
-                this.unresolvedEntries.clear();
-                this.unresolvedEntries.addAll(updatedUnresolvedEntries);
-            }
-        }
-        if (changed) {
-            this.markRuntimeStateDirty();
-        }
-        return changed;
+        return StoredItemDatabaseTabHelper.ensureTabAssignments(this, tabDirectory);
     }
 
     /**
      * 从仓库中提取指定数量的物品。
      *
-     * <p>业务约束：请求数量小于等于 0 时直接返回空堆；
-     * 实际提取数量受物品最大堆叠上限限制，避免生成超过客户端合理预期的超大堆叠。
-     * 若提取后该物品库存归零，则自动移除条目以节省内存。</p>
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseStoreHelper}。</p>
      *
      * @param key             物品键
      * @param requestedAmount 请求提取的数量
      * @return 实际提取到的物品堆，若无法提取则返回 {@link ItemStack#EMPTY}
      */
     public ItemStack extract(StoredStackKey key, int requestedAmount) {
-        if (requestedAmount <= 0) return ItemStack.EMPTY;
-        StoredStackEntry entry = this.entries.get(key);
-        if (entry == null) return ItemStack.EMPTY;
-        int maxExtractableAmount = Math.max(1, key.maxStackSize());
-        int extractedAmount = (int) Math.min(entry.amount(), Math.min((long) requestedAmount, (long) maxExtractableAmount));
-        if (extractedAmount <= 0) {
-            return ItemStack.EMPTY;
-        }
-        long sequence = this.nextSequence();
-        entry.remove(extractedAmount, sequence);
-        ItemStack extractedStack = key.toStack(extractedAmount);
-        if (entry.isEmpty()) {
-            this.entries.remove(key);
-        }
-        this.markRuntimeStateDirty();
-        return extractedStack;
+        return StoredItemDatabaseStoreHelper.extract(this, key, requestedAmount);
     }
 
     /**
      * 将当前数据库序列化为 NBT 复合标签。
-     *
-     * <p>设计意图：序列化时写入当前 schema 版本号，以便未来反序列化时识别格式并升级。
-     * 已解析条目以物品展示堆栈的 NBT 作为键存储，确保即使模组环境变化也能保留尽可能完整的元数据。
-     * 备注与收藏以物品堆栈 NBT 作为关联键，保证跨会话一致性。</p>
      *
      * <p>实际逻辑已委托至 {@link StoredItemDatabaseSerializer}。</p>
      *
@@ -468,10 +310,6 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     /**
      * 从 NBT 复合标签反序列化数据库状态。
-     *
-     * <p>设计意图：支持多版本 schema 兼容。若标签中包含 {@code schema_version} 则按当前格式读取；
-     * 否则按旧版格式读取，并标记 {@code needsResave} 以便下次存档时自动升级到最新格式。
-     * 反序列化过程中会尝试将未解析条目恢复为已解析状态（若当前模组环境已具备对应物品注册）。</p>
      *
      * <p>实际逻辑已委托至 {@link StoredItemDatabaseSerializer}。</p>
      *
@@ -515,7 +353,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     public void appendLogEntry(DatabaseLogEntry entry) {
         if (entry == null || entry.isEmpty()) return;
         this.logEntries.add(entry);
-        if (this.logEntries.size() > MAX_LOG_ENTRIES) {
+        if (this.logEntries.size() > 500) {
             this.logEntries.removeFirst();
         }
         this.markRuntimeStateDirty();
@@ -527,7 +365,11 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         }
     }
 
-    // 包级可见的内部状态访问方法，仅供 StoredItemDatabaseSerializer 使用
+    // 包级可见的内部状态访问方法，仅供同包辅助类使用
+
+    Map<StoredStackKey, StoredStackEntry> entriesInternal() {
+        return this.entries;
+    }
 
     java.util.List<UnresolvedStoredEntry> unresolvedEntriesInternal() {
         return this.unresolvedEntries;
@@ -543,6 +385,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
 
     Set<StoredStackKey> starredEntriesInternal() {
         return this.starredEntries;
+    }
+
+    long nextSequenceInternal() {
+        return this.nextSequence;
     }
 
     void setNeedsResave(boolean needsResave) {
