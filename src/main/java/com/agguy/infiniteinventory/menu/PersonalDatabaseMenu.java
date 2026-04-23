@@ -665,33 +665,15 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
 
         boolean moved = false;
-        EquipmentSlot equipmentSlot = player.getEquipmentSlotForItem(copy);
         if (slotIndex == this.resultSlotIndex) {
-            moved = this.moveToPlayerStorage(rawStack, true);
-            if (moved) {
-                slot.onQuickCraft(rawStack, copy);
-            }
+            moved = this.handleCraftingSlotMove(player, slot, rawStack, copy);
         } else if (this.craftingSlotRange.contains(slotIndex)
                 || this.armorSlotRange.contains(slotIndex)
                 || slotIndex == this.offhandSlotIndex
                 || this.accessorySlotRange.contains(slotIndex)) {
-            moved = this.moveToPlayerStorage(rawStack, false);
+            moved = this.handleArmorSlotMove(rawStack);
         } else if (this.mainInventorySlotRange.contains(slotIndex) || this.hotbarSlotRange.contains(slotIndex)) {
-            moved = this.tryMoveToAccessorySlots(rawStack);
-            if (!rawStack.isEmpty() && equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
-                int armorSlotOffset = armorSlotOffset(equipmentSlot);
-                int armorSlotIndex = this.armorSlotRange.firstIndex() + armorSlotOffset;
-                if (armorSlotOffset >= 0 && !this.slots.get(armorSlotIndex).hasItem()) {
-                    moved = this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false) || moved;
-                }
-            } else if (!rawStack.isEmpty() && equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(this.offhandSlotIndex).hasItem()) {
-                moved = this.moveItemStackTo(rawStack, this.offhandSlotIndex, this.offhandSlotIndex + 1, false) || moved;
-            }
-            if (!rawStack.isEmpty() && this.mainInventorySlotRange.contains(slotIndex)) {
-                moved = this.moveItemStackTo(rawStack, this.hotbarSlotRange.firstIndex(), this.hotbarSlotRange.lastIndexExclusive(), false) || moved;
-            } else if (!rawStack.isEmpty() && this.hotbarSlotRange.contains(slotIndex)) {
-                moved = this.moveItemStackTo(rawStack, this.mainInventorySlotRange.firstIndex(), this.mainInventorySlotRange.lastIndexExclusive(), false) || moved;
-            }
+            moved = this.handleInventorySlotMove(slotIndex, rawStack, player);
         } else {
             moved = this.moveToPlayerStorage(rawStack, false);
         }
@@ -709,6 +691,61 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         }
         slot.onTake(player, rawStack);
         return copy;
+    }
+
+    /**
+     * 处理合成结果槽的快捷移动：将产物移入玩家存储区并触发合成回调。
+     *
+     * @param player   执行操作的玩家
+     * @param slot     被点击的槽位
+     * @param rawStack 槽位中的原始堆叠（会被修改）
+     * @param copy     原始堆叠的副本，用于合成回调比对
+     * @return 若发生移动则返回 true
+     */
+    private boolean handleCraftingSlotMove(Player player, net.minecraft.world.inventory.Slot slot, ItemStack rawStack, ItemStack copy) {
+        boolean moved = this.moveToPlayerStorage(rawStack, true);
+        if (moved) {
+            slot.onQuickCraft(rawStack, copy);
+        }
+        return moved;
+    }
+
+    /**
+     * 处理装备/合成/副手/饰品槽的快捷移动：将物品移入玩家主存储区。
+     *
+     * @param rawStack 槽位中的原始堆叠（会被修改）
+     * @return 若发生移动则返回 true
+     */
+    private boolean handleArmorSlotMove(ItemStack rawStack) {
+        return this.moveToPlayerStorage(rawStack, false);
+    }
+
+    /**
+     * 处理主背包/快捷栏槽位的快捷移动：优先尝试饰品槽，再尝试装备槽，最后在背包与快捷栏之间互换。
+     *
+     * @param slotIndex 被点击的槽位索引
+     * @param rawStack  槽位中的原始堆叠（会被修改）
+     * @param player    执行操作的玩家
+     * @return 若发生移动则返回 true
+     */
+    private boolean handleInventorySlotMove(int slotIndex, ItemStack rawStack, Player player) {
+        boolean moved = this.tryMoveToAccessorySlots(rawStack);
+        EquipmentSlot equipmentSlot = player.getEquipmentSlotForItem(rawStack);
+        if (!rawStack.isEmpty() && equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+            int armorSlotOffset = armorSlotOffset(equipmentSlot);
+            int armorSlotIndex = this.armorSlotRange.firstIndex() + armorSlotOffset;
+            if (armorSlotOffset >= 0 && !this.slots.get(armorSlotIndex).hasItem()) {
+                moved = this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false) || moved;
+            }
+        } else if (!rawStack.isEmpty() && equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(this.offhandSlotIndex).hasItem()) {
+            moved = this.moveItemStackTo(rawStack, this.offhandSlotIndex, this.offhandSlotIndex + 1, false) || moved;
+        }
+        if (!rawStack.isEmpty() && this.mainInventorySlotRange.contains(slotIndex)) {
+            moved = this.moveItemStackTo(rawStack, this.hotbarSlotRange.firstIndex(), this.hotbarSlotRange.lastIndexExclusive(), false) || moved;
+        } else if (!rawStack.isEmpty() && this.hotbarSlotRange.contains(slotIndex)) {
+            moved = this.moveItemStackTo(rawStack, this.mainInventorySlotRange.firstIndex(), this.mainInventorySlotRange.lastIndexExclusive(), false) || moved;
+        }
+        return moved;
     }
 
     @Override

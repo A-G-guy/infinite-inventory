@@ -428,44 +428,14 @@ public final class PersonalDatabaseService {
      *   <li>重建所有标签页的查询状态映射</li>
      * </ul>
      *
+     * <p>实际逻辑已委托至 {@link PersonalDatabaseServiceQueryHelper}。</p>
+     *
      * @param player 提交查询的玩家
      * @param query  原始查询条件；可为 null
      * @return 经校验后的安全查询条件
      */
     public DatabaseQuery sanitizeQuery(ServerPlayer player, DatabaseQuery query) {
-        DatabaseQuery normalizedQuery = query == null ? DatabaseQuery.defaultQuery() : query;
-        DatabaseScopedTabRef focusedTab = this.resolveScopedTabForView(player, normalizedQuery.focusedTab());
-        java.util.LinkedHashSet<DatabaseScopedTabRef> visibleTabs = new java.util.LinkedHashSet<>();
-        for (DatabaseScopedTabRef visibleTab : normalizedQuery.visibleTabs()) {
-            DatabaseScopedTabRef resolvedVisibleTab = this.resolveScopedTabForView(player, visibleTab);
-            if (resolvedVisibleTab == null) {
-                continue;
-            }
-            visibleTabs.add(resolvedVisibleTab);
-            if (visibleTabs.size() >= DatabaseTabs.MAX_VISIBLE_TAB_COUNT) {
-                break;
-            }
-        }
-        if (focusedTab == null) {
-            focusedTab = DatabaseScopedTabRef.defaultTab();
-        }
-        if (visibleTabs.isEmpty()) {
-            visibleTabs.add(focusedTab);
-        }
-        if (!visibleTabs.contains(focusedTab)) {
-            focusedTab = visibleTabs.getFirst();
-        }
-        java.util.LinkedHashMap<DatabaseScopedTabRef, com.agguy.infiniteinventory.database.DatabaseTabQueryState> tabStates =
-                new java.util.LinkedHashMap<>();
-        for (DatabaseTab tab : this.tabsForScope(player, DatabaseScope.PERSONAL)) {
-            DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, tab.id());
-            tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
-        }
-        for (DatabaseTab tab : this.tabsForScope(player, DatabaseScope.PUBLIC)) {
-            DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, tab.id());
-            tabStates.put(scopedTab, normalizedQuery.tabStateFor(scopedTab));
-        }
-        return new DatabaseQuery(focusedTab, java.util.List.copyOf(visibleTabs), tabStates, normalizedQuery.hiddenTopTabs());
+        return PersonalDatabaseServiceQueryHelper.sanitizeQuery(this, player, query);
     }
 
     /**
@@ -842,7 +812,7 @@ public final class PersonalDatabaseService {
         return storage.personalDatabaseView(player.getUUID());
     }
 
-    private DatabaseTabDirectory resolveTabsForView(ServerPlayer player, DatabaseScope scope) {
+    public DatabaseTabDirectory resolveTabsForView(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
             storage.publicDatabase().ensureTabAssignments(storage.publicTabs());

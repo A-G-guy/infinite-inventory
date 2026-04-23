@@ -244,7 +244,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         boolean changed = false;
         long highestMergedSequence = 0L;
         for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : other.entries().entrySet()) {
-            this.mergeResolvedEntry(mapEntry.getKey(), mapEntry.getValue());
+            this.mergeResolvedEntryInternal(mapEntry.getKey(), mapEntry.getValue());
             highestMergedSequence = Math.max(highestMergedSequence, mapEntry.getValue().lastModified());
             changed = true;
         }
@@ -456,72 +456,14 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * 已解析条目以物品展示堆栈的 NBT 作为键存储，确保即使模组环境变化也能保留尽可能完整的元数据。
      * 备注与收藏以物品堆栈 NBT 作为关联键，保证跨会话一致性。</p>
      *
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseSerializer}。</p>
+     *
      * @param provider 用于物品堆栈序列化的注册表查找提供者
      * @return 包含完整数据库状态的 NBT 标签
      */
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        CompoundTag root = new CompoundTag();
-        root.putInt(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
-        ListTag serializedEntries = new ListTag();
-        HolderLookup.Provider resolvedProvider = null;
-        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : this.entries.entrySet()) {
-            if (resolvedProvider == null) {
-                resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
-            }
-            ItemStack stack = mapEntry.getKey().displayStack();
-            Tag serializedStack = stack.saveOptional(resolvedProvider);
-            if (!(serializedStack instanceof CompoundTag stackTag)) {
-                continue;
-            }
-            StoredStackEntry entry = mapEntry.getValue();
-            CompoundTag entryTag = new CompoundTag();
-            entryTag.put(STACK_KEY, stackTag);
-            entryTag.putLong(COUNT_KEY, entry.amount());
-            entryTag.putString(TAB_ID_KEY, entry.tabId());
-            entryTag.putLong(FIRST_ADDED_KEY, entry.firstAdded());
-            entryTag.putLong(LAST_MODIFIED_KEY, entry.lastModified());
-            serializedEntries.add(entryTag);
-        }
-        root.put(ENTRIES_KEY, serializedEntries);
-        ListTag serializedUnresolvedEntries = new ListTag();
-        for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
-            if (!unresolvedEntry.isEmpty()) {
-                serializedUnresolvedEntries.add(unresolvedEntry.toTag());
-            }
-        }
-        root.put(UNRESOLVED_ENTRIES_KEY, serializedUnresolvedEntries);
-        if (!this.logEntries.isEmpty() || !this.notes.isEmpty() || !this.starredEntries.isEmpty()) {
-            if (resolvedProvider == null) resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
-            if (!this.logEntries.isEmpty()) {
-                root.put(LOG_ENTRIES_KEY, DatabaseLogEntry.writeList(resolvedProvider, this.logEntries));
-            }
-            if (!this.notes.isEmpty()) {
-                ListTag serializedNotes = new ListTag();
-                for (Map.Entry<StoredStackKey, String> noteEntry : this.notes.entrySet()) {
-                    Tag serializedStack = noteEntry.getKey().displayStack().saveOptional(resolvedProvider);
-                    if (!(serializedStack instanceof CompoundTag stackTag)) continue;
-                    CompoundTag noteTag = new CompoundTag();
-                    noteTag.put(NOTE_KEY, stackTag);
-                    noteTag.putString(NOTE_TEXT_KEY, noteEntry.getValue());
-                    serializedNotes.add(noteTag);
-                }
-                root.put(NOTES_KEY, serializedNotes);
-            }
-            if (!this.starredEntries.isEmpty()) {
-                ListTag serializedStarred = new ListTag();
-                for (StoredStackKey starredKey : this.starredEntries) {
-                    Tag serializedStack = starredKey.displayStack().saveOptional(resolvedProvider);
-                    if (!(serializedStack instanceof CompoundTag stackTag)) continue;
-                    CompoundTag starredTag = new CompoundTag();
-                    starredTag.put(NOTE_KEY, stackTag);
-                    serializedStarred.add(starredTag);
-                }
-                root.put(STARRED_ENTRIES_KEY, serializedStarred);
-            }
-        }
-        root.putLong(NEXT_SEQUENCE_KEY, this.nextSequence);
-        return root;
+        return StoredItemDatabaseSerializer.serialize(this, provider);
     }
 
     /**
@@ -531,147 +473,14 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * 否则按旧版格式读取，并标记 {@code needsResave} 以便下次存档时自动升级到最新格式。
      * 反序列化过程中会尝试将未解析条目恢复为已解析状态（若当前模组环境已具备对应物品注册）。</p>
      *
+     * <p>实际逻辑已委托至 {@link StoredItemDatabaseSerializer}。</p>
+     *
      * @param provider 用于物品堆栈反序列化的注册表查找提供者
      * @param tag      包含数据库状态的 NBT 标签，可能为 {@code null} 或空
      */
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
-        this.resetContent();
-        if (tag == null || tag.isEmpty()) { this.markRuntimeStateDirty(); return; }
-        if (tag.contains(SCHEMA_VERSION_KEY)) {
-            this.readCurrentFormat(resolvedProvider, tag, Math.max(0, tag.getInt(SCHEMA_VERSION_KEY)));
-        } else {
-            this.readLegacyFormat(resolvedProvider, tag);
-        }
-        this.markRuntimeStateDirty();
-    }
-
-    private void readCurrentFormat(HolderLookup.Provider provider, CompoundTag tag, int storedSchemaVersion) {
-        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true, storedSchemaVersion);
-        for (Tag element : tag.getList(UNRESOLVED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag unresolvedEntryTag)) continue;
-            UnresolvedStoredEntry unresolvedEntry = UnresolvedStoredEntry.fromTag(unresolvedEntryTag);
-            if (unresolvedEntry.isEmpty()) continue;
-            this.unresolvedEntries.add(unresolvedEntry);
-            highestSequence = Math.max(highestSequence, unresolvedEntry.lastModified());
-        }
-        this.resolveUnresolvedEntries(provider);
-        this.logEntries.clear();
-        this.logEntries.addAll(DatabaseLogEntry.readList(provider, tag.getList(LOG_ENTRIES_KEY, Tag.TAG_COMPOUND)));
-        for (Tag element : tag.getList(NOTES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag noteTag)) continue;
-            CompoundTag stackTag = noteTag.getCompound(NOTE_KEY);
-            String noteText = noteTag.getString(NOTE_TEXT_KEY);
-            if (stackTag.isEmpty() || noteText.isEmpty() || provider == null) continue;
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
-            if (!stack.isEmpty()) this.notes.put(StoredStackKey.of(stack), noteText);
-        }
-        for (Tag element : tag.getList(STARRED_ENTRIES_KEY, Tag.TAG_COMPOUND)) {
-            if (!(element instanceof CompoundTag starredTag)) continue;
-            CompoundTag stackTag = starredTag.getCompound(NOTE_KEY);
-            if (stackTag.isEmpty() || provider == null) continue;
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
-            if (!stack.isEmpty()) this.starredEntries.add(StoredStackKey.of(stack));
-        }
-        this.needsResave = storedSchemaVersion < CURRENT_SCHEMA_VERSION;
-        this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
-    }
-
-    private void readLegacyFormat(HolderLookup.Provider provider, CompoundTag tag) {
-        long highestSequence = this.readResolvedEntries(provider, tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND), true, 0);
-        this.resolveUnresolvedEntries(provider);
-        this.finishNextSequence(tag.getLong(NEXT_SEQUENCE_KEY), highestSequence);
-        this.needsResave = true;
-    }
-
-    private long readResolvedEntries(HolderLookup.Provider provider, ListTag entryList, boolean preserveInvalidEntries, int storedSchemaVersion) {
-        long highestSequence = 0L;
-        for (Tag element : entryList) {
-            if (!(element instanceof CompoundTag entryTag)) continue;
-            CompoundTag stackTag = entryTag.getCompound(STACK_KEY);
-            long amount = Math.max(0L, entryTag.getLong(COUNT_KEY));
-            if (amount <= 0L) continue;
-            long lastModified = Math.max(0L, entryTag.getLong(LAST_MODIFIED_KEY));
-            long firstAdded = StoredItemDatabaseHelper.readFirstAdded(entryTag, lastModified);
-            String tabId = StoredItemDatabaseHelper.readTabId(entryTag, storedSchemaVersion, CURRENT_SCHEMA_VERSION);
-            if (provider == null) {
-                if (preserveInvalidEntries && !stackTag.isEmpty()) {
-                    this.unresolvedEntries.add(new UnresolvedStoredEntry(
-                            stackTag,
-                            amount,
-                            tabId,
-                            lastModified,
-                            firstAdded
-                    ));
-                    highestSequence = Math.max(highestSequence, lastModified);
-                }
-                continue;
-            }
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
-            if (stack.isEmpty()) {
-                if (preserveInvalidEntries && !stackTag.isEmpty()) {
-                    this.unresolvedEntries.add(new UnresolvedStoredEntry(stackTag, amount, tabId, lastModified, firstAdded));
-                    highestSequence = Math.max(highestSequence, lastModified);
-                }
-                continue;
-            }
-            this.mergeResolvedEntry(
-                    StoredStackKey.of(stack),
-                    new StoredStackEntry(tabId, amount, lastModified, firstAdded)
-            );
-            highestSequence = Math.max(highestSequence, lastModified);
-        }
-        return highestSequence;
-    }
-
-    private void resolveUnresolvedEntries(HolderLookup.Provider provider) {
-        if (provider == null || this.unresolvedEntries.isEmpty()) {
-            return;
-        }
-        java.util.List<UnresolvedStoredEntry> stillUnresolvedEntries = new java.util.ArrayList<>(this.unresolvedEntries.size());
-        for (UnresolvedStoredEntry unresolvedEntry : this.unresolvedEntries) {
-            Optional<UnresolvedStoredEntry.ResolvedStoredEntry> resolvedEntry = unresolvedEntry.tryResolve(provider);
-            if (resolvedEntry.isPresent()) {
-                this.mergeResolvedEntry(resolvedEntry.get().key(), resolvedEntry.get().entry());
-            } else {
-                stillUnresolvedEntries.add(unresolvedEntry);
-            }
-        }
-        this.unresolvedEntries.clear();
-        this.unresolvedEntries.addAll(stillUnresolvedEntries);
-    }
-
-    private void mergeResolvedEntry(StoredStackKey key, StoredStackEntry incomingEntry) {
-        if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
-            return;
-        }
-        StoredStackEntry existingEntry = this.entries.get(key);
-        if (existingEntry == null) {
-            this.entries.put(key, new StoredStackEntry(
-                    incomingEntry.tabId(),
-                    incomingEntry.amount(),
-                    incomingEntry.lastModified(),
-                    incomingEntry.firstAdded()
-            ));
-            return;
-        }
-        String mergedTabId = incomingEntry.lastModified() >= existingEntry.lastModified()
-                ? incomingEntry.tabId()
-                : existingEntry.tabId();
-        this.entries.put(key, new StoredStackEntry(
-                mergedTabId,
-                StoredItemDatabaseHelper.safeAdd(existingEntry.amount(), incomingEntry.amount()),
-                Math.max(existingEntry.lastModified(), incomingEntry.lastModified()),
-                StoredItemDatabaseHelper.mergeFirstAdded(existingEntry.firstAdded(), incomingEntry.firstAdded())
-        ));
-    }
-
-    private void finishNextSequence(long serializedNextSequence, long highestSequence) {
-        this.nextSequence = Math.max(serializedNextSequence, highestSequence + 1L);
-        if (this.nextSequence <= 0L) {
-            this.nextSequence = 1L;
-        }
+        StoredItemDatabaseSerializer.deserialize(this, provider, tag);
     }
 
     long nextSequence() {
@@ -685,7 +494,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return !this.entries.isEmpty() || !this.unresolvedEntries.isEmpty() || this.nextSequence != 1L;
     }
 
-    private void resetContent() {
+    void resetContent() {
         this.entries.clear();
         this.notes.clear();
         this.starredEntries.clear();
@@ -716,5 +525,56 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         if (this.revision < Long.MAX_VALUE) {
             this.revision++;
         }
+    }
+
+    // 包级可见的内部状态访问方法，仅供 StoredItemDatabaseSerializer 使用
+
+    java.util.List<UnresolvedStoredEntry> unresolvedEntriesInternal() {
+        return this.unresolvedEntries;
+    }
+
+    java.util.List<DatabaseLogEntry> logEntriesInternal() {
+        return this.logEntries;
+    }
+
+    Map<StoredStackKey, String> notesInternal() {
+        return this.notes;
+    }
+
+    Set<StoredStackKey> starredEntriesInternal() {
+        return this.starredEntries;
+    }
+
+    void setNeedsResave(boolean needsResave) {
+        this.needsResave = needsResave;
+    }
+
+    void setNextSequence(long nextSequence) {
+        this.nextSequence = nextSequence;
+    }
+
+    void mergeResolvedEntryInternal(StoredStackKey key, StoredStackEntry incomingEntry) {
+        if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
+            return;
+        }
+        StoredStackEntry existingEntry = this.entries.get(key);
+        if (existingEntry == null) {
+            this.entries.put(key, new StoredStackEntry(
+                    incomingEntry.tabId(),
+                    incomingEntry.amount(),
+                    incomingEntry.lastModified(),
+                    incomingEntry.firstAdded()
+            ));
+            return;
+        }
+        String mergedTabId = incomingEntry.lastModified() >= existingEntry.lastModified()
+                ? incomingEntry.tabId()
+                : existingEntry.tabId();
+        this.entries.put(key, new StoredStackEntry(
+                mergedTabId,
+                StoredItemDatabaseHelper.safeAdd(existingEntry.amount(), incomingEntry.amount()),
+                Math.max(existingEntry.lastModified(), incomingEntry.lastModified()),
+                StoredItemDatabaseHelper.mergeFirstAdded(existingEntry.firstAdded(), incomingEntry.firstAdded())
+        ));
     }
 }
