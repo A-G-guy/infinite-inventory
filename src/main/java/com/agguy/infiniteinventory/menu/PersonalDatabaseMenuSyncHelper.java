@@ -27,7 +27,9 @@ final class PersonalDatabaseMenuSyncHelper {
         DatabaseQuery activeQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, menu.currentQuery());
         if (currentPersonalRevision == menu.lastSentPersonalRevision
                 && currentPublicRevision == menu.lastSentPublicRevision
-                && activeQuery.equals(menu.lastSentQuery)) {
+                && activeQuery.equals(menu.lastSentQuery)
+                && java.util.Objects.equals(menu.viewState.enhancementConfig(), menu.enhancementConfig)
+                && java.util.Objects.equals(menu.viewState.autoStoreTarget(), menu.autoStoreTarget)) {
             return;
         }
         java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabs().size());

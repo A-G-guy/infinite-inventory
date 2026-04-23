@@ -78,14 +78,28 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (screen.advancedSearchExpanded && PersonalDatabaseScreenGeometry.isWithinAdvancedSearchPanel(screen, mouseX, mouseY)) {
-            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            for (var field : com.agguy.infiniteinventory.database.DatabaseSearchField.values()) {
+                var toggleButton = screen.advancedSearchToggleButtons.get(field);
+                if (toggleButton != null && toggleButton.mouseClicked(mouseX, mouseY, button)) {
+                    return true;
+                }
+                var weightButton = screen.advancedSearchWeightButtons.get(field);
+                if (weightButton != null && weightButton.mouseClicked(mouseX, mouseY, button)) {
+                    return true;
+                }
+            }
             return true;
         }
         if (screen.enhancementPanelExpanded && PersonalDatabaseScreenGeometry.isWithinEnhancementPanel(screen, mouseX, mouseY)) {
             if (PersonalDatabaseScreenTargetHelper.handleEnhancementPanelClick(screen, mouseX, mouseY)) {
                 return true;
             }
-            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            for (var option : com.agguy.infiniteinventory.database.DatabaseEnhancementOption.orderedValues()) {
+                var toggleButton = screen.enhancementToggleButtons.get(option);
+                if (toggleButton != null && toggleButton.mouseClicked(mouseX, mouseY, button)) {
+                    return true;
+                }
+            }
             return true;
         }
         if (screen.contextMenuExpanded && PersonalDatabaseScreenPopupInteractionHelper.handleContextMenuClick(screen, mouseX, mouseY)) {
