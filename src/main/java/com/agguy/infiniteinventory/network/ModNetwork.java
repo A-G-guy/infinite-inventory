@@ -166,7 +166,8 @@ public final class ModNetwork {
                 return;
             }
             if (payload.action() == DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY) {
-                menu.syncViewToClient();
+                com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment preferences = PersonalDatabaseService.INSTANCE.getViewPreferences(player);
+                menu.updateQuery(preferences.query());
                 return;
             }
             if (payload.action() == DatabaseTabMutationAction.TRANSFER) {
@@ -175,6 +176,7 @@ public final class ModNetwork {
             }
             if (payload.scope() == DatabaseScope.PUBLIC) {
                 PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+                menu.syncViewToClient();
             } else {
                 menu.syncViewToClient();
             }

@@ -403,6 +403,12 @@ final class PersonalDatabaseScreenLayoutHelper {
         for (var panel : screen.databaseMenu.viewState().panels()) {
             signatureParts.add(panel.scopedTab().scope().name() + ":" + panel.scopedTab().tabId());
         }
+        for (DatabaseTab tab : screen.databaseMenu.viewState().personalTabs()) {
+            signatureParts.add("P:" + tab.id() + "=" + tab.customName().hashCode() + ":" + tab.iconItemId().hashCode());
+        }
+        for (DatabaseTab tab : screen.databaseMenu.viewState().publicTabs()) {
+            signatureParts.add("U:" + tab.id() + "=" + tab.customName().hashCode() + ":" + tab.iconItemId().hashCode());
+        }
         return String.join("|", signatureParts);
     }
 

@@ -13,13 +13,15 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
     static boolean handleSortDropdownClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         PersonalDatabaseLayout.Rect dropdownRect = PersonalDatabaseScreenSortDropdownGeometry.dropdownRect(screen);
         if (dropdownRect == null) {
-            return false;
+            screen.sortDropdownExpanded = false;
+            screen.activeSortPanelIndex = -1;
+            return true;
         }
         int panelIndex = PersonalDatabaseScreenCommonHelper.activeSortPanelIndex(screen);
         if (panelIndex < 0 || panelIndex >= PersonalDatabaseScreenCommonHelper.currentPanels(screen).size()) {
             screen.sortDropdownExpanded = false;
             screen.activeSortPanelIndex = -1;
-            return false;
+            return true;
         }
         DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
         DatabaseSortOption currentSort = screen.databaseMenu.viewState().query().sortOptionFor(panel.scopedTab());
@@ -92,7 +94,7 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
         if (pickerRect == null) {
             screen.pagePickerExpanded = false;
             screen.activePagePickerPanelIndex = -1;
-            return false;
+            return true;
         }
         var options = PersonalDatabaseScreenCommonHelper.pagePickerOptions(screen);
         for (int index = 0; index < options.size(); index++) {
