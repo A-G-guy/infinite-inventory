@@ -46,6 +46,7 @@ public record DatabaseStarPayload(
         long sessionId = buffer.readVarLong();
         DatabaseScope scope = buffer.readEnum(DatabaseScope.class);
         int stackCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(stackCount, NetworkConstants.MAX_STACK_LIST_COUNT, "targetStacks");
         List<ItemStack> targetStacks = new ArrayList<>(stackCount);
         for (int index = 0; index < stackCount; index++) {
             targetStacks.add(ItemStack.STREAM_CODEC.decode(buffer));

@@ -142,7 +142,7 @@ public final class DatabaseQueryEngine {
         return this.toPage(normalizedQuery, queryResult, normalizedScopedTab, resolvedTabDirectory.resolve(normalizedTabId));
     }
 
-    private synchronized DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
+    private DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
         ViewerLanguage normalizedLanguage = viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage;
         LocalizedRuntimeIndexes cachedIndexes = this.runtimeIndexes.get(database);
         if (cachedIndexes != null && cachedIndexes.revision() == database.revision()) {
@@ -158,7 +158,10 @@ public final class DatabaseQueryEngine {
             this.runtimeIndexes.put(database, activeIndexes);
         }
 
-        DatabaseRuntimeIndex rebuiltIndex = DatabaseRuntimeIndex.build(database, normalizedLanguage);
+        DatabaseRuntimeIndex rebuiltIndex;
+        synchronized (database) {
+            rebuiltIndex = DatabaseRuntimeIndex.build(database, normalizedLanguage);
+        }
         activeIndexes.put(normalizedLanguage, rebuiltIndex);
         return rebuiltIndex;
     }

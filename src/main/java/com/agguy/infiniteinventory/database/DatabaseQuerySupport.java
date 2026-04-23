@@ -8,6 +8,7 @@ import java.util.Map;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import com.agguy.infiniteinventory.network.NetworkConstants;
 import net.minecraft.network.FriendlyByteBuf;
 
 final class DatabaseQuerySupport {
@@ -182,16 +183,19 @@ final class DatabaseQuerySupport {
     static DatabaseQuery read(FriendlyByteBuf buffer) {
         DatabaseScopedTabRef focusedTab = DatabaseScopedTabRef.read(buffer);
         int visibleTabCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(visibleTabCount, NetworkConstants.MAX_QUERY_VISIBLE_TAB_COUNT, "visibleTabs");
         java.util.ArrayList<DatabaseScopedTabRef> visibleTabs = new java.util.ArrayList<>(visibleTabCount);
         for (int index = 0; index < visibleTabCount; index++) {
             visibleTabs.add(DatabaseScopedTabRef.read(buffer));
         }
         int tabStateCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(tabStateCount, NetworkConstants.MAX_QUERY_TAB_STATE_COUNT, "tabStates");
         LinkedHashMap<DatabaseScopedTabRef, DatabaseTabQueryState> tabStates = new LinkedHashMap<>(tabStateCount);
         for (int index = 0; index < tabStateCount; index++) {
             tabStates.put(DatabaseScopedTabRef.read(buffer), DatabaseTabQueryState.read(buffer));
         }
         int hiddenTopTabCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(hiddenTopTabCount, NetworkConstants.MAX_QUERY_HIDDEN_TOP_TAB_COUNT, "hiddenTopTabs");
         java.util.ArrayList<DatabaseScopedTabRef> hiddenTopTabs = new java.util.ArrayList<>(hiddenTopTabCount);
         for (int index = 0; index < hiddenTopTabCount; index++) {
             hiddenTopTabs.add(DatabaseScopedTabRef.read(buffer));

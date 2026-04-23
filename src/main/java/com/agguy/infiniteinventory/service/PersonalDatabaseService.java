@@ -303,6 +303,10 @@ public final class PersonalDatabaseService {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
     }
 
+    public long databaseRevisionFor(ServerPlayer player, DatabaseScope scope) {
+        return this.resolveDatabaseForView(player, scope).revision();
+    }
+
     public void syncJeiAmountsToPlayer(ServerPlayer player) {
         PersonalDatabaseServiceSyncHelper.syncJeiAmountsToPlayer(this, player);
     }
@@ -321,6 +325,14 @@ public final class PersonalDatabaseService {
 
     public void notifyViewerAboutUnresolvedEntries(ServerPlayer player, DatabaseScope scope) {
         PersonalDatabaseServiceSyncHelper.notifyViewerAboutUnresolvedEntries(player, scope);
+    }
+
+    public void registerPublicViewer(ServerPlayer player) {
+        PersonalDatabaseServiceViewerHelper.registerPublicViewer(player);
+    }
+
+    public void unregisterPublicViewer(ServerPlayer player) {
+        PersonalDatabaseServiceViewerHelper.unregisterPublicViewer(player);
     }
 
     StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {

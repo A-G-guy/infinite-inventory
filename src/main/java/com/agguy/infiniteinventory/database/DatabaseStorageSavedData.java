@@ -277,6 +277,11 @@ public final class DatabaseStorageSavedData extends SavedData {
         }
         tag.put(PERSONAL_TAB_DIRECTORIES_KEY, serializedTabDirectories);
 
+        this.migrationStates.entrySet().removeIf(entry -> {
+            LegacyMigrationState.Status status = entry.getValue().status();
+            return status == LegacyMigrationState.Status.MIGRATED
+                    || status == LegacyMigrationState.Status.SKIPPED_EXISTING_STORAGE;
+        });
         ListTag serializedMigrationStates = new ListTag();
         for (Map.Entry<UUID, LegacyMigrationState> entry : this.migrationStates.entrySet()) {
             CompoundTag migrationStateTag = new CompoundTag();
@@ -463,10 +468,15 @@ public final class DatabaseStorageSavedData extends SavedData {
      * @param reason         触发备份的原因标识，例如 {@code "schema-upgrade-v1"}
      * @param storageSnapshot 备份时刻的完整存档数据快照
      */
-    public record PendingMigrationBackup(String reason, CompoundTag storageSnapshot) {
+    public record PendingMigrationBackup(String reason, CompoundTag storageSnapshot, long createdAtMillis) {
         public PendingMigrationBackup {
             reason = reason == null || reason.isBlank() ? "migration" : reason;
             storageSnapshot = storageSnapshot == null ? new CompoundTag() : storageSnapshot.copy();
+            createdAtMillis = Math.max(0L, createdAtMillis);
+        }
+
+        public PendingMigrationBackup(String reason, CompoundTag storageSnapshot) {
+            this(reason, storageSnapshot, System.currentTimeMillis());
         }
     }
 }

@@ -5,6 +5,9 @@ import com.agguy.infiniteinventory.compat.jei.JeiCompat;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -21,6 +24,9 @@ import net.minecraft.server.level.ServerPlayer;
 
 @EventBusSubscriber(modid = InfiniteInventory.MODID)
 public final class ModGameEvents {
+    private static final int MAX_AUTO_STORE_PER_TICK = 5;
+    private static final Map<UUID, Integer> autoStoreCounters = new ConcurrentHashMap<>();
+
     private ModGameEvents() {
     }
 
@@ -57,14 +63,20 @@ public final class ModGameEvents {
         if (event.canPickup().isFalse()) {
             return;
         }
+        int currentCount = autoStoreCounters.getOrDefault(player.getUUID(), 0);
+        if (currentCount >= MAX_AUTO_STORE_PER_TICK) {
+            return;
+        }
         if (PersonalDatabaseService.INSTANCE.tryAutoStorePickedUpItem(player, event.getItemEntity())) {
             event.setCanPickup(TriState.FALSE);
+            autoStoreCounters.put(player.getUUID(), currentCount + 1);
         }
     }
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         DatabaseBackupManager.maybeCreateRollingBackup(event.getServer());
+        autoStoreCounters.clear();
     }
 
     @SubscribeEvent

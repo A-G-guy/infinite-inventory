@@ -136,7 +136,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * <p>业务约束：仅在仓库确实含有内容时才标记为脏状态，避免空清空导致无意义的版本递增。</p>
      */
-    public void clear() { if (this.hasStoredContent()) { this.resetContent(); this.markRuntimeStateDirty(); } }
+    public synchronized void clear() { if (this.hasStoredContent()) { this.resetContent(); this.markRuntimeStateDirty(); } }
 
     /**
      * 获取指定物品的备注文本。
@@ -162,7 +162,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param key 物品键
      * @return 若收藏状态发生变化则返回 {@code true}
      */
-    public boolean toggleStar(StoredStackKey key) {
+    public synchronized boolean toggleStar(StoredStackKey key) {
         if (key == null) return false;
         boolean changed = this.starredEntries.contains(key) ? this.starredEntries.remove(key) : this.starredEntries.add(key);
         if (changed) this.markRuntimeStateDirty();
@@ -178,7 +178,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param starred 目标收藏状态
      * @return 若收藏状态发生变化则返回 {@code true}
      */
-    public boolean setStarred(StoredStackKey key, boolean starred) {
+    public synchronized boolean setStarred(StoredStackKey key, boolean starred) {
         if (key == null) return false;
         boolean currentlyStarred = this.starredEntries.contains(key);
         if (currentlyStarred == starred) return false;
@@ -200,7 +200,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param key  物品键
      * @param note 备注内容，{@code null} 会被视为空字符串
      */
-    public void setNote(StoredStackKey key, String note) {
+    public synchronized void setNote(StoredStackKey key, String note) {
         if (key == null) return;
         String normalized = note == null ? "" : note.trim();
         if (normalized.length() > 256) normalized = normalized.substring(0, 256);
@@ -216,7 +216,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * @param other 要合并的源数据库，若为 {@code null} 则直接返回
      */
-    public void mergeFrom(StoredItemDatabase other) {
+    public synchronized void mergeFrom(StoredItemDatabase other) {
         StoredItemDatabaseStoreHelper.mergeFrom(this, other);
     }
 
@@ -227,7 +227,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * @param stack 待存入的物品堆，若为 {@link ItemStack#EMPTY} 则忽略
      */
-    public void store(ItemStack stack) {
+    public synchronized void store(ItemStack stack) {
         StoredItemDatabaseStoreHelper.store(this, stack);
     }
 
@@ -239,7 +239,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param stack 待存入的物品堆
      * @param tabId 目标标签页 ID
      */
-    public void store(ItemStack stack, String tabId) {
+    public synchronized void store(ItemStack stack, String tabId) {
         StoredItemDatabaseStoreHelper.store(this, stack, tabId);
     }
 
@@ -252,7 +252,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param targetTabId 目标标签页 ID
      * @return 若至少有一条目发生迁移则返回 {@code true}
      */
-    public boolean transferTab(String sourceTabId, String targetTabId) {
+    public synchronized boolean transferTab(String sourceTabId, String targetTabId) {
         return StoredItemDatabaseTabHelper.transferTab(this, sourceTabId, targetTabId);
     }
 
@@ -266,7 +266,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param targetTabId 目标标签页 ID
      * @return 若移动成功则返回 {@code true}
      */
-    public boolean moveEntryToTab(StoredStackKey key, String sourceTabId, String targetTabId) {
+    public synchronized boolean moveEntryToTab(StoredStackKey key, String sourceTabId, String targetTabId) {
         return StoredItemDatabaseTabHelper.moveEntryToTab(this, key, sourceTabId, targetTabId);
     }
 
@@ -278,7 +278,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param tabDirectory 当前有效的标签页目录
      * @return 若发生了任何回退操作则返回 {@code true}
      */
-    public boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
+    public synchronized boolean ensureTabAssignments(DatabaseTabDirectory tabDirectory) {
         return StoredItemDatabaseTabHelper.ensureTabAssignments(this, tabDirectory);
     }
 
@@ -291,7 +291,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      * @param requestedAmount 请求提取的数量
      * @return 实际提取到的物品堆，若无法提取则返回 {@link ItemStack#EMPTY}
      */
-    public ItemStack extract(StoredStackKey key, int requestedAmount) {
+    public synchronized ItemStack extract(StoredStackKey key, int requestedAmount) {
         return StoredItemDatabaseStoreHelper.extract(this, key, requestedAmount);
     }
 
@@ -332,7 +332,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return !this.entries.isEmpty() || !this.unresolvedEntries.isEmpty() || this.nextSequence != 1L;
     }
 
-    void resetContent() {
+    synchronized void resetContent() {
         this.entries.clear();
         this.notes.clear();
         this.starredEntries.clear();
@@ -350,7 +350,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * @param entry 要追加的日志条目
      */
-    public void appendLogEntry(DatabaseLogEntry entry) {
+    public synchronized void appendLogEntry(DatabaseLogEntry entry) {
         if (entry == null || entry.isEmpty()) return;
         this.logEntries.add(entry);
         if (this.logEntries.size() > 500) {
@@ -359,7 +359,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.markRuntimeStateDirty();
     }
 
-    void markRuntimeStateDirty() {
+    synchronized void markRuntimeStateDirty() {
         if (this.revision < Long.MAX_VALUE) {
             this.revision++;
         }
@@ -399,7 +399,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.nextSequence = nextSequence;
     }
 
-    void mergeResolvedEntryInternal(StoredStackKey key, StoredStackEntry incomingEntry) {
+    synchronized void mergeResolvedEntryInternal(StoredStackKey key, StoredStackEntry incomingEntry) {
         if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {
             return;
         }

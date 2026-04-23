@@ -58,12 +58,12 @@ class DatabaseStorageSavedDataTest {
     }
 
     @Test
-    void shouldPersistPersonalDatabasesAndMigrationStates() {
+    void shouldPersistPersonalDatabasesAndPendingMigrationStates() {
         UUID playerId = UUID.fromString("11111111-2222-3333-4444-555555555555");
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
         storage.personalDatabase(playerId).mergeFrom(this.unresolvedDatabase());
         storage.recordMigrationState(playerId, new LegacyMigrationState(
-                LegacyMigrationState.Status.MIGRATED,
+                LegacyMigrationState.Status.PENDING_CLEANUP,
                 123456789L,
                 1
         ));
@@ -73,7 +73,23 @@ class DatabaseStorageSavedDataTest {
 
         assertTrue(restored.hasPersonalDatabase(playerId));
         assertEquals(1, restored.personalDatabaseView(playerId).unresolvedEntryCount());
-        assertEquals(LegacyMigrationState.Status.MIGRATED, restored.migrationState(playerId).status());
+        assertEquals(LegacyMigrationState.Status.PENDING_CLEANUP, restored.migrationState(playerId).status());
+    }
+
+    @Test
+    void shouldPruneCompletedMigrationStatesOnExport() {
+        UUID playerId = UUID.fromString("11111111-2222-3333-4444-555555555555");
+        DatabaseStorageSavedData storage = DatabaseStorageSavedData.fromTag(new CompoundTag(), null);
+        storage.recordMigrationState(playerId, new LegacyMigrationState(
+                LegacyMigrationState.Status.MIGRATED,
+                123456789L,
+                1
+        ));
+
+        CompoundTag serialized = storage.exportStorageTag(null);
+        DatabaseStorageSavedData restored = DatabaseStorageSavedData.fromTag(serialized, null);
+
+        assertNull(restored.migrationState(playerId));
     }
 
     @Test

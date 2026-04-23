@@ -35,7 +35,9 @@ public final class DatabaseBackupManager {
     private static final String REASON_KEY = "reason";
     private static final String CREATED_AT_MILLIS_KEY = "created_at_millis";
     private static final String STORAGE_KEY = "storage";
+    private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final String FILE_EXTENSION = ".nbt.gz";
+    private static final long MAX_BACKUP_NBT_BYTES = 256L * 1024L * 1024L;
     private static final DateTimeFormatter FILE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS").withZone(ZoneId.of("UTC"));
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Set<MinecraftServer> ACCESSED_SERVERS = Collections.newSetFromMap(new WeakHashMap<>());
@@ -55,6 +57,10 @@ public final class DatabaseBackupManager {
         }
         DatabaseStorageSavedData.PendingMigrationBackup pendingMigrationBackup = storage.consumePendingMigrationBackup();
         if (pendingMigrationBackup == null) {
+            return;
+        }
+        if (System.currentTimeMillis() - pendingMigrationBackup.createdAtMillis() > 7L * 24L * 60L * 60L * 1000L) {
+            LOGGER.warn("迁移备份已过期（超过7天），跳过创建: {}", pendingMigrationBackup.reason());
             return;
         }
         try {
@@ -120,15 +126,24 @@ public final class DatabaseBackupManager {
 
     public static DatabaseBackupInfo restoreBackup(MinecraftServer server, String fileName) throws IOException {
         Path backupFile = resolveBackupFile(server, fileName);
-        CompoundTag backupTag = NbtIo.readCompressed(backupFile, NbtAccounter.unlimitedHeap());
+        CompoundTag backupTag = NbtIo.readCompressed(backupFile, NbtAccounter.create(MAX_BACKUP_NBT_BYTES));
         CompoundTag storageSnapshot = backupTag.getCompound(STORAGE_KEY);
         if (storageSnapshot.isEmpty()) {
             throw new IOException("备份文件不包含可恢复的数据库快照: " + fileName);
+        }
+        if (!storageSnapshot.contains(SCHEMA_VERSION_KEY)) {
+            throw new IOException("备份文件缺少 schema_version 字段，可能已损坏或版本不兼容: " + fileName);
+        }
+        int storedSchemaVersion = Math.max(0, storageSnapshot.getInt(SCHEMA_VERSION_KEY));
+        if (storedSchemaVersion > DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION) {
+            throw new IOException("备份文件 schema_version (" + storedSchemaVersion + ") 高于当前支持版本 ("
+                    + DatabaseStorageSavedData.CURRENT_SCHEMA_VERSION + "): " + fileName);
         }
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(server);
         storage.restoreFromSnapshot(storageSnapshot, server.registryAccess());
         storage.setDirty();
         ACCESSED_SERVERS.add(server);
+        LOGGER.info("数据库备份已恢复: {} (schema_version={})", fileName, storedSchemaVersion);
         return parseBackupInfo(backupFile.getFileName().toString(), backupTag);
     }
 
@@ -184,7 +199,7 @@ public final class DatabaseBackupManager {
 
     private static DatabaseBackupInfo readBackupInfo(Path path) {
         try {
-            CompoundTag backupTag = NbtIo.readCompressed(path, NbtAccounter.unlimitedHeap());
+            CompoundTag backupTag = NbtIo.readCompressed(path, NbtAccounter.create(MAX_BACKUP_NBT_BYTES));
             return parseBackupInfo(path.getFileName().toString(), backupTag);
         } catch (IOException exception) {
             LOGGER.warn("读取数据库备份元数据失败: {}", path, exception);

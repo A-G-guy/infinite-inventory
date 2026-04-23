@@ -52,117 +52,131 @@ public final class ModNetwork {
     }
 
     private static void handleViewerLocale(DatabaseViewerLocalePayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.updateViewerLanguage(ViewerLanguage.resolve(payload.languageCode()));
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.updateViewerLanguage(ViewerLanguage.resolve(payload.languageCode()));
+            }
+        });
     }
 
     private static void handleQuery(DatabaseQueryPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.updateQuery(payload.query());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.updateQuery(payload.query());
+            }
+        });
     }
 
     private static void handleEnhancementConfig(DatabaseEnhancementPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.updateEnhancementConfig(payload.enhancementConfig(), payload.autoStoreTarget());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.updateEnhancementConfig(payload.enhancementConfig(), payload.autoStoreTarget());
+            }
+        });
     }
 
     private static void handleDatabaseClick(DatabaseClickPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.handleDatabaseClick(
-                    payload.panelIndex(),
-                    payload.pageSlotIndex(),
-                    payload.action(),
-                    payload.targetScope(),
-                    payload.targetTabId()
-            );
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.handleDatabaseClick(
+                        payload.panelIndex(),
+                        payload.pageSlotIndex(),
+                        payload.action(),
+                        payload.targetScope(),
+                        payload.targetTabId()
+                );
+            }
+        });
     }
 
     private static void handleDatabaseSelection(DatabaseSelectionPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.handleSelectionAction(
-                    payload.action(),
-                    payload.selectedEntries(),
-                    payload.targetScope(),
-                    payload.targetTabId(),
-                    payload.requestedAmount()
-            );
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.handleSelectionAction(
+                        payload.action(),
+                        payload.selectedEntries(),
+                        payload.targetScope(),
+                        payload.targetTabId(),
+                        payload.requestedAmount()
+                );
+            }
+        });
     }
 
     private static void handleQuickDeposit(DatabaseQuickDepositPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.depositInventorySlot(payload.slotIndex(), payload.targetScope(), payload.targetTabId());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.depositInventorySlot(payload.slotIndex(), payload.targetScope(), payload.targetTabId());
+            }
+        });
     }
 
     private static void handleTabMutation(DatabaseTabMutationPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu == null) {
-            return;
-        }
-        boolean changed = switch (payload.action()) {
-            case ADD -> PersonalDatabaseService.INSTANCE.createTab(player, payload.scope(), payload.name(), payload.iconItemId());
-            case RENAME -> PersonalDatabaseService.INSTANCE.renameTab(player, payload.scope(), payload.tabId(), payload.name());
-            case CHANGE_ICON -> PersonalDatabaseService.INSTANCE.updateTabIcon(player, payload.scope(), payload.tabId(), payload.iconItemId());
-            case MOVE_LEFT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), -1);
-            case MOVE_RIGHT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), 1);
-            case DELETE -> PersonalDatabaseService.INSTANCE.deleteTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
-            case TRANSFER -> PersonalDatabaseService.INSTANCE.transferTab(
-                    player,
-                    payload.scope(),
-                    payload.resolvedTargetScope(),
-                    payload.tabId(),
-                    payload.targetTabId()
-            );
-            case TOGGLE_TOP_VISIBILITY -> PersonalDatabaseService.INSTANCE.toggleTopTabVisibility(player, payload.scope(), payload.tabId());
-        };
-        if (!changed) {
-            return;
-        }
-        if (payload.action() == DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY) {
-            menu.syncViewToClient();
-            return;
-        }
-        if (payload.action() == DatabaseTabMutationAction.TRANSFER) {
-            syncAfterTransfer(menu, player, payload.scope(), payload.resolvedTargetScope());
-            return;
-        }
-        if (payload.scope() == DatabaseScope.PUBLIC) {
-            PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
-        } else {
-            menu.syncViewToClient();
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu == null) {
+                return;
+            }
+            boolean changed = switch (payload.action()) {
+                case ADD -> PersonalDatabaseService.INSTANCE.createTab(player, payload.scope(), payload.name(), payload.iconItemId());
+                case RENAME -> PersonalDatabaseService.INSTANCE.renameTab(player, payload.scope(), payload.tabId(), payload.name());
+                case CHANGE_ICON -> PersonalDatabaseService.INSTANCE.updateTabIcon(player, payload.scope(), payload.tabId(), payload.iconItemId());
+                case MOVE_LEFT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), -1);
+                case MOVE_RIGHT -> PersonalDatabaseService.INSTANCE.moveTab(player, payload.scope(), payload.tabId(), 1);
+                case DELETE -> PersonalDatabaseService.INSTANCE.deleteTab(player, payload.scope(), payload.tabId(), payload.targetTabId());
+                case TRANSFER -> PersonalDatabaseService.INSTANCE.transferTab(
+                        player,
+                        payload.scope(),
+                        payload.resolvedTargetScope(),
+                        payload.tabId(),
+                        payload.targetTabId()
+                );
+                case TOGGLE_TOP_VISIBILITY -> PersonalDatabaseService.INSTANCE.toggleTopTabVisibility(player, payload.scope(), payload.tabId());
+            };
+            if (!changed) {
+                return;
+            }
+            if (payload.action() == DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY) {
+                menu.syncViewToClient();
+                return;
+            }
+            if (payload.action() == DatabaseTabMutationAction.TRANSFER) {
+                syncAfterTransfer(menu, player, payload.scope(), payload.resolvedTargetScope());
+                return;
+            }
+            if (payload.scope() == DatabaseScope.PUBLIC) {
+                PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
+            } else {
+                menu.syncViewToClient();
+            }
+        });
     }
 
     private static void syncAfterTransfer(PersonalDatabaseMenu menu, ServerPlayer player, DatabaseScope sourceScope, DatabaseScope targetScope) {
@@ -179,36 +193,42 @@ public final class ModNetwork {
     }
 
     private static void handleDepositAll(DepositAllPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.depositAllFromMainInventory(payload.targetScope(), payload.targetTabId());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.depositAllFromMainInventory(payload.targetScope(), payload.targetTabId());
+            }
+        });
     }
 
     private static void handleOpenEquippedDatabase(OpenEquippedDatabasePayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        if (!AccessoriesCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get())) {
-            return;
-        }
-        PersonalDatabaseService.INSTANCE.open(player);
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            if (!AccessoriesCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get())) {
+                return;
+            }
+            PersonalDatabaseService.INSTANCE.open(player);
+        });
     }
 
     private static void handleLogRequest(DatabaseLogRequestPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        DatabaseScope scope = DatabaseScope.normalize(payload.scope());
-        if (scope == DatabaseScope.PUBLIC && !player.hasPermissions(2)) {
-            context.reply(new DatabaseLogSnapshotPayload(scope, List.of()));
-            return;
-        }
-        List<DatabaseLogEntry> entries = PersonalDatabaseService.INSTANCE.getLogEntries(player, scope);
-        context.reply(new DatabaseLogSnapshotPayload(scope, entries));
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            DatabaseScope scope = DatabaseScope.normalize(payload.scope());
+            if (scope == DatabaseScope.PUBLIC && !player.hasPermissions(2)) {
+                context.reply(new DatabaseLogSnapshotPayload(scope, List.of()));
+                return;
+            }
+            List<DatabaseLogEntry> entries = PersonalDatabaseService.INSTANCE.getLogEntries(player, scope);
+            context.reply(new DatabaseLogSnapshotPayload(scope, entries));
+        });
     }
 
     private static void handleLogSnapshot(DatabaseLogSnapshotPayload payload, IPayloadContext context) {
@@ -216,23 +236,27 @@ public final class ModNetwork {
     }
 
     private static void handleStarToggle(DatabaseStarPayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.handleStarAction(payload.scope(), payload.targetStacks(), payload.action());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.handleStarAction(payload.scope(), payload.targetStacks(), payload.action());
+            }
+        });
     }
 
     private static void handleNoteUpdate(DatabaseNotePayload payload, IPayloadContext context) {
-        if (!(context.player() instanceof ServerPlayer player)) {
-            return;
-        }
-        PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
-        if (menu != null) {
-            menu.handleNoteUpdate(payload.scope(), payload.targetStacks(), payload.note());
-        }
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.handleNoteUpdate(payload.scope(), payload.targetStacks(), payload.note());
+            }
+        });
     }
 
     private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {

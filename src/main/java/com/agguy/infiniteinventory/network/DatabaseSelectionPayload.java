@@ -83,6 +83,7 @@ public record DatabaseSelectionPayload(
         String targetTabId = buffer.readUtf(DatabaseQuery.MAX_TAB_ID_LENGTH);
         long requestedAmount = buffer.readVarLong();
         int selectionCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(selectionCount, NetworkConstants.MAX_SELECTION_ENTRY_COUNT, "selectedEntries");
         List<DatabaseSelectionEntry> selectedEntries = new ArrayList<>(selectionCount);
         for (int index = 0; index < selectionCount; index++) {
             selectedEntries.add(DatabaseSelectionEntry.read(buffer));

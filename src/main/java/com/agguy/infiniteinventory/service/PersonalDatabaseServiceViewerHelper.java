@@ -5,16 +5,42 @@ import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 final class PersonalDatabaseServiceViewerHelper {
+    private static final Set<ServerPlayer> PUBLIC_VIEWERS = Collections.newSetFromMap(new WeakHashMap<>());
+
     private PersonalDatabaseServiceViewerHelper() {
     }
 
+    static void registerPublicViewer(ServerPlayer player) {
+        PUBLIC_VIEWERS.add(player);
+    }
+
+    static void unregisterPublicViewer(ServerPlayer player) {
+        PUBLIC_VIEWERS.remove(player);
+    }
+
     static void syncPublicViewers(MinecraftServer server) {
-        syncViewers(server, true, false);
+        syncPublicViewersInternal();
+    }
+
+    private static void syncPublicViewersInternal() {
+        for (Iterator<ServerPlayer> it = PUBLIC_VIEWERS.iterator(); it.hasNext(); ) {
+            ServerPlayer viewer = it.next();
+            if (viewer.isRemoved() || !(viewer.containerMenu instanceof PersonalDatabaseMenu menu)
+                    || !queryIncludesPublicScope(menu.viewState().query())) {
+                it.remove();
+                continue;
+            }
+            menu.syncViewToClient();
+        }
     }
 
     static void syncAllViewers(MinecraftServer server) {

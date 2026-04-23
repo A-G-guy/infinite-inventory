@@ -8,6 +8,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 负责 {@link StoredItemDatabase} 的 NBT 序列化与反序列化逻辑。
@@ -34,6 +36,8 @@ final class StoredItemDatabaseSerializer {
     private static final String NOTE_TEXT_KEY = "note_text";
     private static final String STARRED_ENTRIES_KEY = "starred_entries";
 
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private StoredItemDatabaseSerializer() {
     }
 
@@ -54,19 +58,23 @@ final class StoredItemDatabaseSerializer {
             if (resolvedProvider == null) {
                 resolvedProvider = DatabaseHolderLookup.require(provider, "stored item database serialization");
             }
-            ItemStack stack = mapEntry.getKey().displayStack();
-            Tag serializedStack = stack.saveOptional(resolvedProvider);
-            if (!(serializedStack instanceof CompoundTag stackTag)) {
-                continue;
+            try {
+                ItemStack stack = mapEntry.getKey().displayStack();
+                Tag serializedStack = stack.saveOptional(resolvedProvider);
+                if (!(serializedStack instanceof CompoundTag stackTag)) {
+                    continue;
+                }
+                StoredStackEntry entry = mapEntry.getValue();
+                CompoundTag entryTag = new CompoundTag();
+                entryTag.put(STACK_KEY, stackTag);
+                entryTag.putLong(COUNT_KEY, entry.amount());
+                entryTag.putString(TAB_ID_KEY, entry.tabId());
+                entryTag.putLong(FIRST_ADDED_KEY, entry.firstAdded());
+                entryTag.putLong(LAST_MODIFIED_KEY, entry.lastModified());
+                serializedEntries.add(entryTag);
+            } catch (Exception exception) {
+                LOGGER.warn("跳过损坏的物品条目序列化: key={}, amount={}", mapEntry.getKey(), mapEntry.getValue().amount(), exception);
             }
-            StoredStackEntry entry = mapEntry.getValue();
-            CompoundTag entryTag = new CompoundTag();
-            entryTag.put(STACK_KEY, stackTag);
-            entryTag.putLong(COUNT_KEY, entry.amount());
-            entryTag.putString(TAB_ID_KEY, entry.tabId());
-            entryTag.putLong(FIRST_ADDED_KEY, entry.firstAdded());
-            entryTag.putLong(LAST_MODIFIED_KEY, entry.lastModified());
-            serializedEntries.add(entryTag);
         }
         root.put(ENTRIES_KEY, serializedEntries);
 
@@ -88,27 +96,35 @@ final class StoredItemDatabaseSerializer {
             if (!database.notes().isEmpty()) {
                 ListTag serializedNotes = new ListTag();
                 for (Map.Entry<StoredStackKey, String> noteEntry : database.notes().entrySet()) {
-                    Tag serializedStack = noteEntry.getKey().displayStack().saveOptional(resolvedProvider);
-                    if (!(serializedStack instanceof CompoundTag stackTag)) {
-                        continue;
+                    try {
+                        Tag serializedStack = noteEntry.getKey().displayStack().saveOptional(resolvedProvider);
+                        if (!(serializedStack instanceof CompoundTag stackTag)) {
+                            continue;
+                        }
+                        CompoundTag noteTag = new CompoundTag();
+                        noteTag.put(NOTE_KEY, stackTag);
+                        noteTag.putString(NOTE_TEXT_KEY, noteEntry.getValue());
+                        serializedNotes.add(noteTag);
+                    } catch (Exception exception) {
+                        LOGGER.warn("跳过损坏的备注条目序列化: key={}", noteEntry.getKey(), exception);
                     }
-                    CompoundTag noteTag = new CompoundTag();
-                    noteTag.put(NOTE_KEY, stackTag);
-                    noteTag.putString(NOTE_TEXT_KEY, noteEntry.getValue());
-                    serializedNotes.add(noteTag);
                 }
                 root.put(NOTES_KEY, serializedNotes);
             }
             if (!database.starredEntries().isEmpty()) {
                 ListTag serializedStarred = new ListTag();
                 for (StoredStackKey starredKey : database.starredEntries()) {
-                    Tag serializedStack = starredKey.displayStack().saveOptional(resolvedProvider);
-                    if (!(serializedStack instanceof CompoundTag stackTag)) {
-                        continue;
+                    try {
+                        Tag serializedStack = starredKey.displayStack().saveOptional(resolvedProvider);
+                        if (!(serializedStack instanceof CompoundTag stackTag)) {
+                            continue;
+                        }
+                        CompoundTag starredTag = new CompoundTag();
+                        starredTag.put(NOTE_KEY, stackTag);
+                        serializedStarred.add(starredTag);
+                    } catch (Exception exception) {
+                        LOGGER.warn("跳过损坏的收藏条目序列化: key={}", starredKey, exception);
                     }
-                    CompoundTag starredTag = new CompoundTag();
-                    starredTag.put(NOTE_KEY, stackTag);
-                    serializedStarred.add(starredTag);
                 }
                 root.put(STARRED_ENTRIES_KEY, serializedStarred);
             }

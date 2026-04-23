@@ -22,7 +22,14 @@ final class PersonalDatabaseMenuSyncHelper {
         if (!(menu.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
+        long currentPersonalRevision = PersonalDatabaseService.INSTANCE.databaseRevisionFor(serverPlayer, DatabaseScope.PERSONAL);
+        long currentPublicRevision = PersonalDatabaseService.INSTANCE.databaseRevisionFor(serverPlayer, DatabaseScope.PUBLIC);
         DatabaseQuery activeQuery = PersonalDatabaseService.INSTANCE.sanitizeQuery(serverPlayer, menu.currentQuery());
+        if (currentPersonalRevision == menu.lastSentPersonalRevision
+                && currentPublicRevision == menu.lastSentPublicRevision
+                && activeQuery.equals(menu.lastSentQuery)) {
+            return;
+        }
         java.util.ArrayList<DatabasePage> rebuiltPages = new java.util.ArrayList<>(activeQuery.visibleTabs().size());
         DatabaseQuery adjustedQuery = activeQuery;
         for (DatabaseScopedTabRef visibleTab : activeQuery.visibleTabs()) {
@@ -46,6 +53,9 @@ final class PersonalDatabaseMenuSyncHelper {
                 PersonalDatabaseService.INSTANCE.tabsForScope(serverPlayer, DatabaseScope.PUBLIC),
                 menu.currentPages.stream().map(DatabasePage::toPanelView).toList()
         );
+        menu.lastSentPersonalRevision = currentPersonalRevision;
+        menu.lastSentPublicRevision = currentPublicRevision;
+        menu.lastSentQuery = adjustedQuery;
         PacketDistributor.sendToPlayer(serverPlayer, new DatabaseSnapshotPayload(menu.viewState));
     }
 

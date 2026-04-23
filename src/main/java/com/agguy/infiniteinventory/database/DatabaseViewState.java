@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.database;
 
+import com.agguy.infiniteinventory.network.NetworkConstants;
 import java.util.List;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
@@ -98,6 +99,7 @@ public record DatabaseViewState(
         List<DatabaseTab> personalTabs = readTabs(buffer);
         List<DatabaseTab> publicTabs = readTabs(buffer);
         int panelCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(panelCount, NetworkConstants.MAX_PANEL_COUNT, "panels");
         java.util.ArrayList<DatabasePanelView> panels = new java.util.ArrayList<>(panelCount);
         for (int index = 0; index < panelCount; index++) {
             panels.add(DatabasePanelView.read(buffer));
@@ -141,6 +143,7 @@ public record DatabaseViewState(
 
     private static List<DatabaseTab> readTabs(RegistryFriendlyByteBuf buffer) {
         int tabCount = buffer.readVarInt();
+        NetworkConstants.checkListSize(tabCount, NetworkConstants.MAX_TAB_COUNT, "tabs");
         java.util.ArrayList<DatabaseTab> tabs = new java.util.ArrayList<>(tabCount);
         for (int index = 0; index < tabCount; index++) {
             tabs.add(DatabaseTab.read(buffer));

@@ -29,6 +29,7 @@ public record DatabaseLogSnapshotPayload(DatabaseScope scope, List<DatabaseLogEn
     private static DatabaseLogSnapshotPayload read(RegistryFriendlyByteBuf buffer) {
         DatabaseScope scope = DatabaseScope.read(buffer.readUtf(), DatabaseScope.PERSONAL);
         int count = buffer.readVarInt();
+        NetworkConstants.checkListSize(count, NetworkConstants.MAX_LOG_ENTRY_COUNT, "logEntries");
         List<DatabaseLogEntry> entries = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             DatabaseLogEntry entry = DatabaseLogEntry.read(buffer);

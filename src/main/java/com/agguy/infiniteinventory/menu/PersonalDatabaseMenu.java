@@ -109,6 +109,9 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         ));
     }
 
+    long lastSentPersonalRevision = -1L, lastSentPublicRevision = -1L;
+    DatabaseQuery lastSentQuery;
+
     public void applyViewState(DatabaseViewState newState) {
         this.sessionId = newState.sessionId();
         this.viewState = newState;
@@ -118,6 +121,15 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.publicQuery = newState.publicQuery();
         this.enhancementConfig = newState.enhancementConfig();
         this.autoStoreTarget = newState.autoStoreTarget();
+        this.trackPublicViewerState();
+    }
+
+    private void trackPublicViewerState() {
+        if (!(this.owner instanceof ServerPlayer p) || this.query == null) return;
+        boolean hasPublic = false;
+        for (var tab : this.query.visibleTabs()) { if (tab.scope() == DatabaseScope.PUBLIC) { hasPublic = true; break; } }
+        if (hasPublic) PersonalDatabaseService.INSTANCE.registerPublicViewer(p);
+        else PersonalDatabaseService.INSTANCE.unregisterPublicViewer(p);
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -339,6 +351,9 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.resultSlots.clearContent();
         if (!player.level().isClientSide) {
             this.clearContainer(player, this.craftSlots);
+        }
+        if (player instanceof ServerPlayer serverPlayer) {
+            PersonalDatabaseService.INSTANCE.unregisterPublicViewer(serverPlayer);
         }
     }
 

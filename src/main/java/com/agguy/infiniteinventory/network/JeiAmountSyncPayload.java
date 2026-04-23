@@ -68,6 +68,7 @@ public record JeiAmountSyncPayload(
 
     private static List<ItemAmountEntry> readEntries(RegistryFriendlyByteBuf buffer) {
         int count = buffer.readVarInt();
+        NetworkConstants.checkListSize(count, NetworkConstants.MAX_JEI_ENTRY_COUNT, "jeiEntries");
         List<ItemAmountEntry> entries = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             ItemStack stack = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
