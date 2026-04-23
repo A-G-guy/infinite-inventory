@@ -29,7 +29,6 @@ import com.agguy.infiniteinventory.service.search.DatabaseSearchIndex;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParser;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParserContext;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
-import com.agguy.infiniteinventory.service.search.SearchTextNormalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -43,13 +42,7 @@ import net.minecraft.world.item.ItemStack;
  * 数据库查询引擎，负责将原始数据库条目按标签页、搜索条件、排序规则过滤分页，
  * 并构建带有搜索排名和缓存的展示页面。
  *
- * <p>设计意图：将“数据查询”与“数据存储”彻底解耦。{@link StoredItemDatabase} 只负责存取，
- * 本类负责把所有原始条目加工成玩家 UI 可直接消费的 {@link DatabasePage}。
- * 通过运行时索引（{@link DatabaseRuntimeIndex}）与多级缓存机制，
- * 避免每次翻页都重新遍历全量数据，保证大规模数据库下的交互性能。</p>
- *
- * <p>在系统中的位置：位于服务层，被 UI 控制器（如容器菜单或网络包处理器）调用，
- * 向下依赖搜索解析器、排序器与元数据解析器完成具体匹配逻辑。</p>
+ * <p>将“数据查询”与“数据存储”彻底解耦；通过运行时索引与多级缓存避免每次翻页遍历全量数据。</p>
  */
 public final class DatabaseQueryEngine {
     public static final DatabaseQueryEngine INSTANCE = new DatabaseQueryEngine();
@@ -65,15 +58,11 @@ public final class DatabaseQueryEngine {
     }
 
     /**
-     * 构建展示页面（最简重载）。
-     *
-     * <p>默认行为差异：使用 {@link ViewerLanguage#defaultLanguage()} 作为显示语言，
-     * 并使用 {@link DatabaseSearchEnvironment#defaultEnvironment()} 作为搜索环境。
-     * 适合服务端在无法确定玩家客户端语言时快速生成页面。</p>
+     * 构建展示页面（最简重载）。使用默认语言与默认搜索环境。
      *
      * @param database     目标数据库；若为 {@code null} 则视为空数据库
      * @param tabDirectory 标签目录；若为 {@code null} 则视为空目录
-     * @param query        查询条件（分页、排序、搜索文本等）
+     * @param query        查询条件
      * @param scopedTab    当前聚焦的标签页引用
      * @return 构建好的展示页面
      */
@@ -94,17 +83,13 @@ public final class DatabaseQueryEngine {
     }
 
     /**
-     * 构建展示页面（指定显示语言）。
-     *
-     * <p>默认行为差异：在指定 {@code viewerLanguage} 的基础上，
-     * 仍使用 {@link DatabaseSearchEnvironment#defaultEnvironment()} 作为搜索环境。
-     * 适合需要根据玩家客户端语言本地化物品名称展示，但无需自定义搜索环境的场景。</p>
+     * 构建展示页面（指定显示语言）。使用默认搜索环境。
      *
      * @param database       目标数据库；若为 {@code null} 则视为空数据库
      * @param tabDirectory   标签目录；若为 {@code null} 则视为空目录
-     * @param query          查询条件（分页、排序、搜索文本等）
+     * @param query          查询条件
      * @param scopedTab      当前聚焦的标签页引用
-     * @param viewerLanguage 观看者的客户端语言，影响物品名称索引与排序
+     * @param viewerLanguage 观看者的客户端语言
      * @return 构建好的展示页面
      */
     public DatabasePage buildPage(
@@ -125,22 +110,14 @@ public final class DatabaseQueryEngine {
     }
 
     /**
-     * 构建展示页面（完全版）。
-     *
-     * <p>默认行为差异：允许调用方显式指定 {@code searchEnvironment}，
-     * 从而控制搜索解析器可用的宏、运算符与别名映射。
-     * 这是所有重载的最终入口，负责参数防御性校验、运行时索引重建、
-     * 查询结果缓存命中/回源，以及最终分页切片的完整流程。</p>
-     *
-     * <p>业务约束：{@code query} 中的搜索文本与分页参数会被 {@code tabDirectory} 做规范化处理，
-     * 防止前端传入非法标签页 ID 或负数页码导致异常。</p>
+     * 构建展示页面（完全版）。所有重载的最终入口，负责参数校验、索引重建、缓存与分页切片。
      *
      * @param database          目标数据库；若为 {@code null} 则视为空数据库
      * @param tabDirectory      标签目录；若为 {@code null} 则视为空目录
-     * @param query             查询条件（分页、排序、搜索文本等）
+     * @param query             查询条件
      * @param scopedTab         当前聚焦的标签页引用
-     * @param viewerLanguage    观看者的客户端语言，影响物品名称索引与排序
-     * @param searchEnvironment 搜索环境配置，决定解析器行为与可用搜索宏
+     * @param viewerLanguage    观看者的客户端语言
+     * @param searchEnvironment 搜索环境配置
      * @return 构建好的展示页面
      */
     public DatabasePage buildPage(

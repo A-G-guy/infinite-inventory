@@ -40,7 +40,8 @@ class PersonalDatabaseServiceTest {
 
     @Test
     void safeAddMovedItemsShouldCrossIntegerBoundaryWithoutOverflow() throws ReflectiveOperationException {
-        var method = PersonalDatabaseService.class.getDeclaredMethod("safeAddMovedItems", long.class, ItemStack.class);
+        Class<?> helperClass = Class.forName("com.agguy.infiniteinventory.service.PersonalDatabaseServiceStorageHelper");
+        var method = helperClass.getDeclaredMethod("safeAddMovedItems", long.class, ItemStack.class);
         method.setAccessible(true);
 
         long result = (long) method.invoke(null, (long) Integer.MAX_VALUE, new ItemStack(Items.STONE, 64));
@@ -50,7 +51,8 @@ class PersonalDatabaseServiceTest {
 
     @Test
     void safeAddMovedItemsShouldSaturateAtLongMaxValue() throws ReflectiveOperationException {
-        var method = PersonalDatabaseService.class.getDeclaredMethod("safeAddMovedItems", long.class, ItemStack.class);
+        Class<?> helperClass = Class.forName("com.agguy.infiniteinventory.service.PersonalDatabaseServiceStorageHelper");
+        var method = helperClass.getDeclaredMethod("safeAddMovedItems", long.class, ItemStack.class);
         method.setAccessible(true);
 
         long result = (long) method.invoke(null, Long.MAX_VALUE - 1L, new ItemStack(Items.STONE, 64));
