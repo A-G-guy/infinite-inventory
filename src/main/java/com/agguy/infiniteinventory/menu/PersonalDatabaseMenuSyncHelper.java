@@ -112,4 +112,12 @@ final class PersonalDatabaseMenuSyncHelper {
             PersonalDatabaseService.INSTANCE.syncPublicViewers(player.server);
         }
     }
+
+    static void trackPublicViewerState(PersonalDatabaseMenu menu) {
+        if (!(menu.owner instanceof ServerPlayer p) || menu.query == null) return;
+        boolean hasPublic = false;
+        for (var tab : menu.query.visibleTabs()) { if (tab.scope() == DatabaseScope.PUBLIC) { hasPublic = true; break; } }
+        if (hasPublic) PersonalDatabaseService.INSTANCE.registerPublicViewer(p);
+        else PersonalDatabaseService.INSTANCE.unregisterPublicViewer(p);
+    }
 }

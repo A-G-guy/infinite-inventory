@@ -121,15 +121,17 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.publicQuery = newState.publicQuery();
         this.enhancementConfig = newState.enhancementConfig();
         this.autoStoreTarget = newState.autoStoreTarget();
-        this.trackPublicViewerState();
+        PersonalDatabaseMenuSyncHelper.trackPublicViewerState(this);
     }
 
-    private void trackPublicViewerState() {
-        if (!(this.owner instanceof ServerPlayer p) || this.query == null) return;
-        boolean hasPublic = false;
-        for (var tab : this.query.visibleTabs()) { if (tab.scope() == DatabaseScope.PUBLIC) { hasPublic = true; break; } }
-        if (hasPublic) PersonalDatabaseService.INSTANCE.registerPublicViewer(p);
-        else PersonalDatabaseService.INSTANCE.unregisterPublicViewer(p);
+    @Override protected void applyOpenState(PersonalDatabaseOpenState openState) {
+        super.applyOpenState(openState);
+        PersonalDatabaseMenuSyncHelper.trackPublicViewerState(this);
+    }
+
+    @Override protected void setActiveQuery(DatabaseQuery query) {
+        super.setActiveQuery(query);
+        PersonalDatabaseMenuSyncHelper.trackPublicViewerState(this);
     }
 
     public DatabaseQuery queryForScope(DatabaseScope scope) {
@@ -220,10 +222,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
             };
             if (itemChanged) changed = true;
         }
-        if (changed) {
-            this.broadcastChanges();
-            this.syncAfterScopeMutation(serverPlayer, scope);
-        }
+        if (changed) { this.broadcastChanges(); this.syncAfterScopeMutation(serverPlayer, scope); }
     }
 
     public void updateQuery(DatabaseQuery newQuery) {
@@ -297,12 +296,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
                 }
             }
         }
-        if (changed) {
-            this.broadcastChanges();
-            this.syncAfterScopeMutation(serverPlayer, changedScope);
-        } else if (refreshSharedView) {
-            PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
-        }
+        if (changed) { this.broadcastChanges(); this.syncAfterScopeMutation(serverPlayer, changedScope); }
+        else if (refreshSharedView) PersonalDatabaseService.INSTANCE.syncPublicViewers(serverPlayer.server);
     }
 
     public void handleSelectionAction(
@@ -349,12 +344,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     public void removed(Player player) {
         super.removed(player);
         this.resultSlots.clearContent();
-        if (!player.level().isClientSide) {
-            this.clearContainer(player, this.craftSlots);
-        }
-        if (player instanceof ServerPlayer serverPlayer) {
-            PersonalDatabaseService.INSTANCE.unregisterPublicViewer(serverPlayer);
-        }
+        if (!player.level().isClientSide) this.clearContainer(player, this.craftSlots);
+        if (player instanceof ServerPlayer serverPlayer) PersonalDatabaseService.INSTANCE.unregisterPublicViewer(serverPlayer);
     }
 
     @Override
