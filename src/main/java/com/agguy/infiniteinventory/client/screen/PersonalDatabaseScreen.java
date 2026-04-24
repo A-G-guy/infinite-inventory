@@ -64,8 +64,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int PAGE_PICKER_MIN_WIDTH = 88;
     static final int PAGE_PICKER_ROW_HEIGHT = 20;
     static final int SEARCH_ICON_SIZE = 9;
-    static final int TEXT_FIELD_LEFT_PADDING = 6;
-    static final int TEXT_FIELD_RIGHT_PADDING = 6;
+    static final int TEXT_FIELD_LEFT_PADDING = 6, TEXT_FIELD_RIGHT_PADDING = 6;
     static final int SEARCH_TEXT_LEFT_PADDING = 22;
     static final int ADVANCED_SEARCH_PANEL_WIDTH = 236;
     static final int ADVANCED_SEARCH_PANEL_PADDING = 6;
@@ -224,6 +223,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     DatabaseScopedTabRef tabContextMenuTarget;
     int tabContextMenuX;
     int tabContextMenuY;
+    int tabContextMenuHeight;
 
     enum TargetSelectorMode {
         NONE,

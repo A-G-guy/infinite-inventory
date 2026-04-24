@@ -282,9 +282,7 @@ final class PersonalDatabaseScreenTabHelper {
 
         int minY = frameRect.y() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
         int maxMenuHeight = frameRect.height() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 2;
-        if (menuHeight > maxMenuHeight) {
-            menuHeight = maxMenuHeight;
-        }
+        if (menuHeight > maxMenuHeight) menuHeight = maxMenuHeight;
         int maxY = Math.max(minY, frameRect.bottom() - menuHeight - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         int preferredY = tabRect.bottom() + 2;
         if (preferredY + menuHeight > frameRect.bottom() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN) {
@@ -292,6 +290,7 @@ final class PersonalDatabaseScreenTabHelper {
         }
         screen.tabContextMenuY = net.minecraft.util.Mth.clamp(preferredY, minY, maxY);
         screen.tabContextMenuTarget = scopedTab;
+        screen.tabContextMenuHeight = menuHeight;
         screen.tabContextMenuExpanded = true;
     }
 
@@ -314,6 +313,7 @@ final class PersonalDatabaseScreenTabHelper {
     static void closeTabContextMenu(PersonalDatabaseScreen screen) {
         screen.tabContextMenuExpanded = false;
         screen.tabContextMenuTarget = null;
+        screen.tabContextMenuHeight = 0;
     }
 
     static boolean isWithinTabContextMenu(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
@@ -324,7 +324,10 @@ final class PersonalDatabaseScreenTabHelper {
                 screen, screen.tabContextMenuTarget
         );
         int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
-        int menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        int menuHeight = screen.tabContextMenuHeight;
+        if (menuHeight <= 0) {
+            menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        }
         return mouseX >= screen.tabContextMenuX
                 && mouseX < screen.tabContextMenuX + menuWidth
                 && mouseY >= screen.tabContextMenuY

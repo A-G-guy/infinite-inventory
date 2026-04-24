@@ -118,12 +118,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
     }
 
     static int menuHeight(List<PersonalDatabaseScreenTabContextMenuItem> items) {
-        int rowCount = 0;
-        for (PersonalDatabaseScreenTabContextMenuItem item : items) {
-            if (item != null) {
-                rowCount++;
-            }
-        }
-        return rowCount * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 4;
+        return items.size() * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 4;
     }
 }

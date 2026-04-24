@@ -373,7 +373,10 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             return;
         }
         int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
-        int menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        int menuHeight = screen.tabContextMenuHeight;
+        if (menuHeight <= 0) {
+            menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        }
         PersonalDatabaseLayout.Rect menuRect = new PersonalDatabaseLayout.Rect(
                 screen.tabContextMenuX,
                 screen.tabContextMenuY,

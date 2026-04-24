@@ -226,14 +226,14 @@ class PersonalDatabaseScreenTabContextMenuBuilderTest {
     // ========== 菜单尺寸 ==========
 
     @Test
-    void menuHeightShouldCountOnlyNonNullItems() {
+    void menuHeightShouldCountAllItemsIncludingSeparators() {
         List<PersonalDatabaseScreenTabContextMenuItem> items = java.util.Arrays.asList(
                 new PersonalDatabaseScreenTabContextMenuItem("a", PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.SINGLE_VIEW),
                 null,
                 new PersonalDatabaseScreenTabContextMenuItem("b", PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.RENAME)
         );
 
-        int expected = 2 * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 4;
+        int expected = 3 * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 4;
         assertEquals(expected, PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items));
     }
 
@@ -246,7 +246,8 @@ class PersonalDatabaseScreenTabContextMenuBuilderTest {
     @Test
     void menuHeightShouldHandleAllSeparators() {
         List<PersonalDatabaseScreenTabContextMenuItem> items = java.util.Arrays.asList(null, null, null);
-        assertEquals(4, PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items));
+        int expected = 3 * PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT + 4;
+        assertEquals(expected, PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items));
     }
 
     @Test
