@@ -199,6 +199,9 @@ final class PersonalDatabaseScreenCommonHelper {
         if (!tab.translationKey().isBlank()) {
             return Component.translatable(tab.translationKey());
         }
+        if (tab.id().startsWith("tab_")) {
+            return Component.translatable(DatabaseTabs.DEFAULT_TAB_TRANSLATION_KEY);
+        }
         return Component.literal(tab.id());
     }
 

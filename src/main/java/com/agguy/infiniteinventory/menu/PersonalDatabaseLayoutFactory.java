@@ -46,10 +46,31 @@ final class PersonalDatabaseLayoutFactory {
         int defaultScopeButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH;
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
         int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
+        boolean showViewSelector = !compactTopBar && frameRect.width() >= 680;
+        boolean showLogButton = !compactTopBar && frameRect.width() >= 740;
+        int viewSelectorButtonWidth = showViewSelector ? PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH : 0;
+        int logButtonWidth = showLogButton ? PersonalDatabaseLayout.LOG_BUTTON_WIDTH : 0;
         PersonalDatabaseLayout.Rect settingsButtonRect = new PersonalDatabaseLayout.Rect(
                 toolbarRight - settingsButtonWidth,
                 titleRect.y(),
                 settingsButtonWidth,
+                PersonalDatabaseLayout.CONTROL_HEIGHT
+        );
+        int nextLeft = settingsButtonRect.x();
+        PersonalDatabaseLayout.Rect logButtonRect = PersonalDatabaseLayout.Rect.empty();
+        if (logButtonWidth > 0) {
+            nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + logButtonWidth;
+            logButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), logButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
+        }
+        PersonalDatabaseLayout.Rect viewSelectorButtonRect = PersonalDatabaseLayout.Rect.empty();
+        if (viewSelectorButtonWidth > 0) {
+            nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + viewSelectorButtonWidth;
+            viewSelectorButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), viewSelectorButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
+        }
+        PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
+                nextLeft - PersonalDatabaseLayout.TOOLBAR_GAP - depositButtonWidth,
+                titleRect.y(),
+                depositButtonWidth,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         int scopeButtonWidth = Math.max(
@@ -58,19 +79,12 @@ final class PersonalDatabaseLayoutFactory {
                         defaultScopeButtonWidth,
                         Math.max(
                                 1,
-                                settingsButtonRect.x()
+                                depositButtonRect.x()
                                         - titleRect.x()
                                         - titleReservedWidth
                                         - PersonalDatabaseLayout.TOOLBAR_GAP * 2
-                                        - depositButtonWidth
                         )
                 )
-        );
-        PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
-                settingsButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - depositButtonWidth,
-                titleRect.y(),
-                depositButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         PersonalDatabaseLayout.Rect personalScopeButtonRect = new PersonalDatabaseLayout.Rect(
                 depositButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - scopeButtonWidth,
@@ -192,6 +206,8 @@ final class PersonalDatabaseLayoutFactory {
                 settingsButtonRect,
                 sortButtonRect,
                 depositButtonRect,
+                viewSelectorButtonRect,
+                logButtonRect,
                 pageLabelRect,
                 equipmentPanelRect,
                 accessoryToggleRect,

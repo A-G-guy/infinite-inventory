@@ -19,4 +19,9 @@ class DatabaseAccessItemTest {
         assertEquals("database_access_item", ModItems.DATABASE_ACCESS_ITEM.getId().getPath());
         assertEquals(InfiniteInventory.MODID, ModItems.DATABASE_ACCESS_ITEM.getId().getNamespace());
     }
+
+    @Test
+    void databaseAccessItemShouldBeDeferredItem() {
+        assertNotNull(ModItems.DATABASE_ACCESS_ITEM);
+    }
 }

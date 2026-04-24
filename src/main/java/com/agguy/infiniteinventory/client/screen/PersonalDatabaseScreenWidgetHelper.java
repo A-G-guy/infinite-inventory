@@ -47,6 +47,42 @@ final class PersonalDatabaseScreenWidgetHelper {
                 .bounds(settingsRect.x(), settingsRect.y(), settingsRect.width(), settingsRect.height())
                 .build());
 
+        PersonalDatabaseLayout.Rect viewSelectorRect = screen.layout.viewSelectorButtonRect();
+        if (viewSelectorRect.width() > 0 && viewSelectorRect.height() > 0) {
+            screen.viewSelectorButton = screen.addScreenButton(Button.builder(
+                            Component.translatable("screen.infiniteinventory.view_selector_button"),
+                            button -> {
+                                PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                                screen.viewSelectorExpanded = !screen.viewSelectorExpanded;
+                                if (screen.viewSelectorExpanded) {
+                                    screen.viewSelectorPersonalScrollIndex = 0;
+                                    screen.viewSelectorPublicScrollIndex = 0;
+                                }
+                            }
+                    )
+                    .bounds(viewSelectorRect.x(), viewSelectorRect.y(), viewSelectorRect.width(), viewSelectorRect.height())
+                    .build());
+        }
+
+        PersonalDatabaseLayout.Rect logRect = screen.layout.logButtonRect();
+        if (logRect.width() > 0 && logRect.height() > 0) {
+            screen.logButton = screen.addScreenButton(Button.builder(
+                            Component.translatable("screen.infiniteinventory.log_button"),
+                            button -> {
+                                PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                                screen.logPanelExpanded = !screen.logPanelExpanded;
+                                if (screen.logPanelExpanded) {
+                                    screen.logPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
+                                    screen.logPanelScrollIndex = 0;
+                                    PacketDistributor.sendToServer(
+                                            new DatabaseLogRequestPayload(screen.logPanelScope));
+                                }
+                            }
+                    )
+                    .bounds(logRect.x(), logRect.y(), logRect.width(), logRect.height())
+                    .build());
+        }
+
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
                         Component.translatable(DatabaseScope.PERSONAL.translationKey()),
@@ -188,16 +224,25 @@ final class PersonalDatabaseScreenWidgetHelper {
         boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH;
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             DatabaseSearchWeight weight = searchConfig.weightFor(field);
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.advancedSearchRowRect(screen, field);
             Button toggleButton = screen.advancedSearchToggleButtons.get(field);
             if (toggleButton != null) {
+                toggleButton.setPosition(rowRect.x(), rowRect.y());
                 toggleButton.visible = visible;
                 toggleButton.active = !field.isTextField()
                         || weight == DatabaseSearchWeight.OFF
                         || enabledTextFieldCount > 1;
                 toggleButton.setMessage(Component.empty());
             }
+            PersonalDatabaseLayout.Rect weightRect = new PersonalDatabaseLayout.Rect(
+                    rowRect.right() - PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    rowRect.y(),
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT
+            );
             Button weightButton = screen.advancedSearchWeightButtons.get(field);
             if (weightButton != null) {
+                weightButton.setPosition(weightRect.x(), weightRect.y());
                 weightButton.visible = visible;
                 weightButton.active = weight != DatabaseSearchWeight.OFF;
                 weightButton.setMessage(Component.empty());
@@ -208,8 +253,10 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncEnhancementButtons(PersonalDatabaseScreen screen, DatabaseEnhancementConfig config) {
         boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ENHANCEMENT;
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+            PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             Button toggleButton = screen.enhancementToggleButtons.get(option);
             if (toggleButton != null) {
+                toggleButton.setPosition(rowRect.x(), rowRect.y());
                 toggleButton.visible = visible;
                 toggleButton.active = true;
                 toggleButton.setMessage(Component.empty());
@@ -235,6 +282,20 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.settingsButton != null) {
             screen.settingsButton.setMessage(Component.translatable("screen.infiniteinventory.settings_button"));
             screen.settingsButton.visible = screen.layout != null && screen.layout.settingsButtonRect().width() > 0;
+        }
+        if (screen.viewSelectorButton != null) {
+            PersonalDatabaseLayout.Rect viewSelectorRect = screen.layout != null ? screen.layout.viewSelectorButtonRect() : PersonalDatabaseLayout.Rect.empty();
+            screen.viewSelectorButton.setPosition(viewSelectorRect.x(), viewSelectorRect.y());
+            screen.viewSelectorButton.visible = viewSelectorRect.width() > 0 && viewSelectorRect.height() > 0;
+            screen.viewSelectorButton.active = true;
+            screen.viewSelectorButton.setMessage(Component.translatable("screen.infiniteinventory.view_selector_button"));
+        }
+        if (screen.logButton != null) {
+            PersonalDatabaseLayout.Rect logRect = screen.layout != null ? screen.layout.logButtonRect() : PersonalDatabaseLayout.Rect.empty();
+            screen.logButton.setPosition(logRect.x(), logRect.y());
+            screen.logButton.visible = logRect.width() > 0 && logRect.height() > 0;
+            screen.logButton.active = true;
+            screen.logButton.setMessage(Component.translatable("screen.infiniteinventory.log_button"));
         }
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;

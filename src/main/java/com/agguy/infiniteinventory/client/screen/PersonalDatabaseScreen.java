@@ -126,6 +126,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     DatabaseQuery pendingLayoutQuery;
     Button depositButton;
     Button settingsButton;
+    Button viewSelectorButton;
+    Button logButton;
     Button personalScopeButton;
     Button publicScopeButton;
     Button accessoriesToggleButton;
@@ -237,9 +239,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     enum SettingsPanelTab {
         ADVANCED_SEARCH("screen.infiniteinventory.search_advanced_title"),
         ENHANCEMENT("screen.infiniteinventory.enhancement_title"),
-        VIEW_SELECTOR("screen.infiniteinventory.visible_tabs_title"),
-        MANAGEMENT("screen.infiniteinventory.management.title"),
-        LOG("screen.infiniteinventory.log_panel.title");
+        MANAGEMENT("screen.infiniteinventory.management.title");
 
         private final String translationKey;
 

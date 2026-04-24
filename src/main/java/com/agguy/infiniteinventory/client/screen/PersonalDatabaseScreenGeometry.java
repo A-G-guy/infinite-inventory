@@ -27,9 +27,6 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.VIEW_SELECTOR) {
-            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
-        }
         PersonalDatabaseScreenFitProfile fitProfile = PersonalDatabaseScreenCommonHelper.fitProfile(screen);
         int rowCount = Math.max(
                 PersonalDatabaseScreenCommonHelper.tabsForScope(screen, com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL).size(),

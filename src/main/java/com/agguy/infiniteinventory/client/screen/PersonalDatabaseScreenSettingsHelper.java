@@ -1,10 +1,8 @@
 package com.agguy.infiniteinventory.client.screen;
 
-import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * 设置面板渲染与交互辅助类。
@@ -36,6 +34,10 @@ final class PersonalDatabaseScreenSettingsHelper {
         PersonalDatabaseLayout.Rect navRect = PersonalDatabaseScreenSettingsGeometry.settingsNavRect(screen);
         PersonalDatabaseLayout.Rect contentRect = PersonalDatabaseScreenSettingsGeometry.settingsContentRect(screen);
 
+        // 绘制遮罩层阻断下方物品显示
+        PersonalDatabaseLayout.Rect frameRect = screen.layout.frameRect();
+        guiGraphics.fill(frameRect.x(), frameRect.y(), frameRect.right(), frameRect.bottom(), 0xD8000000);
+
         // 整体背景
         VanillaWidgetRenderer.renderPanel(guiGraphics, panelRect);
 
@@ -48,6 +50,9 @@ final class PersonalDatabaseScreenSettingsHelper {
         // 渲染导航栏
         renderNavBar(screen, guiGraphics, navRect, mouseX, mouseY);
 
+        // 渲染右上角关闭按钮
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+
         guiGraphics.pose().popPose();
     }
 
@@ -57,6 +62,12 @@ final class PersonalDatabaseScreenSettingsHelper {
      * @return 如果点击被处理（导航项切换），返回 true
      */
     static boolean handleSettingsPanelClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenSettingsGeometry.settingsPanelRect(screen);
+        if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
+            closeSettingsPanel(screen);
+            PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
+            return true;
+        }
         int clickedIndex = PersonalDatabaseScreenSettingsGeometry.clickedNavItemIndex(screen, mouseX, mouseY);
         if (clickedIndex >= 0) {
             PersonalDatabaseScreen.SettingsPanelTab[] tabs = PersonalDatabaseScreen.SettingsPanelTab.values();
@@ -109,11 +120,6 @@ final class PersonalDatabaseScreenSettingsHelper {
         switch (screen.activeSettingsTab) {
             case ADVANCED_SEARCH -> screen.advancedSearchExpanded = true;
             case ENHANCEMENT -> screen.enhancementPanelExpanded = true;
-            case VIEW_SELECTOR -> {
-                screen.viewSelectorExpanded = true;
-                screen.viewSelectorPersonalScrollIndex = 0;
-                screen.viewSelectorPublicScrollIndex = 0;
-            }
             case MANAGEMENT -> {
                 screen.tabManagementExpanded = true;
                 screen.managementPersonalScrollIndex = 0;
@@ -123,13 +129,6 @@ final class PersonalDatabaseScreenSettingsHelper {
                         screen,
                         PersonalDatabaseScreenManagementHelper.preferredManagementTab(screen)
                 );
-            }
-            case LOG -> {
-                screen.logPanelExpanded = true;
-                screen.logPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
-                screen.logPanelScrollIndex = 0;
-                PacketDistributor.sendToServer(
-                        new com.agguy.infiniteinventory.network.DatabaseLogRequestPayload(screen.logPanelScope));
             }
         }
     }

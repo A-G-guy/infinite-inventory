@@ -281,6 +281,10 @@ final class PersonalDatabaseScreenTabHelper {
         screen.tabContextMenuX = net.minecraft.util.Mth.clamp(preferredX, minX, maxX);
 
         int minY = frameRect.y() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
+        int maxMenuHeight = frameRect.height() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN * 2;
+        if (menuHeight > maxMenuHeight) {
+            menuHeight = maxMenuHeight;
+        }
         int maxY = Math.max(minY, frameRect.bottom() - menuHeight - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
         int preferredY = tabRect.bottom() + 2;
         if (preferredY + menuHeight > frameRect.bottom() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN) {
@@ -338,6 +342,7 @@ final class PersonalDatabaseScreenTabHelper {
         int rowY = screen.tabContextMenuY + 2;
         for (PersonalDatabaseScreenTabContextMenuItem item : items) {
             if (item == null) {
+                rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
                 continue;
             }
             if (mouseX >= screen.tabContextMenuX

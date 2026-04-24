@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseLogAction;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.database.DatabaseTab;
 import com.agguy.infiniteinventory.database.DatabaseTabs;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.time.Instant;
@@ -47,9 +48,14 @@ final class PersonalDatabaseScreenLogHelper {
     }
 
     private static void renderTitle(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect panelRect) {
+        int reservedWidth = PersonalDatabaseScreenLogGeometry.LOG_PANEL_PADDING * 4
+                + PersonalDatabaseScreenLogGeometry.LOG_SCOPE_TOGGLE_WIDTH * 2;
+        if (!screen.settingsPanelExpanded) {
+            reservedWidth += PersonalDatabaseScreenLogGeometry.LOG_CLOSE_BUTTON_RESERVED_WIDTH;
+        }
         String title = screen.screenFont().plainSubstrByWidth(
                 Component.translatable("screen.infiniteinventory.log_panel.title").getString(),
-                panelRect.width() - PersonalDatabaseScreenLogGeometry.LOG_PANEL_PADDING * 4 - PersonalDatabaseScreenLogGeometry.LOG_SCOPE_TOGGLE_WIDTH * 2
+                Math.max(1, panelRect.width() - reservedWidth)
         );
         int titleX = panelRect.x() + PersonalDatabaseScreenLogGeometry.LOG_PANEL_PADDING + 2;
         int titleY = panelRect.y() + PersonalDatabaseScreenLogGeometry.LOG_PANEL_PADDING + (PersonalDatabaseScreenLogGeometry.LOG_TITLE_HEIGHT - screen.screenFont().lineHeight) / 2;
@@ -287,13 +293,15 @@ final class PersonalDatabaseScreenLogHelper {
         if (DatabaseTabs.ALL_TAB_ID.equals(tabId)) {
             return Component.translatable(DatabaseTabs.ALL_TAB_TRANSLATION_KEY).getString();
         }
-        for (DatabasePanelView panel : PersonalDatabaseScreenCommonHelper.currentPanels(screen)) {
-            if (panel.tab().id().equals(tabId)) {
-                String displayName = panel.tab().displayName();
-                if (!displayName.isBlank()) {
-                    return displayName;
+        for (DatabaseScope scope : DatabaseScope.values()) {
+            for (DatabaseTab tab : PersonalDatabaseScreenCommonHelper.tabsForScope(screen, scope)) {
+                if (tab.id().equals(tabId)) {
+                    String displayName = tab.displayName();
+                    if (!displayName.isBlank()) {
+                        return displayName;
+                    }
+                    break;
                 }
-                break;
             }
         }
         return tabId;
