@@ -199,6 +199,7 @@
   "screen.infiniteinventory.jei.amount.personal": "个人存储：%s",
   "screen.infiniteinventory.jei.amount.public": "公共存储：%s",
   "screen.infiniteinventory.tab_context.join_current": "加入当前视图",
+  "screen.infiniteinventory.tab_context.remove_from_view": "从视图中移除",
   "screen.infiniteinventory.tab_context.single_view": "进入单独视图",
   "screen.infiniteinventory.tab_context.move_left": "左移",
   "screen.infiniteinventory.tab_context.move_right": "右移",

@@ -199,6 +199,7 @@
   "screen.infiniteinventory.jei.amount.personal": "Personal Storage: %s",
   "screen.infiniteinventory.jei.amount.public": "Public Storage: %s",
   "screen.infiniteinventory.tab_context.join_current": "Join Current View",
+  "screen.infiniteinventory.tab_context.remove_from_view": "Remove from View",
   "screen.infiniteinventory.tab_context.single_view": "Open as Single View",
   "screen.infiniteinventory.tab_context.move_left": "Move Left",
   "screen.infiniteinventory.tab_context.move_right": "Move Right",

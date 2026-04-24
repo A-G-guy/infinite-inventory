@@ -360,6 +360,13 @@ final class PersonalDatabaseScreenTabHelper {
         }
         switch (item.action()) {
             case JOIN_CURRENT_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applyJoinCurrentView(screen, target);
+            case REMOVE_FROM_VIEW -> {
+                DatabaseQuery query = screen.databaseMenu.viewState().query();
+                List<DatabaseScopedTabRef> nextVisibleTabs = query.visibleTabs().stream()
+                        .filter(t -> !t.equals(target))
+                        .toList();
+                PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.withVisibleTabs(nextVisibleTabs));
+            }
             case SINGLE_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applySingleView(screen, target);
             case MOVE_LEFT -> {
                 DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);

@@ -11,17 +11,45 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
     }
 
     static List<PersonalDatabaseScreenTabContextMenuItem> buildMenuItems(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
-        List<PersonalDatabaseScreenTabContextMenuItem> items = new ArrayList<>();
         DatabaseQuery query = screen.databaseMenu.viewState().query();
         DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, scopedTab);
 
         boolean inVisibleTabs = query.visibleTabs().contains(scopedTab);
-        boolean canJoin = !inVisibleTabs
-                && query.visibleTabs().size() < PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen);
-        if (canJoin) {
+        int visibleTabCount = query.visibleTabs().size();
+        int maxPanels = PersonalDatabaseScreenCommonHelper.maxVisiblePanels(screen);
+
+        boolean canMoveLeft = PersonalDatabaseScreenManagementLogic.canMoveManagementTab(
+                screen, scopedTab.scope(), tab, -1
+        );
+        boolean canMoveRight = PersonalDatabaseScreenManagementLogic.canMoveManagementTab(
+                screen, scopedTab.scope(), tab, 1
+        );
+        boolean isHidden = query.isTopTabHidden(scopedTab);
+
+        return buildMenuItems(tab, inVisibleTabs, visibleTabCount, maxPanels, canMoveLeft, canMoveRight, isHidden);
+    }
+
+    static List<PersonalDatabaseScreenTabContextMenuItem> buildMenuItems(
+            DatabaseTab tab,
+            boolean inVisibleTabs,
+            int visibleTabCount,
+            int maxVisiblePanels,
+            boolean canMoveLeft,
+            boolean canMoveRight,
+            boolean isHiddenInTop
+    ) {
+        List<PersonalDatabaseScreenTabContextMenuItem> items = new ArrayList<>();
+
+        if (!inVisibleTabs && visibleTabCount < maxVisiblePanels) {
             items.add(new PersonalDatabaseScreenTabContextMenuItem(
                     "screen.infiniteinventory.tab_context.join_current",
                     PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.JOIN_CURRENT_VIEW
+            ));
+        }
+        if (inVisibleTabs && visibleTabCount > 1) {
+            items.add(new PersonalDatabaseScreenTabContextMenuItem(
+                    "screen.infiniteinventory.tab_context.remove_from_view",
+                    PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.REMOVE_FROM_VIEW
             ));
         }
 
@@ -32,9 +60,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
 
         items.add(null);
 
-        boolean canMoveLeft = PersonalDatabaseScreenManagementLogic.canMoveManagementTab(
-                screen, scopedTab.scope(), tab, -1
-        );
         if (canMoveLeft) {
             items.add(new PersonalDatabaseScreenTabContextMenuItem(
                     "screen.infiniteinventory.tab_context.move_left",
@@ -42,9 +67,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
             ));
         }
 
-        boolean canMoveRight = PersonalDatabaseScreenManagementLogic.canMoveManagementTab(
-                screen, scopedTab.scope(), tab, 1
-        );
         if (canMoveRight) {
             items.add(new PersonalDatabaseScreenTabContextMenuItem(
                     "screen.infiniteinventory.tab_context.move_right",
@@ -68,18 +90,20 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
 
         items.add(null);
 
-        boolean isHidden = query.isTopTabHidden(scopedTab);
         items.add(new PersonalDatabaseScreenTabContextMenuItem(
-                isHidden
+                isHiddenInTop
                         ? "screen.infiniteinventory.tab_context.show_in_top"
                         : "screen.infiniteinventory.tab_context.hide_in_top",
                 PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.TOGGLE_TOP_VISIBILITY
         ));
 
-        return List.copyOf(items);
+        return java.util.Collections.unmodifiableList(new java.util.ArrayList<>(items));
     }
 
     static int menuWidth(PersonalDatabaseScreen screen, List<PersonalDatabaseScreenTabContextMenuItem> items) {
+        if (screen == null) {
+            return PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
+        }
         int maxTextWidth = 0;
         for (PersonalDatabaseScreenTabContextMenuItem item : items) {
             if (item == null) {

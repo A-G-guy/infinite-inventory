@@ -10,6 +10,7 @@ record PersonalDatabaseScreenTabContextMenuItem(
 
     enum TabContextMenuAction {
         JOIN_CURRENT_VIEW,
+        REMOVE_FROM_VIEW,
         SINGLE_VIEW,
         MOVE_LEFT,
         MOVE_RIGHT,
