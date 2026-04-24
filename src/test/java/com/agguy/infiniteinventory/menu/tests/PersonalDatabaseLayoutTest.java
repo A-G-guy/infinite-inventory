@@ -86,17 +86,15 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void titleAreaShouldKeepViewAndManageButtonsInsideFrame() {
+    void titleAreaShouldKeepSettingsAndDepositButtonsInsideFrame() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertTrue(layout.viewSelectorButtonRect().x() >= layout.frameRect().x());
-        assertTrue(layout.viewSelectorButtonRect().right() <= layout.frameRect().right());
-        assertTrue(layout.tabManagementButtonRect().x() >= layout.viewSelectorButtonRect().right());
-        assertTrue(layout.tabManagementButtonRect().right() <= layout.frameRect().right());
-        assertTrue(layout.viewSelectorButtonRect().y() == layout.titleRect().y());
-        assertEquals(layout.viewSelectorButtonRect().width(), layout.tabManagementButtonRect().width());
-        assertEquals(layout.viewSelectorButtonRect().width(), layout.enhancementButtonRect().width());
-        assertEquals(layout.viewSelectorButtonRect().width(), layout.advancedSearchButtonRect().width());
+        assertTrue(layout.settingsButtonRect().x() >= layout.frameRect().x());
+        assertTrue(layout.settingsButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.depositButtonRect().x() >= layout.frameRect().x());
+        assertTrue(layout.depositButtonRect().right() <= layout.frameRect().right());
+        assertTrue(layout.settingsButtonRect().y() == layout.titleRect().y());
+        assertTrue(layout.depositButtonRect().y() == layout.titleRect().y());
     }
 
     @Test

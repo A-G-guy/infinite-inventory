@@ -407,17 +407,9 @@ final class PersonalDatabaseScreenRenderHelper {
             );
         }
 
-        if (screen.advancedSearchButton != null && screen.layout.advancedSearchButtonRect().width() > 0) {
-            PersonalDatabaseLayout.Rect advancedRect = screen.layout.advancedSearchButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, advancedRect.right() - 10, advancedRect.y() + advancedRect.height() / 2, 0xFFD8D0C4);
-        }
-        if (screen.enhancementButton != null && screen.layout.enhancementButtonRect().width() > 0) {
-            PersonalDatabaseLayout.Rect enhancementRect = screen.layout.enhancementButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, enhancementRect.right() - 10, enhancementRect.y() + enhancementRect.height() / 2, 0xFFD8D0C4);
-        }
-        if (screen.viewSelectorButton != null && screen.layout.viewSelectorButtonRect().width() > 0) {
-            PersonalDatabaseLayout.Rect viewRect = screen.layout.viewSelectorButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, viewRect.right() - 10, viewRect.y() + viewRect.height() / 2, 0xFFD8D0C4);
+        if (screen.settingsButton != null && screen.layout.settingsButtonRect().width() > 0) {
+            PersonalDatabaseLayout.Rect settingsRect = screen.layout.settingsButtonRect();
+            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, settingsRect.right() - 10, settingsRect.y() + settingsRect.height() / 2, 0xFFD8D0C4);
         }
     }
     static void renderDatabaseScaffold(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {

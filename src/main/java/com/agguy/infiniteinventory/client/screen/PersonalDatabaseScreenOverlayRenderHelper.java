@@ -46,7 +46,9 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                         - 1,
                 0x70A89E8C
         );
-        renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        if (!screen.settingsPanelExpanded) {
+            renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        }
 
         DatabaseSearchConfig searchConfig = screen.databaseMenu.viewState().query().searchConfig();
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
@@ -148,7 +150,9 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                         - 1,
                 0x70A89E8C
         );
-        renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        if (!screen.settingsPanelExpanded) {
+            renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        }
 
         DatabaseEnhancementConfig config = screen.databaseMenu.viewState().enhancementConfig();
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {

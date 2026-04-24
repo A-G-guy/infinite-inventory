@@ -17,6 +17,9 @@ final class PersonalDatabaseScreenManagementGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.MANAGEMENT) {
+            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
+        }
         int desiredHeight = topContentHeight(screen)
                 + listHeight(screen)
                 + EDITOR_SECTION_GAP

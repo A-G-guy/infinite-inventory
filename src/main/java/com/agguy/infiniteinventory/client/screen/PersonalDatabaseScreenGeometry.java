@@ -27,6 +27,9 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.VIEW_SELECTOR) {
+            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
+        }
         PersonalDatabaseScreenFitProfile fitProfile = PersonalDatabaseScreenCommonHelper.fitProfile(screen);
         int rowCount = Math.max(
                 PersonalDatabaseScreenCommonHelper.tabsForScope(screen, com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL).size(),
@@ -215,19 +218,15 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        PersonalDatabaseLayout.Rect anchorRect = screen.layout.advancedSearchButtonRect();
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH) {
+            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
+        }
         int width = PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_WIDTH;
         int height = PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_PADDING * 2
                 + PersonalDatabaseScreen.ADVANCED_SEARCH_TITLE_HEIGHT
                 + DatabaseSearchField.values().length * PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT
                 + Math.max(0, DatabaseSearchField.values().length - 1) * PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_GAP;
-        int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
-        int maxX = Math.max(minX, screen.layout.frameRect().right() - width - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int x = Mth.clamp(anchorRect.right() - width, minX, maxX);
-        int minY = anchorRect.bottom() + 4;
-        int maxY = Math.max(minY, screen.layout.frameRect().bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int y = Mth.clamp(minY, minY, maxY);
-        return new PersonalDatabaseLayout.Rect(x, y, width, height);
+        return centeredOverlayRect(screen, width, height);
     }
 
     static PersonalDatabaseLayout.Rect advancedSearchRowRect(PersonalDatabaseScreen screen, DatabaseSearchField field) {
@@ -248,27 +247,22 @@ final class PersonalDatabaseScreenGeometry {
         if (!screen.advancedSearchExpanded || screen.layout == null) {
             return false;
         }
-        return screen.layout.advancedSearchButtonRect().contains(mouseX, mouseY)
-                || advancedSearchPanelRect(screen).contains(mouseX, mouseY);
+        return advancedSearchPanelRect(screen).contains(mouseX, mouseY);
     }
 
     static PersonalDatabaseLayout.Rect enhancementPanelRect(PersonalDatabaseScreen screen) {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        PersonalDatabaseLayout.Rect anchorRect = screen.layout.enhancementButtonRect();
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ENHANCEMENT) {
+            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
+        }
         int height = PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2
                 + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
                 + DatabaseEnhancementOption.orderedValues().size() * PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
                 + Math.max(0, DatabaseEnhancementOption.orderedValues().size()) * PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP
                 + PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT;
-        int minX = screen.layout.frameRect().x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
-        int maxX = Math.max(minX, screen.layout.frameRect().right() - PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int x = Mth.clamp(anchorRect.right() - PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH, minX, maxX);
-        int minY = anchorRect.bottom() + 4;
-        int maxY = Math.max(minY, screen.layout.frameRect().bottom() - height - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
-        int y = Mth.clamp(minY, minY, maxY);
-        return new PersonalDatabaseLayout.Rect(x, y, PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH, height);
+        return centeredOverlayRect(screen, PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH, height);
     }
 
     static PersonalDatabaseLayout.Rect enhancementRowRect(PersonalDatabaseScreen screen, DatabaseEnhancementOption option) {
@@ -289,8 +283,7 @@ final class PersonalDatabaseScreenGeometry {
         if (!screen.enhancementPanelExpanded || screen.layout == null) {
             return false;
         }
-        return screen.layout.enhancementButtonRect().contains(mouseX, mouseY)
-                || enhancementPanelRect(screen).contains(mouseX, mouseY);
+        return enhancementPanelRect(screen).contains(mouseX, mouseY);
     }
 
     static boolean isWithinAccessoriesPanel(PersonalDatabaseScreen screen, double mouseX, double mouseY) {

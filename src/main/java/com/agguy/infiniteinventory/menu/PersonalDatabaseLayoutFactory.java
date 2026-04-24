@@ -41,43 +41,15 @@ final class PersonalDatabaseLayoutFactory {
         );
         boolean compactTopBar = frameRect.width() <= 520;
         boolean compactAccessoryLayout = isCompactAccessoryLayout(screenWidth, screenHeight);
-        int utilityButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH;
-        int enhancementButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.ENHANCEMENT_BUTTON_WIDTH;
-        int advancedButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.ADVANCED_SEARCH_BUTTON_WIDTH;
-        int tabManagementButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.TAB_MANAGEMENT_BUTTON_WIDTH;
-        int logButtonWidth = compactTopBar ? 48 : PersonalDatabaseLayout.LOG_BUTTON_WIDTH;
+        int settingsButtonWidth = compactTopBar ? 48 : 56;
         int depositButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH;
         int defaultScopeButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH;
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
         int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
-        PersonalDatabaseLayout.Rect logButtonRect = new PersonalDatabaseLayout.Rect(
-                toolbarRight - logButtonWidth,
+        PersonalDatabaseLayout.Rect settingsButtonRect = new PersonalDatabaseLayout.Rect(
+                toolbarRight - settingsButtonWidth,
                 titleRect.y(),
-                logButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect tabManagementButtonRect = new PersonalDatabaseLayout.Rect(
-                logButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - tabManagementButtonWidth,
-                titleRect.y(),
-                tabManagementButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect viewSelectorButtonRect = new PersonalDatabaseLayout.Rect(
-                tabManagementButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - utilityButtonWidth,
-                titleRect.y(),
-                utilityButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect enhancementButtonRect = new PersonalDatabaseLayout.Rect(
-                viewSelectorButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - enhancementButtonWidth,
-                titleRect.y(),
-                enhancementButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
-        PersonalDatabaseLayout.Rect advancedSearchButtonRect = new PersonalDatabaseLayout.Rect(
-                enhancementButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - advancedButtonWidth,
-                titleRect.y(),
-                advancedButtonWidth,
+                settingsButtonWidth,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         int scopeButtonWidth = Math.max(
@@ -86,7 +58,7 @@ final class PersonalDatabaseLayoutFactory {
                         defaultScopeButtonWidth,
                         Math.max(
                                 1,
-                                advancedSearchButtonRect.x()
+                                settingsButtonRect.x()
                                         - titleRect.x()
                                         - titleReservedWidth
                                         - PersonalDatabaseLayout.TOOLBAR_GAP * 2
@@ -95,7 +67,7 @@ final class PersonalDatabaseLayoutFactory {
                 )
         );
         PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
-                advancedSearchButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - depositButtonWidth,
+                settingsButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - depositButtonWidth,
                 titleRect.y(),
                 depositButtonWidth,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
@@ -217,11 +189,7 @@ final class PersonalDatabaseLayoutFactory {
                 publicScopeButtonRect,
                 toolbarRect,
                 searchFieldRect,
-                advancedSearchButtonRect,
-                enhancementButtonRect,
-                viewSelectorButtonRect,
-                tabManagementButtonRect,
-                logButtonRect,
+                settingsButtonRect,
                 sortButtonRect,
                 depositButtonRect,
                 pageLabelRect,

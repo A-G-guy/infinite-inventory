@@ -144,6 +144,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
     }
 
     static boolean closeTopOverlay(PersonalDatabaseScreen screen) {
+        if (screen.settingsPanelExpanded) {
+            PersonalDatabaseScreenSettingsHelper.closeSettingsPanel(screen);
+            return true;
+        }
         if (screen.customExtractOverlayExpanded) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
             return true;

@@ -11,11 +11,7 @@ public record PersonalDatabaseLayout(
         Rect publicScopeButtonRect,
         Rect toolbarRect,
         Rect searchFieldRect,
-        Rect advancedSearchButtonRect,
-        Rect enhancementButtonRect,
-        Rect viewSelectorButtonRect,
-        Rect tabManagementButtonRect,
-        Rect logButtonRect,
+        Rect settingsButtonRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
         Rect pageLabelRect,
@@ -81,11 +77,7 @@ public record PersonalDatabaseLayout(
         publicScopeButtonRect = publicScopeButtonRect == null ? Rect.empty() : publicScopeButtonRect;
         toolbarRect = toolbarRect == null ? Rect.empty() : toolbarRect;
         searchFieldRect = searchFieldRect == null ? Rect.empty() : searchFieldRect;
-        advancedSearchButtonRect = advancedSearchButtonRect == null ? Rect.empty() : advancedSearchButtonRect;
-        enhancementButtonRect = enhancementButtonRect == null ? Rect.empty() : enhancementButtonRect;
-        viewSelectorButtonRect = viewSelectorButtonRect == null ? Rect.empty() : viewSelectorButtonRect;
-        tabManagementButtonRect = tabManagementButtonRect == null ? Rect.empty() : tabManagementButtonRect;
-        logButtonRect = logButtonRect == null ? Rect.empty() : logButtonRect;
+        settingsButtonRect = settingsButtonRect == null ? Rect.empty() : settingsButtonRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;

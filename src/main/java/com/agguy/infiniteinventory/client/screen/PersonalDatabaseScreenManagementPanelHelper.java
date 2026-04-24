@@ -39,7 +39,9 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                 panelRect.y() + PersonalDatabaseScreen.MANAGEMENT_PANEL_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 1,
                 0x70A89E8C
         );
-        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        if (!screen.settingsPanelExpanded) {
+            PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        }
 
         PersonalDatabaseScreenManagementCompactHelper.renderCompactScopeSwitchers(screen, guiGraphics, mouseX, mouseY);
         PersonalDatabaseScreenManagementListHelper.renderManagementColumn(

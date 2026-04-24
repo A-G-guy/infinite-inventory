@@ -25,6 +25,15 @@ final class PersonalDatabaseScreenInteractionHelper {
                 && PersonalDatabaseScreenNoteOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
             return true;
         }
+        if (screen.settingsPanelExpanded) {
+            if (PersonalDatabaseScreenSettingsHelper.handleSettingsPanelClick(screen, mouseX, mouseY)) {
+                return true;
+            }
+            if (!PersonalDatabaseScreenSettingsGeometry.isWithinSettingsPanel(screen, mouseX, mouseY)) {
+                PersonalDatabaseScreenSettingsHelper.closeSettingsPanel(screen);
+                return true;
+            }
+        }
         if (screen.logPanelExpanded
                 && PersonalDatabaseScreenLogHelper.handleLogPanelClick(screen, mouseX, mouseY, button)) {
             return true;

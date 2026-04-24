@@ -21,6 +21,9 @@ final class PersonalDatabaseScreenLogGeometry {
     }
 
     static PersonalDatabaseLayout.Rect logPanelRect(PersonalDatabaseScreen screen) {
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.LOG) {
+            return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
+        }
         return PersonalDatabaseScreenGeometry.centeredOverlayRect(screen, LOG_PANEL_WIDTH, LOG_PANEL_HEIGHT);
     }
 

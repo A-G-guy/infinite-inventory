@@ -112,6 +112,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     static final int TAB_ICON_SIZE = 16;
     static final int TAB_ICON_LEFT_PADDING = 4;
     static final int TAB_TEXT_GAP = 3;
+    static final int SETTINGS_NAV_WIDTH = 140;
+    static final int SETTINGS_NAV_ITEM_HEIGHT = 28;
+    static final int SETTINGS_NAV_PADDING = 8;
+    static final int SETTINGS_CONTENT_PADDING = 12;
 
     final PlayerInventoryPaneProvider inventoryPaneProvider = new VanillaPlayerInventoryPaneProvider();
     final PersonalDatabaseMenu databaseMenu;
@@ -121,11 +125,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     @Nullable
     DatabaseQuery pendingLayoutQuery;
     Button depositButton;
-    Button advancedSearchButton;
-    Button enhancementButton;
-    Button viewSelectorButton;
-    Button tabManagementButton;
-    Button logButton;
+    Button settingsButton;
     Button personalScopeButton;
     Button publicScopeButton;
     Button accessoriesToggleButton;
@@ -172,6 +172,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean logPanelExpanded;
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
+    boolean settingsPanelExpanded;
+    SettingsPanelTab activeSettingsTab = SettingsPanelTab.ADVANCED_SEARCH;
     boolean suppressVanillaTooltipRender;
     double lastMouseX;
     double lastMouseY;
@@ -232,6 +234,24 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         AUTO_STORE_TARGET
     }
 
+    enum SettingsPanelTab {
+        ADVANCED_SEARCH("screen.infiniteinventory.search_advanced_title"),
+        ENHANCEMENT("screen.infiniteinventory.enhancement_title"),
+        VIEW_SELECTOR("screen.infiniteinventory.visible_tabs_title"),
+        MANAGEMENT("screen.infiniteinventory.management.title"),
+        LOG("screen.infiniteinventory.log_panel.title");
+
+        private final String translationKey;
+
+        SettingsPanelTab(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        public String translationKey() {
+            return this.translationKey;
+        }
+    }
+
     record DatabaseHitResult(int panelIndex, int slotIndex) {
     }
 
@@ -289,6 +309,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         PersonalDatabaseScreenRenderHelper.renderAccessorySlotHover(this, guiGraphics, mouseX, mouseY);
         PersonalDatabaseScreenRenderHelper.renderToolbarOverlays(this, guiGraphics);
+        if (this.settingsPanelExpanded) {
+            PersonalDatabaseScreenSettingsHelper.renderSettingsPanel(this, guiGraphics, mouseX, mouseY);
+        }
         if (this.advancedSearchExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderAdvancedSearchPanel(this, guiGraphics, mouseX, mouseY);
         }
@@ -473,6 +496,5 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean invokeSuperKeyReleased(int keyCode, int scanCode, int modifiers) { return super.keyReleased(keyCode, scanCode, modifiers); }
     boolean invokeSuperCharTyped(char codePoint, int modifiers) { return super.charTyped(codePoint, modifiers); }
     void invokeSuperRenderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) { super.renderTooltip(guiGraphics, mouseX, mouseY); }
-    java.util.List<Component> containerTooltip(ItemStack stack) { return this.getTooltipFromContainerItem(stack); }
-    void focusScreen(@Nullable GuiEventListener listener) { this.setFocused(listener); }
+    java.util.List<Component> containerTooltip(ItemStack stack) { return this.getTooltipFromContainerItem(stack); } void focusScreen(@Nullable GuiEventListener listener) { this.setFocused(listener); }
 }

@@ -41,7 +41,9 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 0x70A89E8C
         );
-        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        if (!screen.settingsPanelExpanded) {
+            PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        }
 
         renderViewSelectorPreview(screen, guiGraphics, mouseX, mouseY);
         renderViewSelectorColumn(screen, guiGraphics, mouseX, mouseY, true);
@@ -62,12 +64,10 @@ final class PersonalDatabaseScreenViewSelectorHelper {
             screen.viewSelectorExpanded = false;
             return true;
         }
-        if (screen.layout != null && screen.layout.viewSelectorButtonRect().contains(mouseX, mouseY)) {
-            screen.viewSelectorExpanded = false;
-            return true;
-        }
         if (!panelRect.contains(mouseX, mouseY)) {
-            screen.viewSelectorExpanded = false;
+            if (!screen.settingsPanelExpanded) {
+                screen.viewSelectorExpanded = false;
+            }
             return true;
         }
         if (handleViewSelectorColumnClick(screen, mouseX, mouseY, true)) {

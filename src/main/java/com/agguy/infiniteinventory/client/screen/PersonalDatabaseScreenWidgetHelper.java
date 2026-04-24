@@ -31,103 +31,21 @@ final class PersonalDatabaseScreenWidgetHelper {
         screen.publicScopeButton = null;
         buildPanelWidgets(screen);
 
-        PersonalDatabaseLayout.Rect advancedSearchRect = screen.layout.advancedSearchButtonRect();
-        screen.advancedSearchButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.search_advanced_button"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            screen.advancedSearchExpanded = !screen.advancedSearchExpanded;
-                        }
-                )
-                .bounds(
-                        advancedSearchRect.x(),
-                        advancedSearchRect.y(),
-                        advancedSearchRect.width(),
-                        advancedSearchRect.height()
-                )
-                .build());
         buildAdvancedSearchButtons(screen);
-
-        PersonalDatabaseLayout.Rect enhancementRect = screen.layout.enhancementButtonRect();
-        screen.enhancementButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.enhancement_button"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.viewSelectorExpanded = false;
-                            screen.moreTabsExpanded = false;
-                            screen.targetSelectorExpanded = false;
-                            screen.tabManagementExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            screen.advancedSearchExpanded = false;
-                            screen.enhancementPanelExpanded = !screen.enhancementPanelExpanded;
-                        }
-                )
-                .bounds(enhancementRect.x(), enhancementRect.y(), enhancementRect.width(), enhancementRect.height())
-                .build());
         buildEnhancementButtons(screen);
 
-        PersonalDatabaseLayout.Rect viewSelectorRect = screen.layout.viewSelectorButtonRect();
-        screen.viewSelectorButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.visible_tabs_button"),
+        PersonalDatabaseLayout.Rect settingsRect = screen.layout.settingsButtonRect();
+        screen.settingsButton = screen.addScreenButton(Button.builder(
+                        Component.translatable("screen.infiniteinventory.settings_button"),
                         button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.advancedSearchExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            screen.moreTabsExpanded = false;
-                            screen.tabManagementExpanded = false;
-                            screen.targetSelectorExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            boolean nextExpanded = !screen.viewSelectorExpanded;
-                            if (nextExpanded) {
-                                screen.viewSelectorPersonalScrollIndex = 0;
-                                screen.viewSelectorPublicScrollIndex = 0;
-                            }
-                            screen.viewSelectorExpanded = nextExpanded;
+                            PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                            screen.settingsPanelExpanded = true;
+                            screen.activeSettingsTab = PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH;
+                            PersonalDatabaseScreenSettingsHelper.syncSettingsSubPanelStates(screen);
                         }
                 )
-                .bounds(viewSelectorRect.x(), viewSelectorRect.y(), viewSelectorRect.width(), viewSelectorRect.height())
+                .bounds(settingsRect.x(), settingsRect.y(), settingsRect.width(), settingsRect.height())
                 .build());
-
-        PersonalDatabaseLayout.Rect tabManagementRect = screen.layout.tabManagementButtonRect();
-        screen.tabManagementButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.tab_management_button"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.advancedSearchExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            screen.moreTabsExpanded = false;
-                            screen.targetSelectorExpanded = false;
-                            screen.viewSelectorExpanded = false;
-                            screen.logPanelExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            boolean nextExpanded = !screen.tabManagementExpanded;
-                            PersonalDatabaseScreenManagementHelper.closeTabManagementOverlays(screen);
-                            screen.tabManagementExpanded = nextExpanded;
-                            screen.managementPersonalScrollIndex = 0;
-                            screen.managementPublicScrollIndex = 0;
-                            PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
-                            if (screen.tabManagementExpanded) {
-                                PersonalDatabaseScreenManagementHelper.loadManagementDrafts(
-                                        screen,
-                                        PersonalDatabaseScreenManagementHelper.preferredManagementTab(screen)
-                                );
-                            }
-                        }
-                )
-                .bounds(tabManagementRect.x(), tabManagementRect.y(), tabManagementRect.width(), tabManagementRect.height())
-                .build());
-
-        PersonalDatabaseScreenLogHelper.buildLogButton(screen);
 
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
         screen.personalScopeButton = screen.addScreenButton(Button.builder(
@@ -267,11 +185,12 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncAdvancedSearchButtons(PersonalDatabaseScreen screen, DatabaseQuery query) {
         DatabaseSearchConfig searchConfig = query.searchConfig();
         int enabledTextFieldCount = enabledTextFieldCount(searchConfig);
+        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH;
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             DatabaseSearchWeight weight = searchConfig.weightFor(field);
             Button toggleButton = screen.advancedSearchToggleButtons.get(field);
             if (toggleButton != null) {
-                toggleButton.visible = screen.advancedSearchExpanded;
+                toggleButton.visible = visible;
                 toggleButton.active = !field.isTextField()
                         || weight == DatabaseSearchWeight.OFF
                         || enabledTextFieldCount > 1;
@@ -279,7 +198,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             }
             Button weightButton = screen.advancedSearchWeightButtons.get(field);
             if (weightButton != null) {
-                weightButton.visible = screen.advancedSearchExpanded;
+                weightButton.visible = visible;
                 weightButton.active = weight != DatabaseSearchWeight.OFF;
                 weightButton.setMessage(Component.empty());
             }
@@ -287,10 +206,11 @@ final class PersonalDatabaseScreenWidgetHelper {
     }
 
     static void syncEnhancementButtons(PersonalDatabaseScreen screen, DatabaseEnhancementConfig config) {
+        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ENHANCEMENT;
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
             Button toggleButton = screen.enhancementToggleButtons.get(option);
             if (toggleButton != null) {
-                toggleButton.visible = screen.enhancementPanelExpanded;
+                toggleButton.visible = visible;
                 toggleButton.active = true;
                 toggleButton.setMessage(Component.empty());
             }
@@ -312,21 +232,9 @@ final class PersonalDatabaseScreenWidgetHelper {
         DatabaseQuery query = viewState.query();
         DatabaseScope topTabScopeFilter = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
         syncPanelWidgets(screen, viewState, query);
-        if (screen.advancedSearchButton != null) {
-            screen.advancedSearchButton.setMessage(Component.translatable("screen.infiniteinventory.search_advanced_button"));
-        }
-        if (screen.enhancementButton != null) {
-            screen.enhancementButton.setMessage(Component.translatable("screen.infiniteinventory.enhancement_button"));
-        }
-        if (screen.viewSelectorButton != null) {
-            screen.viewSelectorButton.setMessage(Component.translatable("screen.infiniteinventory.visible_tabs_button"));
-        }
-        if (screen.tabManagementButton != null) {
-            screen.tabManagementButton.setMessage(Component.translatable("screen.infiniteinventory.tab_management_button"));
-        }
-        if (screen.logButton != null) {
-            screen.logButton.setMessage(Component.translatable("screen.infiniteinventory.log_button"));
-            screen.logButton.visible = screen.layout != null && screen.layout.logButtonRect().width() > 0;
+        if (screen.settingsButton != null) {
+            screen.settingsButton.setMessage(Component.translatable("screen.infiniteinventory.settings_button"));
+            screen.settingsButton.visible = screen.layout != null && screen.layout.settingsButtonRect().width() > 0;
         }
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;

@@ -37,7 +37,9 @@ final class PersonalDatabaseScreenLogHelper {
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
 
         renderTitle(screen, guiGraphics, panelRect);
-        renderCloseButton(screen, guiGraphics, mouseX, mouseY);
+        if (!screen.settingsPanelExpanded) {
+            renderCloseButton(screen, guiGraphics, mouseX, mouseY);
+        }
         renderScopeToggles(screen, guiGraphics, mouseX, mouseY);
         renderLogList(screen, guiGraphics, mouseX, mouseY);
         renderScrollbar(screen, guiGraphics);
@@ -297,34 +299,4 @@ final class PersonalDatabaseScreenLogHelper {
         return tabId;
     }
 
-    static void buildLogButton(PersonalDatabaseScreen screen) {
-        if (screen.layout == null) {
-            return;
-        }
-        PersonalDatabaseLayout.Rect logButtonRect = screen.layout.logButtonRect();
-        screen.logButton = screen.addScreenButton(net.minecraft.client.gui.components.Button.builder(
-                        Component.translatable("screen.infiniteinventory.log_button"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.advancedSearchExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            screen.moreTabsExpanded = false;
-                            screen.targetSelectorExpanded = false;
-                            screen.viewSelectorExpanded = false;
-                            screen.tabManagementExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            screen.logPanelExpanded = !screen.logPanelExpanded;
-                            if (screen.logPanelExpanded) {
-                                screen.logPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
-                                screen.logPanelScrollIndex = 0;
-                                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                                        new com.agguy.infiniteinventory.network.DatabaseLogRequestPayload(screen.logPanelScope));
-                            }
-                        }
-                )
-                .bounds(logButtonRect.x(), logButtonRect.y(), logButtonRect.width(), logButtonRect.height())
-                .build());
-    }
 }
