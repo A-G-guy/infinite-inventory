@@ -234,7 +234,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
         screen.viewSelectorExpanded = false;
     }
 
-    private static void applyJoinCurrentView(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+    static void applyJoinCurrentView(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
         DatabaseQuery query = screen.databaseMenu.viewState().query();
         LinkedHashSet<DatabaseScopedTabRef> nextVisibleTabs = new LinkedHashSet<>(query.visibleTabs());
         nextVisibleTabs.add(scopedTab);
@@ -245,7 +245,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
         closeTopTabPrompt(screen);
     }
 
-    private static void applySingleView(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
+    static void applySingleView(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab) {
         PersonalDatabaseScreenLayoutHelper.sendQuery(
                 screen,
                 screen.databaseMenu.viewState().query().withSingleVisibleTab(scopedTab).withFocusedTab(scopedTab)

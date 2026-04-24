@@ -107,6 +107,9 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (screen.contextMenuExpanded && PersonalDatabaseScreenPopupInteractionHelper.handleContextMenuClick(screen, mouseX, mouseY)) {
             return true;
         }
+        if (screen.tabContextMenuExpanded && PersonalDatabaseScreenTabHelper.handleTabContextMenuClick(screen, mouseX, mouseY)) {
+            return true;
+        }
         if (screen.sortDropdownExpanded && PersonalDatabaseScreenPopupInteractionHelper.handleSortDropdownClick(screen, mouseX, mouseY)) {
             return true;
         }
@@ -114,7 +117,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             screen.invokeSuperMouseClicked(mouseX, mouseY, button);
             return true;
         }
-        if (PersonalDatabaseScreenTabHelper.handleTabClick(screen, mouseX, mouseY)) {
+        if (PersonalDatabaseScreenTabHelper.handleTabClick(screen, mouseX, mouseY, button)) {
             return true;
         }
         if (PersonalDatabaseScreenTargetHelper.handleQuickDepositClick(screen, mouseX, mouseY, button)) {

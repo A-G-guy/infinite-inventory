@@ -233,7 +233,7 @@ final class PersonalDatabaseScreenTabHelper {
         PersonalDatabaseScreenTopTabPromptHelper.renderTopTabReplacePrompt(screen, guiGraphics, mouseX, mouseY);
     }
 
-    static boolean handleTabClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+    static boolean handleTabClick(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
         if (screen.layout == null) {
             return false;
         }
@@ -243,6 +243,10 @@ final class PersonalDatabaseScreenTabHelper {
             PersonalDatabaseLayout.Rect tabRect = topTabRect(screen, index, visibleTabs.size(), !hiddenTopTabs(screen).isEmpty());
             if (!tabRect.contains(mouseX, mouseY)) {
                 continue;
+            }
+            if (button == 1) {
+                openTabContextMenu(screen, scopedTab, tabRect);
+                return true;
             }
             PersonalDatabaseScreenTopTabPromptHelper.handleTopTabSelection(screen, scopedTab);
             return true;
@@ -258,6 +262,147 @@ final class PersonalDatabaseScreenTabHelper {
             return true;
         }
         return false;
+    }
+
+    static void openTabContextMenu(PersonalDatabaseScreen screen, DatabaseScopedTabRef scopedTab, PersonalDatabaseLayout.Rect tabRect) {
+        if (screen.layout == null) {
+            return;
+        }
+        List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(screen, scopedTab);
+        if (items.isEmpty()) {
+            return;
+        }
+        int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
+        int menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        PersonalDatabaseLayout.Rect frameRect = screen.layout.frameRect();
+        int minX = frameRect.x() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
+        int maxX = Math.max(minX, frameRect.right() - menuWidth - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
+        int preferredX = tabRect.x();
+        screen.tabContextMenuX = net.minecraft.util.Mth.clamp(preferredX, minX, maxX);
+
+        int minY = frameRect.y() + PersonalDatabaseScreen.CONTEXT_MENU_MARGIN;
+        int maxY = Math.max(minY, frameRect.bottom() - menuHeight - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN);
+        int preferredY = tabRect.bottom() + 2;
+        if (preferredY + menuHeight > frameRect.bottom() - PersonalDatabaseScreen.CONTEXT_MENU_MARGIN) {
+            preferredY = tabRect.y() - menuHeight - 2;
+        }
+        screen.tabContextMenuY = net.minecraft.util.Mth.clamp(preferredY, minY, maxY);
+        screen.tabContextMenuTarget = scopedTab;
+        screen.tabContextMenuExpanded = true;
+    }
+
+    static boolean handleTabContextMenuClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.tabContextMenuExpanded || screen.tabContextMenuTarget == null) {
+            return false;
+        }
+        PersonalDatabaseScreenTabContextMenuItem item = tabContextMenuItemAt(screen, mouseX, mouseY);
+        if (item != null) {
+            activateTabContextMenuItem(screen, item);
+            return true;
+        }
+        if (isWithinTabContextMenu(screen, mouseX, mouseY)) {
+            return true;
+        }
+        closeTabContextMenu(screen);
+        return true;
+    }
+
+    static void closeTabContextMenu(PersonalDatabaseScreen screen) {
+        screen.tabContextMenuExpanded = false;
+        screen.tabContextMenuTarget = null;
+    }
+
+    static boolean isWithinTabContextMenu(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.tabContextMenuExpanded) {
+            return false;
+        }
+        List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(
+                screen, screen.tabContextMenuTarget
+        );
+        int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
+        int menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        return mouseX >= screen.tabContextMenuX
+                && mouseX < screen.tabContextMenuX + menuWidth
+                && mouseY >= screen.tabContextMenuY
+                && mouseY < screen.tabContextMenuY + menuHeight;
+    }
+
+    static PersonalDatabaseScreenTabContextMenuItem tabContextMenuItemAt(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (!screen.tabContextMenuExpanded || screen.tabContextMenuTarget == null) {
+            return null;
+        }
+        List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(
+                screen, screen.tabContextMenuTarget
+        );
+        int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
+        int rowY = screen.tabContextMenuY + 2;
+        for (PersonalDatabaseScreenTabContextMenuItem item : items) {
+            if (item == null) {
+                continue;
+            }
+            if (mouseX >= screen.tabContextMenuX
+                    && mouseX < screen.tabContextMenuX + menuWidth
+                    && mouseY >= rowY
+                    && mouseY < rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT) {
+                return item;
+            }
+            rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+        }
+        return null;
+    }
+
+    private static void activateTabContextMenuItem(PersonalDatabaseScreen screen, PersonalDatabaseScreenTabContextMenuItem item) {
+        PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
+        DatabaseScopedTabRef target = screen.tabContextMenuTarget;
+        closeTabContextMenu(screen);
+        if (target == null) {
+            return;
+        }
+        switch (item.action()) {
+            case JOIN_CURRENT_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applyJoinCurrentView(screen, target);
+            case SINGLE_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applySingleView(screen, target);
+            case MOVE_LEFT -> {
+                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
+                if (tab != null) {
+                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
+                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.MOVE_LEFT,
+                            tab.id(), "", "", ""
+                    );
+                }
+            }
+            case MOVE_RIGHT -> {
+                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
+                if (tab != null) {
+                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
+                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.MOVE_RIGHT,
+                            tab.id(), "", "", ""
+                    );
+                }
+            }
+            case RENAME -> {
+                PersonalDatabaseScreenManagementHelper.loadManagementDrafts(screen, target);
+                screen.tabManagementExpanded = true;
+                PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
+                if (screen.managementNameBox != null) {
+                    screen.focusScreen(screen.managementNameBox);
+                    screen.managementNameBox.setFocused(true);
+                }
+            }
+            case CHANGE_ICON -> {
+                PersonalDatabaseScreenManagementHelper.loadManagementDrafts(screen, target);
+                screen.tabManagementExpanded = true;
+                PersonalDatabaseScreenManagementHelper.openIconPicker(screen);
+            }
+            case TOGGLE_TOP_VISIBILITY -> {
+                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
+                if (tab != null) {
+                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
+                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY,
+                            tab.id(), "", "", ""
+                    );
+                }
+            }
+        }
     }
 
     static boolean handleViewSelectorClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {

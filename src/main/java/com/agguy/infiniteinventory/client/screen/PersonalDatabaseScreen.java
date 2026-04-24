@@ -215,6 +215,11 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     int topTabReplaceScrollIndex;
     int advancedSearchScrollIndex;
     int enhancementScrollIndex;
+    boolean tabContextMenuExpanded;
+    @Nullable
+    DatabaseScopedTabRef tabContextMenuTarget;
+    int tabContextMenuX;
+    int tabContextMenuY;
 
     enum TargetSelectorMode {
         NONE,
@@ -319,6 +324,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.contextMenuExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderContextMenu(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.tabContextMenuExpanded) {
+            PersonalDatabaseScreenOverlayRenderHelper.renderTabContextMenu(this, guiGraphics, mouseX, mouseY);
         }
         if (this.customExtractOverlayExpanded) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);

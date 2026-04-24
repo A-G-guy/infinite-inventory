@@ -197,5 +197,13 @@
   "screen.infiniteinventory.log.tooltip.amount": "Amount: %s",
   "screen.infiniteinventory.log.tooltip.player": "Player: %s",
   "screen.infiniteinventory.jei.amount.personal": "Personal Storage: %s",
-  "screen.infiniteinventory.jei.amount.public": "Public Storage: %s"
+  "screen.infiniteinventory.jei.amount.public": "Public Storage: %s",
+  "screen.infiniteinventory.tab_context.join_current": "Join Current View",
+  "screen.infiniteinventory.tab_context.single_view": "Open as Single View",
+  "screen.infiniteinventory.tab_context.move_left": "Move Left",
+  "screen.infiniteinventory.tab_context.move_right": "Move Right",
+  "screen.infiniteinventory.tab_context.rename": "Rename",
+  "screen.infiniteinventory.tab_context.change_icon": "Change Icon",
+  "screen.infiniteinventory.tab_context.hide_in_top": "Hide from Top",
+  "screen.infiniteinventory.tab_context.show_in_top": "Show in Top"
 }

@@ -358,6 +358,54 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         guiGraphics.pose().popPose();
     }
 
+    static void renderTabContextMenu(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (!screen.tabContextMenuExpanded || screen.tabContextMenuTarget == null) {
+            return;
+        }
+        List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(
+                screen, screen.tabContextMenuTarget
+        );
+        if (items.isEmpty()) {
+            return;
+        }
+        int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
+        int menuHeight = PersonalDatabaseScreenTabContextMenuBuilder.menuHeight(items);
+        PersonalDatabaseLayout.Rect menuRect = new PersonalDatabaseLayout.Rect(
+                screen.tabContextMenuX,
+                screen.tabContextMenuY,
+                menuWidth,
+                menuHeight
+        );
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, menuRect);
+        int rowY = menuRect.y() + 2;
+        for (PersonalDatabaseScreenTabContextMenuItem item : items) {
+            if (item == null) {
+                rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+                continue;
+            }
+            PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
+                    menuRect.x() + 2,
+                    rowY,
+                    menuRect.width() - 4,
+                    PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT - 1
+            );
+            boolean hovered = rowRect.contains(mouseX, mouseY);
+            VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
+            guiGraphics.drawString(
+                    screen.screenFont(),
+                    Component.translatable(item.translationKey()),
+                    rowRect.x() + 6,
+                    rowRect.y() + 5,
+                    PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                    false
+            );
+            rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
+        }
+        guiGraphics.pose().popPose();
+    }
+
     static void renderOverlayCloseButton(
             PersonalDatabaseScreen screen,
             GuiGraphics guiGraphics,

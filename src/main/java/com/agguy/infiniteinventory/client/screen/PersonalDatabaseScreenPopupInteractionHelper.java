@@ -156,6 +156,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
             return true;
         }
+        if (screen.tabContextMenuExpanded) {
+            PersonalDatabaseScreenTabHelper.closeTabContextMenu(screen);
+            return true;
+        }
         if (screen.iconPickerExpanded) {
             PersonalDatabaseScreenManagementHelper.closeIconPicker(screen);
             return true;

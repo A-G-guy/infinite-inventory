@@ -55,6 +55,7 @@ final class PersonalDatabaseScreenLifecycleHelper {
         screen.activeSearchTab = null;
         screen.pendingSearchTexts.clear();
         screen.dispatchedSearchTexts.clear();
+        PersonalDatabaseScreenTabHelper.closeTabContextMenu(screen);
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
         PersonalDatabaseScreenWidgetHelper.buildWidgets(screen);
         PersonalDatabaseScreenWidgetHelper.syncWidgetsFromState(screen);

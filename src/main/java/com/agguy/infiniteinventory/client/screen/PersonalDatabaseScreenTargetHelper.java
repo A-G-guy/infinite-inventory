@@ -74,6 +74,7 @@ final class PersonalDatabaseScreenTargetHelper {
     }
 
     static void closeTransientOverlays(PersonalDatabaseScreen screen) {
+        PersonalDatabaseScreenTabHelper.closeTabContextMenu(screen);
         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
         PersonalDatabaseScreenCustomExtractOverlayHelper.closeOverlay(screen);
         screen.sortDropdownExpanded = false;
