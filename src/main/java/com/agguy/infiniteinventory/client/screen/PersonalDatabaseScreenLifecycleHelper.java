@@ -37,6 +37,8 @@ final class PersonalDatabaseScreenLifecycleHelper {
         screen.iconPickerExpanded = false;
         screen.customExtractOverlayExpanded = false;
         screen.noteOverlayExpanded = false;
+        screen.depositConflictExpanded = false;
+        screen.pendingDepositConflict = null;
         screen.customExtractValidationKey = "";
         screen.logPanelExpanded = false;
         screen.logPanelScrollIndex = 0;
@@ -71,6 +73,7 @@ final class PersonalDatabaseScreenLifecycleHelper {
         PersonalDatabaseScreenLayoutHelper.tickSearchSync(screen);
         PersonalDatabaseScreenCustomExtractOverlayHelper.validateOverlay(screen);
         PersonalDatabaseScreenNoteOverlayHelper.validateOverlay(screen);
+        PersonalDatabaseScreenDepositConflictHelper.tryOpenDepositConflict(screen);
         PersonalDatabaseScreenLayoutHelper.ensureLayoutQuerySynced(screen);
     }
 }

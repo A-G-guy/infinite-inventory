@@ -128,6 +128,19 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseServiceDepositHelper.tryAutoStorePickedUpItem(this, player, itemEntity);
     }
 
+    public PersonalDatabaseServiceDepositHelper.DepositConflict checkDepositConflict(
+            ServerPlayer player, DatabaseScope scope, String targetTabId, ItemStack stack
+    ) {
+        return PersonalDatabaseServiceDepositHelper.checkDepositConflict(this, player, scope, targetTabId, stack);
+    }
+
+    public void resolveDepositConflictMoveEntry(
+            ServerPlayer player, DatabaseScope scope, StoredStackKey key, String existingTabId, String targetTabId
+    ) {
+        StoredItemDatabase database = this.resolveDatabaseForMutation(player, scope);
+        database.moveEntryToTab(key, existingTabId, targetTabId);
+    }
+
     public ItemStack extractToCarried(ServerPlayer player, DatabaseScope scope, StoredStackKey key, int requestedAmount) {
         return PersonalDatabaseServiceExtractHelper.extractToCarried(this, player, scope, key, requestedAmount);
     }

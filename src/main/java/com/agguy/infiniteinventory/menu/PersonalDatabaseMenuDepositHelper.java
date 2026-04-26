@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.menu;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.agguy.infiniteinventory.service.PersonalDatabaseServiceDepositHelper;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +44,7 @@ final class PersonalDatabaseMenuDepositHelper {
      *
      * <p>业务约束：会校验槽位索引有效性与是否允许快捷存入；
      * 若槽位为空或服务端玩家不合法则直接返回。
+     * 若该物品已存在但存放于其他页签，则向客户端发送冲突提示而非直接存入。
      *
      * @param slotIndex   背包槽位索引
      * @param targetScope 目标作用域，可为 null
@@ -60,6 +62,13 @@ final class PersonalDatabaseMenuDepositHelper {
             return;
         }
         DatabaseScopedTabRef targetTab = this.menu.resolveStoreTarget(-1, targetScope, targetTabId);
+        PersonalDatabaseServiceDepositHelper.DepositConflict conflict = PersonalDatabaseService.INSTANCE.checkDepositConflict(
+                serverPlayer, targetTab.scope(), targetTab.tabId(), slot.getItem()
+        );
+        if (conflict != null) {
+            this.menu.sendDepositConflict(conflict.scope(), conflict.targetTabId(), conflict.existingTabId(), conflict.stack(), slotIndex);
+            return;
+        }
         if (PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, targetTab.scope(), targetTab.tabId(), slot)) {
             this.menu.broadcastChanges();
             this.menu.syncAfterScopeMutation(serverPlayer, targetTab.scope());

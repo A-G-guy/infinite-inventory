@@ -12,6 +12,7 @@ import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
 import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
+import com.agguy.infiniteinventory.network.DepositConflictAction;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import java.util.List;
 import net.minecraft.server.level.ServerPlayer;
@@ -44,6 +45,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
     private final PersonalDatabaseMenuCraftingHelper craftingHelper;
     private final PersonalDatabaseMenuDepositHelper depositHelper;
     private final PersonalDatabaseMenuSelectionHelper selectionHelper;
+    private final PersonalDatabaseMenuConflictHelper conflictHelper;
+    private final PersonalDatabaseMenuQuickMoveHelper quickMoveHelper;
 
     public PersonalDatabaseMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, playerInventory.player, 0L);
@@ -67,6 +70,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.craftingHelper = new PersonalDatabaseMenuCraftingHelper(this);
         this.depositHelper = new PersonalDatabaseMenuDepositHelper(this);
         this.selectionHelper = new PersonalDatabaseMenuSelectionHelper(this);
+        this.conflictHelper = new PersonalDatabaseMenuConflictHelper(this);
+        this.quickMoveHelper = new PersonalDatabaseMenuQuickMoveHelper(this);
     }
 
     public DatabaseViewState viewState() {
@@ -247,6 +252,21 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.depositHelper.depositInventorySlot(slotIndex, targetScope, targetTabId);
     }
 
+    void sendDepositConflict(DatabaseScope scope, String targetTabId, String existingTabId, ItemStack stack, int slotIndex) {
+        this.conflictHelper.sendDepositConflict(scope, targetTabId, existingTabId, stack, slotIndex);
+    }
+
+    public void resolveDepositConflict(
+            DatabaseScope scope,
+            String targetTabId,
+            String existingTabId,
+            DepositConflictAction action,
+            int slotIndex,
+            ItemStack originalStack
+    ) {
+        this.conflictHelper.resolveDepositConflict(scope, targetTabId, existingTabId, action, slotIndex, originalStack);
+    }
+
     public void handleDatabaseClick(
             int panelIndex,
             int pageSlotIndex,
@@ -337,7 +357,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
 
     @Override
     public void slotsChanged(Container container) {
-        CraftingMenuAccess.updateResult(this, this.owner.level(), this.owner, this.craftSlots, this.resultSlots, null);
+        PersonalDatabaseCraftingMenuAccess.updateResult(this, this.owner.level(), this.owner, this.craftSlots, this.resultSlots, null);
     }
 
     @Override
@@ -358,90 +378,7 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
 
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= this.slots.size()) {
-            return ItemStack.EMPTY;
-        }
-        net.minecraft.world.inventory.Slot slot = this.slots.get(slotIndex);
-        if (!slot.hasItem()) {
-            return ItemStack.EMPTY;
-        }
-        ItemStack rawStack = slot.getItem();
-        ItemStack copy = rawStack.copy();
-
-        DatabaseScopedTabRef quickMoveTargetTab = this.resolveSingleStoreTarget();
-        if (this.shouldDepositQuickMovedSlot(slotIndex)
-                && player instanceof ServerPlayer serverPlayer
-                && quickMoveTargetTab != null
-                && PersonalDatabaseService.INSTANCE.depositSlot(
-                        serverPlayer,
-                        quickMoveTargetTab.scope(),
-                        quickMoveTargetTab.tabId(),
-                        slot
-                )) {
-            this.broadcastChanges();
-            this.syncAfterScopeMutation(serverPlayer, quickMoveTargetTab.scope());
-            return copy;
-        }
-
-        boolean moved = false;
-        if (slotIndex == this.resultSlotIndex) {
-            moved = this.handleCraftingSlotMove(player, slot, rawStack, copy);
-        } else if (this.craftingSlotRange.contains(slotIndex)
-                || this.armorSlotRange.contains(slotIndex)
-                || slotIndex == this.offhandSlotIndex
-                || this.accessorySlotRange.contains(slotIndex)) {
-            moved = this.handleArmorSlotMove(rawStack);
-        } else if (this.mainInventorySlotRange.contains(slotIndex) || this.hotbarSlotRange.contains(slotIndex)) {
-            moved = this.handleInventorySlotMove(slotIndex, rawStack, player);
-        } else {
-            moved = this.moveToPlayerStorage(rawStack, false);
-        }
-
-        if (!moved) {
-            return ItemStack.EMPTY;
-        }
-        if (rawStack.isEmpty()) {
-            slot.setByPlayer(ItemStack.EMPTY, copy);
-        } else {
-            slot.setChanged();
-        }
-        if (rawStack.getCount() == copy.getCount()) {
-            return ItemStack.EMPTY;
-        }
-        slot.onTake(player, rawStack);
-        return copy;
-    }
-
-    private boolean handleCraftingSlotMove(Player player, net.minecraft.world.inventory.Slot slot, ItemStack rawStack, ItemStack copy) {
-        boolean moved = this.moveToPlayerStorage(rawStack, true);
-        if (moved) {
-            slot.onQuickCraft(rawStack, copy);
-        }
-        return moved;
-    }
-
-    private boolean handleArmorSlotMove(ItemStack rawStack) {
-        return this.moveToPlayerStorage(rawStack, false);
-    }
-
-    private boolean handleInventorySlotMove(int slotIndex, ItemStack rawStack, Player player) {
-        boolean moved = this.tryMoveToAccessorySlots(rawStack);
-        EquipmentSlot equipmentSlot = player.getEquipmentSlotForItem(rawStack);
-        if (!rawStack.isEmpty() && equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
-            int armorSlotOffset = armorSlotOffset(equipmentSlot);
-            int armorSlotIndex = this.armorSlotRange.firstIndex() + armorSlotOffset;
-            if (armorSlotOffset >= 0 && !this.slots.get(armorSlotIndex).hasItem()) {
-                moved = this.moveItemStackTo(rawStack, armorSlotIndex, armorSlotIndex + 1, false) || moved;
-            }
-        } else if (!rawStack.isEmpty() && equipmentSlot == EquipmentSlot.OFFHAND && !this.slots.get(this.offhandSlotIndex).hasItem()) {
-            moved = this.moveItemStackTo(rawStack, this.offhandSlotIndex, this.offhandSlotIndex + 1, false) || moved;
-        }
-        if (!rawStack.isEmpty() && this.mainInventorySlotRange.contains(slotIndex)) {
-            moved = this.moveItemStackTo(rawStack, this.hotbarSlotRange.firstIndex(), this.hotbarSlotRange.lastIndexExclusive(), false) || moved;
-        } else if (!rawStack.isEmpty() && this.hotbarSlotRange.contains(slotIndex)) {
-            moved = this.moveItemStackTo(rawStack, this.mainInventorySlotRange.firstIndex(), this.mainInventorySlotRange.lastIndexExclusive(), false) || moved;
-        }
-        return moved;
+        return this.quickMoveHelper.quickMoveStack(player, slotIndex);
     }
 
     @Override

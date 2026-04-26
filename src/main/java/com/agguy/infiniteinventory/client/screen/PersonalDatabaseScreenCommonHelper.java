@@ -205,6 +205,10 @@ final class PersonalDatabaseScreenCommonHelper {
         return Component.literal(tab.id());
     }
 
+    static Component tabLabelById(PersonalDatabaseScreen screen, String tabId) {
+        return tabLabel(screen, findTab(screen, screen.databaseMenu.viewState().query().focusedTab().scope(), tabId));
+    }
+
     static Component scopeLabel(DatabaseScope scope) {
         return Component.translatable(DatabaseScope.normalize(scope).translationKey());
     }

@@ -214,5 +214,10 @@
   "screen.infiniteinventory.tab_context.rename": "Rename",
   "screen.infiniteinventory.tab_context.change_icon": "Change Icon",
   "screen.infiniteinventory.tab_context.hide_in_top": "Hide from Top",
-  "screen.infiniteinventory.tab_context.show_in_top": "Show in Top"
+  "screen.infiniteinventory.tab_context.show_in_top": "Show in Top",
+  "screen.infiniteinventory.deposit_conflict.title": "Deposit Tab Conflict",
+  "screen.infiniteinventory.deposit_conflict.description": "This item is currently stored in %s",
+  "screen.infiniteinventory.deposit_conflict.cancel": "Cancel",
+  "screen.infiniteinventory.deposit_conflict.move_to_target": "Deposit and move all to target category",
+  "screen.infiniteinventory.deposit_conflict.keep_in_source": "Deposit to original category"
 }

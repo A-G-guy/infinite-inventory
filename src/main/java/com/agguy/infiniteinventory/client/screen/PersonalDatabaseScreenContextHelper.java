@@ -166,7 +166,7 @@ final class PersonalDatabaseScreenContextHelper {
             }
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
                     screen,
-                    PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
+                    PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_SELECTION,
                     -1,
                     -1,
                     sourceScope,

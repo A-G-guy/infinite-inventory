@@ -43,6 +43,8 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
         registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
         registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
+        registrar.playToClient(DatabaseDepositConflictPayload.TYPE, DatabaseDepositConflictPayload.STREAM_CODEC, ModNetwork::handleDepositConflict);
+        registrar.playToServer(DatabaseDepositResolvePayload.TYPE, DatabaseDepositResolvePayload.STREAM_CODEC, ModNetwork::handleDepositResolve);
     }
 
     private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
@@ -265,6 +267,29 @@ public final class ModNetwork {
 
     private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap()));
+    }
+
+    private static void handleDepositConflict(DatabaseDepositConflictPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> PersonalDatabaseClient.applyDepositConflict(payload));
+    }
+
+    private static void handleDepositResolve(DatabaseDepositResolvePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.resolveDepositConflict(
+                        payload.scope(),
+                        payload.targetTabId(),
+                        payload.existingTabId(),
+                        payload.action(),
+                        payload.slotIndex(),
+                        payload.stack()
+                );
+            }
+        });
     }
 
     @Nullable

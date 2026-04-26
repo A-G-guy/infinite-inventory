@@ -176,6 +176,10 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
             PersonalDatabaseScreenTargetHelper.closeTargetSelector(screen);
             return true;
         }
+        if (screen.depositConflictExpanded) {
+            PersonalDatabaseScreenDepositConflictHelper.closeDepositConflict(screen);
+            return true;
+        }
         if (screen.topTabReplaceExpanded || screen.topTabActionPromptExpanded) {
             PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
             return true;

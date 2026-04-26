@@ -119,6 +119,9 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (screen.tabContextMenuExpanded && PersonalDatabaseScreenTabHelper.handleTabContextMenuClick(screen, mouseX, mouseY)) {
             return true;
         }
+        if (screen.depositConflictExpanded && PersonalDatabaseScreenDepositConflictHelper.handleDepositConflictClick(screen, mouseX, mouseY)) {
+            return true;
+        }
         if (screen.sortDropdownExpanded && PersonalDatabaseScreenPopupInteractionHelper.handleSortDropdownClick(screen, mouseX, mouseY)) {
             return true;
         }
@@ -348,7 +351,7 @@ final class PersonalDatabaseScreenInteractionHelper {
                 screen.pendingTargetStoresSingle = action == DatabaseClickAction.STORE_SINGLE;
                 PersonalDatabaseScreenTargetHelper.openTargetSelector(
                         screen,
-                        PersonalDatabaseScreen.TargetSelectorMode.CARRIED_STORE,
+                        PersonalDatabaseScreenEnums.TargetSelectorMode.CARRIED_STORE,
                         panelIndex,
                         -1,
                         panel.scopedTab().scope(),

@@ -69,9 +69,9 @@ final class PersonalDatabaseScreenSettingsHelper {
         }
         int clickedIndex = PersonalDatabaseScreenSettingsGeometry.clickedNavItemIndex(screen, mouseX, mouseY);
         if (clickedIndex >= 0) {
-            PersonalDatabaseScreen.SettingsPanelTab[] tabs = PersonalDatabaseScreen.SettingsPanelTab.values();
+            PersonalDatabaseScreenEnums.SettingsPanelTab[] tabs = PersonalDatabaseScreenEnums.SettingsPanelTab.values();
             if (clickedIndex < tabs.length) {
-                PersonalDatabaseScreen.SettingsPanelTab nextTab = tabs[clickedIndex];
+                PersonalDatabaseScreenEnums.SettingsPanelTab nextTab = tabs[clickedIndex];
                 if (screen.activeSettingsTab != nextTab) {
                     screen.activeSettingsTab = nextTab;
                     syncSettingsSubPanelStates(screen);
@@ -86,7 +86,7 @@ final class PersonalDatabaseScreenSettingsHelper {
     /**
      * 打开设置面板并初始化状态。
      */
-    static void openSettingsPanel(PersonalDatabaseScreen screen, PersonalDatabaseScreen.SettingsPanelTab initialTab) {
+    static void openSettingsPanel(PersonalDatabaseScreen screen, PersonalDatabaseScreenEnums.SettingsPanelTab initialTab) {
         PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
         screen.settingsPanelExpanded = true;
         screen.activeSettingsTab = initialTab;
@@ -155,7 +155,7 @@ final class PersonalDatabaseScreenSettingsHelper {
         );
 
         // 导航项
-        PersonalDatabaseScreen.SettingsPanelTab[] tabs = PersonalDatabaseScreen.SettingsPanelTab.values();
+        PersonalDatabaseScreenEnums.SettingsPanelTab[] tabs = PersonalDatabaseScreenEnums.SettingsPanelTab.values();
         for (int i = 0; i < tabs.length; i++) {
             PersonalDatabaseLayout.Rect itemRect = PersonalDatabaseScreenSettingsGeometry.settingsNavItemRect(screen, i);
             if (itemRect.y() >= navRect.bottom() - PersonalDatabaseScreen.SETTINGS_NAV_PADDING) {

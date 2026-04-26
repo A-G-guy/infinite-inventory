@@ -6,6 +6,7 @@ import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
+import com.agguy.infiniteinventory.network.DatabaseDepositConflictPayload;
 import com.agguy.infiniteinventory.network.DatabaseLogSnapshotPayload;
 import com.agguy.infiniteinventory.network.DatabaseViewerLocalePayload;
 import java.util.EnumMap;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -22,6 +24,8 @@ public final class PersonalDatabaseClient {
     private static ViewerLanguage lastSyncedViewerLanguage;
     private static final Map<DatabaseScope, List<DatabaseLogEntry>> cachedLogEntries = new EnumMap<>(DatabaseScope.class);
     private static DatabaseEnhancementConfig lastKnownEnhancementConfig = DatabaseEnhancementConfig.defaultConfig();
+    @Nullable
+    private static DatabaseDepositConflictPayload pendingDepositConflict;
 
     private PersonalDatabaseClient() {
     }
@@ -54,6 +58,17 @@ public final class PersonalDatabaseClient {
 
     public static void clearLogCache() {
         cachedLogEntries.clear();
+    }
+
+    public static void applyDepositConflict(DatabaseDepositConflictPayload payload) {
+        pendingDepositConflict = payload;
+    }
+
+    @Nullable
+    public static DatabaseDepositConflictPayload pendingDepositConflict() {
+        DatabaseDepositConflictPayload result = pendingDepositConflict;
+        pendingDepositConflict = null;
+        return result;
     }
 
     public static void syncViewerLanguageIfNeeded() {

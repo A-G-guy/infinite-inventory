@@ -15,7 +15,7 @@ final class PersonalDatabaseTargetSelectorModel {
     }
 
     static List<Row> buildRows(
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             @Nullable DatabaseViewState viewState,
             @Nullable DatabaseScope sourceScope,
             @Nullable String sourceTabId,
@@ -37,7 +37,7 @@ final class PersonalDatabaseTargetSelectorModel {
     }
 
     private static List<Row> buildTransferRows(
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             DatabaseViewState viewState,
             @Nullable DatabaseScope sourceScope,
             @Nullable String sourceTabId
@@ -84,14 +84,14 @@ final class PersonalDatabaseTargetSelectorModel {
 
     private static List<Row> buildDepositTargetRows(DatabaseViewState viewState, List<DatabasePanelView> currentPanels) {
         List<DatabaseTab> personalTabs = candidateTabs(
-                PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
                 viewState,
                 DatabaseScope.PERSONAL,
                 "",
                 currentPanels
         );
         List<DatabaseTab> publicTabs = candidateTabs(
-                PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
                 viewState,
                 DatabaseScope.PUBLIC,
                 "",
@@ -115,7 +115,7 @@ final class PersonalDatabaseTargetSelectorModel {
     }
 
     private static List<DatabaseTab> transferTabsForScope(
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             DatabaseViewState viewState,
             DatabaseScope scope,
             DatabaseScope sourceScope,
@@ -126,7 +126,7 @@ final class PersonalDatabaseTargetSelectorModel {
                 : DatabaseTabs.normalizeConcreteTarget(sourceTabId);
         return viewState.tabsForScope(scope).stream()
                 .filter(DatabaseTab::isConcreteTab)
-                .filter(tab -> mode != PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
+                .filter(tab -> mode != PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_TAB
                         || scope != DatabaseScope.normalize(sourceScope)
                         || normalizedSourceTabId == null
                         || !tab.id().equals(normalizedSourceTabId))
@@ -145,7 +145,7 @@ final class PersonalDatabaseTargetSelectorModel {
     }
 
     private static List<DatabaseTab> candidateTabs(
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             DatabaseViewState viewState,
             DatabaseScope targetScope,
             @Nullable String sourceTabId,

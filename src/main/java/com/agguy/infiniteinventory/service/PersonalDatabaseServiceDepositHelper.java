@@ -5,15 +5,50 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseLogAction;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
+import com.agguy.infiniteinventory.database.StoredStackEntry;
+import com.agguy.infiniteinventory.database.StoredStackKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
-final class PersonalDatabaseServiceDepositHelper {
+public final class PersonalDatabaseServiceDepositHelper {
     private PersonalDatabaseServiceDepositHelper() {
+    }
+
+    public record DepositConflict(
+            DatabaseScope scope,
+            String targetTabId,
+            String existingTabId,
+            ItemStack stack
+    ) {
+    }
+
+    @Nullable
+    static DepositConflict checkDepositConflict(
+            PersonalDatabaseService service,
+            ServerPlayer player,
+            DatabaseScope scope,
+            String targetTabId,
+            ItemStack stack
+    ) {
+        if (!service.canStore(stack)) {
+            return null;
+        }
+        StoredItemDatabase database = service.resolveDatabaseForMutation(player, scope);
+        StoredStackKey key = StoredStackKey.of(stack);
+        StoredStackEntry entry = database.entries().get(key);
+        if (entry == null) {
+            return null;
+        }
+        String resolvedTargetTabId = service.resolveConcreteTargetTabId(player, scope, targetTabId);
+        if (entry.tabId().equals(resolvedTargetTabId)) {
+            return null;
+        }
+        return new DepositConflict(scope, resolvedTargetTabId, entry.tabId(), stack.copy());
     }
 
     static boolean depositSlot(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String targetTabId, Slot slot) {

@@ -248,7 +248,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                 && selectedTab.isConcreteTab()) {
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
                     screen,
-                    PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB,
+                    PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_TAB,
                     -1,
                     -1,
                     selectedScopedTab.scope(),
@@ -290,7 +290,7 @@ final class PersonalDatabaseScreenManagementPanelHelper {
                 && selectedTab.canDelete()) {
             PersonalDatabaseScreenTargetHelper.openTargetSelector(
                     screen,
-                    PersonalDatabaseScreen.TargetSelectorMode.DELETE_TAB,
+                    PersonalDatabaseScreenEnums.TargetSelectorMode.DELETE_TAB,
                     -1,
                     -1,
                     selectedScopedTab.scope(),

@@ -215,7 +215,7 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH) {
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH) {
             return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
         }
         int width = PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_WIDTH;
@@ -251,7 +251,7 @@ final class PersonalDatabaseScreenGeometry {
         if (screen.layout == null) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ENHANCEMENT) {
+        if (screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreenEnums.SettingsPanelTab.ENHANCEMENT) {
             return PersonalDatabaseScreenSettingsGeometry.settingsContentInnerRect(screen);
         }
         int height = PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2

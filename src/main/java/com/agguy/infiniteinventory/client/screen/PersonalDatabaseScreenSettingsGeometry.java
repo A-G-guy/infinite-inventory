@@ -133,7 +133,7 @@ final class PersonalDatabaseScreenSettingsGeometry {
         if (mouseY < titleRect.bottom() + NAV_ITEM_GAP) {
             return -1;
         }
-        for (int i = 0; i < PersonalDatabaseScreen.SettingsPanelTab.values().length; i++) {
+        for (int i = 0; i < PersonalDatabaseScreenEnums.SettingsPanelTab.values().length; i++) {
             PersonalDatabaseLayout.Rect itemRect = settingsNavItemRect(screen, i);
             if (itemRect.contains(mouseX, mouseY)) {
                 return i;

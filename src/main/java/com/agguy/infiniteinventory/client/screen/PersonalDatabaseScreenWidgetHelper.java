@@ -40,7 +40,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                         button -> {
                             PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
                             screen.settingsPanelExpanded = true;
-                            screen.activeSettingsTab = PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH;
+                            screen.activeSettingsTab = PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
                             PersonalDatabaseScreenSettingsHelper.syncSettingsSubPanelStates(screen);
                         }
                 )
@@ -132,7 +132,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                             } else {
                                 PersonalDatabaseScreenTargetHelper.openTargetSelector(
                                         screen,
-                                        PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                                        PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
                                         -1,
                                         -1,
                                         ""
@@ -221,7 +221,7 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncAdvancedSearchButtons(PersonalDatabaseScreen screen, DatabaseQuery query) {
         DatabaseSearchConfig searchConfig = query.searchConfig();
         int enabledTextFieldCount = enabledTextFieldCount(searchConfig);
-        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ADVANCED_SEARCH;
+        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             DatabaseSearchWeight weight = searchConfig.weightFor(field);
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.advancedSearchRowRect(screen, field);
@@ -251,7 +251,7 @@ final class PersonalDatabaseScreenWidgetHelper {
     }
 
     static void syncEnhancementButtons(PersonalDatabaseScreen screen, DatabaseEnhancementConfig config) {
-        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreen.SettingsPanelTab.ENHANCEMENT;
+        boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreenEnums.SettingsPanelTab.ENHANCEMENT;
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             Button toggleButton = screen.enhancementToggleButtons.get(option);

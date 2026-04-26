@@ -13,9 +13,9 @@ import com.agguy.infiniteinventory.database.DatabaseViewPreferencesAttachment;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.database.StoredStackKey;
 import com.agguy.infiniteinventory.localization.ViewerLanguage;
-import com.agguy.infiniteinventory.network.DatabaseClickAction;
 import com.agguy.infiniteinventory.registry.ModMenus;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
+import com.agguy.infiniteinventory.service.PersonalDatabaseServiceDepositHelper;
 import com.mojang.datafixers.util.Pair;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -29,7 +29,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.inventory.ResultContainer;
@@ -39,7 +38,6 @@ import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import org.jetbrains.annotations.Nullable;
 
 abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput, CraftingRecipe> {
@@ -223,9 +221,22 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         );
     }
 
+    protected boolean invokeMoveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean reverse) {
+        return this.moveItemStackTo(stack, startIndex, endIndex, reverse);
+    }
+
     protected boolean storeCarriedStack(ServerPlayer player, DatabaseScope targetScope, boolean singleItem, String targetTabId) {
         ItemStack carried = this.getCarried();
         if (!PersonalDatabaseService.INSTANCE.canStore(carried)) {
+            return false;
+        }
+        PersonalDatabaseServiceDepositHelper.DepositConflict conflict = PersonalDatabaseService.INSTANCE.checkDepositConflict(
+                player, targetScope, targetTabId, carried
+        );
+        if (conflict != null) {
+            if (this instanceof PersonalDatabaseMenu menu) {
+                menu.sendDepositConflict(conflict.scope(), conflict.targetTabId(), conflict.existingTabId(), conflict.stack(), -2);
+            }
             return false;
         }
         ItemStack storedStack = singleItem ? carried.split(1) : carried.copyAndClear();
@@ -406,23 +417,6 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     }
 
     protected abstract void syncViewToClient();
-
-    protected static final class CraftingMenuAccess extends CraftingMenu {
-        private CraftingMenuAccess(int containerId, Inventory playerInventory) {
-            super(containerId, playerInventory);
-        }
-
-        static void updateResult(
-                AbstractContainerMenu menu,
-                net.minecraft.world.level.Level level,
-                Player player,
-                CraftingContainer craftingSlots,
-                ResultContainer resultSlots,
-                @Nullable RecipeHolder<CraftingRecipe> recipe
-        ) {
-            slotChangedCraftingGrid(menu, level, player, craftingSlots, resultSlots, recipe);
-        }
-    }
 
     protected static final class EquipmentDisplaySlot extends Slot {
         private final LivingEntity owner;

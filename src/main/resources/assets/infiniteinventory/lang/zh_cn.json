@@ -214,5 +214,10 @@
   "screen.infiniteinventory.tab_context.rename": "重命名",
   "screen.infiniteinventory.tab_context.change_icon": "修改图标",
   "screen.infiniteinventory.tab_context.hide_in_top": "顶部隐藏",
-  "screen.infiniteinventory.tab_context.show_in_top": "顶部显示"
+  "screen.infiniteinventory.tab_context.show_in_top": "顶部显示",
+  "screen.infiniteinventory.deposit_conflict.title": "存入页签冲突",
+  "screen.infiniteinventory.deposit_conflict.description": "该物品当前存放于 %s",
+  "screen.infiniteinventory.deposit_conflict.cancel": "取消",
+  "screen.infiniteinventory.deposit_conflict.move_to_target": "存入并将库存统一转移到目标分类",
+  "screen.infiniteinventory.deposit_conflict.keep_in_source": "存入到原分类"
 }

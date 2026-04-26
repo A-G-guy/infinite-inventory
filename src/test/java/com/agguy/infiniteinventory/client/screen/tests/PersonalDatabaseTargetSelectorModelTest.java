@@ -26,7 +26,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
 
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
-                PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_SELECTION,
                 viewState,
                 DatabaseScope.PERSONAL,
                 "",
@@ -50,7 +50,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
 
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
-                PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_TAB,
                 viewState,
                 DatabaseScope.PERSONAL,
                 "shared_tab",
@@ -76,7 +76,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
 
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
-                PersonalDatabaseScreen.TargetSelectorMode.DELETE_TAB,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.DELETE_TAB,
                 viewState,
                 DatabaseScope.PUBLIC,
                 "public_blocks",
@@ -98,7 +98,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
 
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
-                PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
                 viewState,
                 DatabaseScope.PUBLIC,
                 "",
@@ -124,7 +124,7 @@ class PersonalDatabaseTargetSelectorModelTest {
         );
 
         List<PersonalDatabaseTargetSelectorModel.Row> rows = PersonalDatabaseTargetSelectorModel.buildRows(
-                PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET,
+                PersonalDatabaseScreenEnums.TargetSelectorMode.AUTO_STORE_TARGET,
                 viewState,
                 DatabaseScope.PERSONAL,
                 "",

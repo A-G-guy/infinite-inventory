@@ -24,7 +24,7 @@ final class PersonalDatabaseScreenTargetHelper {
 
     static void openTargetSelector(
             PersonalDatabaseScreen screen,
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             int panelIndex,
             int slotIndex,
             String sourceTabId
@@ -41,7 +41,7 @@ final class PersonalDatabaseScreenTargetHelper {
 
     static void openTargetSelector(
             PersonalDatabaseScreen screen,
-            PersonalDatabaseScreen.TargetSelectorMode mode,
+            PersonalDatabaseScreenEnums.TargetSelectorMode mode,
             int panelIndex,
             int slotIndex,
             DatabaseScope sourceScope,
@@ -53,7 +53,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.pagePickerExpanded = false;
         screen.moreTabsExpanded = false;
         screen.viewSelectorExpanded = false;
-        screen.targetSelectorMode = mode == null ? PersonalDatabaseScreen.TargetSelectorMode.NONE : mode;
+        screen.targetSelectorMode = mode == null ? PersonalDatabaseScreenEnums.TargetSelectorMode.NONE : mode;
         screen.pendingTargetPanelIndex = panelIndex;
         screen.pendingQuickDepositSlotIndex = slotIndex;
         screen.pendingTargetSourceTabId = sourceTabId == null ? "" : sourceTabId;
@@ -64,7 +64,7 @@ final class PersonalDatabaseScreenTargetHelper {
 
     static void closeTargetSelector(PersonalDatabaseScreen screen) {
         screen.targetSelectorExpanded = false;
-        screen.targetSelectorMode = PersonalDatabaseScreen.TargetSelectorMode.NONE;
+        screen.targetSelectorMode = PersonalDatabaseScreenEnums.TargetSelectorMode.NONE;
         screen.pendingTargetPanelIndex = -1;
         screen.pendingQuickDepositSlotIndex = -1;
         screen.pendingTargetSourceTabId = "";
@@ -130,7 +130,7 @@ final class PersonalDatabaseScreenTargetHelper {
             return;
         }
 
-        DatabaseAutoStoreTarget selectedTarget = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
+        DatabaseAutoStoreTarget selectedTarget = screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.AUTO_STORE_TARGET
                 ? screen.databaseMenu.viewState().autoStoreTarget()
                 : null;
         PersonalDatabaseLayout.Rect bodyRect = selectorBodyRect(panelRect);
@@ -260,14 +260,14 @@ final class PersonalDatabaseScreenTargetHelper {
             ));
             return true;
         }
-        openTargetSelector(screen, PersonalDatabaseScreen.TargetSelectorMode.QUICK_DEPOSIT, -1, slotIndex, "");
+        openTargetSelector(screen, PersonalDatabaseScreenEnums.TargetSelectorMode.QUICK_DEPOSIT, -1, slotIndex, "");
         return true;
     }
 
     static boolean handleEnhancementPanelClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         PersonalDatabaseLayout.Rect autoStoreRowRect = PersonalDatabaseScreenGeometry.enhancementAutoStoreRowRect(screen);
         if (autoStoreRowRect.contains(mouseX, mouseY)) {
-            openTargetSelector(screen, PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET, -1, -1, "");
+            openTargetSelector(screen, PersonalDatabaseScreenEnums.TargetSelectorMode.AUTO_STORE_TARGET, -1, -1, "");
             return true;
         }
         return false;
@@ -349,16 +349,16 @@ final class PersonalDatabaseScreenTargetHelper {
             PersonalDatabaseLayout.Rect rowRect,
             PersonalDatabaseTargetSelectorModel.Row row
     ) {
-        Component label = screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.AUTO_STORE_TARGET
-                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.DEPOSIT_ALL
-                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.CARRIED_STORE
-                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.QUICK_DEPOSIT
+        Component label = screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.AUTO_STORE_TARGET
+                || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL
+                || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.CARRIED_STORE
+                || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.QUICK_DEPOSIT
                 ? Component.translatable(
                         "screen.infiniteinventory.target_selector.group.target_scope",
                         Component.translatable(row.scope().translationKey())
                 )
-                : screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
-                        || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION
+                : screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_TAB
+                        || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_SELECTION
                 ? row.sourceScopeGroup()
                         ? Component.translatable(
                                 "screen.infiniteinventory.target_selector.group.source_scope",
@@ -429,8 +429,8 @@ final class PersonalDatabaseScreenTargetHelper {
     }
 
     private static boolean usesGroupedTransferRows(PersonalDatabaseScreen screen) {
-        return screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_TAB
-                || screen.targetSelectorMode == PersonalDatabaseScreen.TargetSelectorMode.TRANSFER_SELECTION;
+        return screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_TAB
+                || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.TRANSFER_SELECTION;
     }
 
     private static boolean isSelectedAutoStoreTarget(

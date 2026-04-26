@@ -174,7 +174,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
     boolean settingsPanelExpanded;
-    SettingsPanelTab activeSettingsTab = SettingsPanelTab.ADVANCED_SEARCH;
+    PersonalDatabaseScreenEnums.SettingsPanelTab activeSettingsTab = PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
     boolean suppressVanillaTooltipRender;
     double lastMouseX;
     double lastMouseY;
@@ -205,7 +205,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     String iconPickerOriginalItemId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
     String lastUiSignature = "";
     boolean pendingTargetStoresSingle;
-    TargetSelectorMode targetSelectorMode = TargetSelectorMode.NONE;
+    PersonalDatabaseScreenEnums.TargetSelectorMode targetSelectorMode = PersonalDatabaseScreenEnums.TargetSelectorMode.NONE;
     int targetSelectorScrollIndex;
     DatabaseScope topTabScopeFilter = DatabaseScope.PERSONAL;
     @Nullable
@@ -224,33 +224,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     int tabContextMenuX;
     int tabContextMenuY;
     int tabContextMenuHeight;
-
-    enum TargetSelectorMode {
-        NONE,
-        DEPOSIT_ALL,
-        CARRIED_STORE,
-        QUICK_DEPOSIT,
-        TRANSFER_TAB,
-        TRANSFER_SELECTION,
-        DELETE_TAB,
-        AUTO_STORE_TARGET
-    }
-
-    enum SettingsPanelTab {
-        ADVANCED_SEARCH("screen.infiniteinventory.search_advanced_title"),
-        ENHANCEMENT("screen.infiniteinventory.enhancement_title"),
-        MANAGEMENT("screen.infiniteinventory.management.title");
-
-        private final String translationKey;
-
-        SettingsPanelTab(String translationKey) {
-            this.translationKey = translationKey;
-        }
-
-        public String translationKey() {
-            return this.translationKey;
-        }
-    }
+    boolean depositConflictExpanded;
+    @Nullable
+    com.agguy.infiniteinventory.network.DatabaseDepositConflictPayload pendingDepositConflict;
 
     record DatabaseHitResult(int panelIndex, int slotIndex) {
     }
@@ -350,6 +326,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.tabContextMenuExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderTabContextMenu(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.depositConflictExpanded) {
+            PersonalDatabaseScreenDepositConflictHelper.renderDepositConflict(this, guiGraphics, mouseX, mouseY);
         }
         if (this.customExtractOverlayExpanded) {
             PersonalDatabaseScreenCustomExtractOverlayHelper.renderOverlay(this, guiGraphics, mouseX, mouseY);
