@@ -47,8 +47,6 @@ final class StoredItemDatabaseStoreHelper {
         if (entry == null) {
             entry = new StoredStackEntry(normalizedTabId, 0L, sequence, sequence);
             database.entriesInternal().put(key, entry);
-        } else {
-            entry.moveToTab(normalizedTabId, sequence);
         }
         entry.add(stack.getCount(), sequence);
         database.markRuntimeStateDirty();

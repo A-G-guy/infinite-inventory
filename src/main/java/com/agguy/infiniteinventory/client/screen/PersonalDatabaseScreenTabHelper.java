@@ -300,7 +300,7 @@ final class PersonalDatabaseScreenTabHelper {
         }
         PersonalDatabaseScreenTabContextMenuItem item = tabContextMenuItemAt(screen, mouseX, mouseY);
         if (item != null) {
-            activateTabContextMenuItem(screen, item);
+            PersonalDatabaseScreenTabContextMenuActivator.activate(screen, item);
             return true;
         }
         if (isWithinTabContextMenu(screen, mouseX, mouseY)) {
@@ -343,7 +343,11 @@ final class PersonalDatabaseScreenTabHelper {
         );
         int menuWidth = PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(screen, items);
         int rowY = screen.tabContextMenuY + 2;
+        int menuBottom = screen.tabContextMenuY + screen.tabContextMenuHeight;
         for (PersonalDatabaseScreenTabContextMenuItem item : items) {
+            if (rowY >= menuBottom) {
+                return null;
+            }
             if (item == null) {
                 rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
                 continue;
@@ -357,67 +361,6 @@ final class PersonalDatabaseScreenTabHelper {
             rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
         }
         return null;
-    }
-
-    private static void activateTabContextMenuItem(PersonalDatabaseScreen screen, PersonalDatabaseScreenTabContextMenuItem item) {
-        PersonalDatabaseScreenCommonHelper.playButtonClickSound(screen);
-        DatabaseScopedTabRef target = screen.tabContextMenuTarget;
-        closeTabContextMenu(screen);
-        if (target == null) {
-            return;
-        }
-        switch (item.action()) {
-            case JOIN_CURRENT_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applyJoinCurrentView(screen, target);
-            case REMOVE_FROM_VIEW -> {
-                DatabaseQuery query = screen.databaseMenu.viewState().query();
-                List<DatabaseScopedTabRef> nextVisibleTabs = query.visibleTabs().stream()
-                        .filter(t -> !t.equals(target))
-                        .toList();
-                PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.withVisibleTabs(nextVisibleTabs));
-            }
-            case SINGLE_VIEW -> PersonalDatabaseScreenTopTabPromptHelper.applySingleView(screen, target);
-            case MOVE_LEFT -> {
-                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
-                if (tab != null) {
-                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
-                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.MOVE_LEFT,
-                            tab.id(), "", "", ""
-                    );
-                }
-            }
-            case MOVE_RIGHT -> {
-                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
-                if (tab != null) {
-                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
-                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.MOVE_RIGHT,
-                            tab.id(), "", "", ""
-                    );
-                }
-            }
-            case RENAME -> {
-                PersonalDatabaseScreenManagementHelper.loadManagementDrafts(screen, target);
-                screen.tabManagementExpanded = true;
-                PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
-                if (screen.managementNameBox != null) {
-                    screen.focusScreen(screen.managementNameBox);
-                    screen.managementNameBox.setFocused(true);
-                }
-            }
-            case CHANGE_ICON -> {
-                PersonalDatabaseScreenManagementHelper.loadManagementDrafts(screen, target);
-                screen.tabManagementExpanded = true;
-                PersonalDatabaseScreenManagementHelper.openIconPicker(screen);
-            }
-            case TOGGLE_TOP_VISIBILITY -> {
-                DatabaseTab tab = PersonalDatabaseScreenCommonHelper.findTab(screen, target);
-                if (tab != null) {
-                    PersonalDatabaseScreenManagementHelper.sendTabMutation(
-                            screen, target.scope(), com.agguy.infiniteinventory.network.DatabaseTabMutationAction.TOGGLE_TOP_VISIBILITY,
-                            tab.id(), "", "", ""
-                    );
-                }
-            }
-        }
     }
 
     static boolean handleViewSelectorClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {

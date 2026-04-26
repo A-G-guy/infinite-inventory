@@ -387,8 +387,20 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         guiGraphics.pose().translate(0.0F, 0.0F, 260.0F);
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, menuRect);
         int rowY = menuRect.y() + 2;
+        int menuBottom = menuRect.y() + menuRect.height();
         for (PersonalDatabaseScreenTabContextMenuItem item : items) {
+            if (rowY >= menuBottom) {
+                break;
+            }
             if (item == null) {
+                int dividerY = rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT / 2;
+                guiGraphics.fill(
+                        menuRect.x() + 6,
+                        dividerY,
+                        menuRect.right() - 6,
+                        dividerY + 1,
+                        0x70A89E8C
+                );
                 rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
                 continue;
             }
