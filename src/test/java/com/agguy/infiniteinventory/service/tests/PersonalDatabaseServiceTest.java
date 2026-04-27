@@ -39,6 +39,13 @@ class PersonalDatabaseServiceTest {
     }
 
     @Test
+    void depositExistingByTabShouldReturnLongToAvoidOverflowRegression() throws ReflectiveOperationException {
+        var method = PersonalDatabaseService.class.getDeclaredMethod("depositExistingByTab", ServerPlayer.class, DatabaseScope.class);
+
+        assertEquals(long.class, method.getReturnType());
+    }
+
+    @Test
     void extractToWorldShouldReturnLongToPreserveDroppedCountContract() throws ReflectiveOperationException {
         var method = PersonalDatabaseService.class.getDeclaredMethod("extractToWorld", ServerPlayer.class, DatabaseScope.class, StoredStackKey.class, long.class);
 

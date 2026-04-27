@@ -10,6 +10,7 @@ final class PersonalDatabaseScreenEnums {
     enum TargetSelectorMode {
         NONE,
         DEPOSIT_ALL,
+        DEPOSIT_EXISTING_BY_TAB,
         CARRIED_STORE,
         QUICK_DEPOSIT,
         TRANSFER_TAB,

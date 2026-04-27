@@ -14,6 +14,7 @@ public record PersonalDatabaseLayout(
         Rect settingsButtonRect,
         Rect sortButtonRect,
         Rect depositButtonRect,
+        Rect depositExistingButtonRect,
         Rect viewSelectorButtonRect,
         Rect logButtonRect,
         Rect pageLabelRect,
@@ -82,6 +83,7 @@ public record PersonalDatabaseLayout(
         settingsButtonRect = settingsButtonRect == null ? Rect.empty() : settingsButtonRect;
         sortButtonRect = sortButtonRect == null ? Rect.empty() : sortButtonRect;
         depositButtonRect = depositButtonRect == null ? Rect.empty() : depositButtonRect;
+        depositExistingButtonRect = depositExistingButtonRect == null ? Rect.empty() : depositExistingButtonRect;
         viewSelectorButtonRect = viewSelectorButtonRect == null ? Rect.empty() : viewSelectorButtonRect;
         logButtonRect = logButtonRect == null ? Rect.empty() : logButtonRect;
         pageLabelRect = pageLabelRect == null ? Rect.empty() : pageLabelRect;

@@ -120,6 +120,10 @@ public final class PersonalDatabaseService {
         return PersonalDatabaseServiceDepositHelper.depositMainInventory(this, player, scope, targetTabId);
     }
 
+    public long depositExistingByTab(ServerPlayer player, DatabaseScope scope) {
+        return PersonalDatabaseServiceDepositHelper.depositExistingByTab(this, player, scope);
+    }
+
     public boolean storeStack(ServerPlayer player, DatabaseScope scope, String targetTabId, ItemStack stack) {
         return PersonalDatabaseServiceDepositHelper.storeStack(this, player, scope, targetTabId, stack);
     }

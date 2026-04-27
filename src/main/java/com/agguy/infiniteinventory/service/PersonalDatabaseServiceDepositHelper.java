@@ -65,6 +65,37 @@ public final class PersonalDatabaseServiceDepositHelper {
         return true;
     }
 
+    static long depositExistingByTab(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope) {
+        Inventory inventory = player.getInventory();
+        StoredItemDatabase database = service.resolveDatabaseForMutation(player, scope);
+        long movedItems = 0L;
+        boolean movedAny = false;
+        for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
+            if (!PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex)) {
+                continue;
+            }
+            ItemStack stack = inventory.items.get(slotIndex);
+            if (!service.canStore(stack)) {
+                continue;
+            }
+            StoredStackKey key = StoredStackKey.of(stack);
+            StoredStackEntry entry = database.entries().get(key);
+            if (entry == null) {
+                continue;
+            }
+            movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
+            movedAny = true;
+            database.store(stack.copy(), entry.tabId());
+            PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", entry.tabId(), null);
+            inventory.items.set(slotIndex, ItemStack.EMPTY);
+        }
+        if (movedAny) {
+            service.markScopeDirty(player, scope);
+            inventory.setChanged();
+        }
+        return movedItems;
+    }
+
     static long depositMainInventory(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String targetTabId) {
         Inventory inventory = player.getInventory();
         StoredItemDatabase database = service.resolveDatabaseForMutation(player, scope);

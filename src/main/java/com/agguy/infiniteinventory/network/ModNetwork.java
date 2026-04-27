@@ -38,6 +38,7 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseQuickDepositPayload.TYPE, DatabaseQuickDepositPayload.STREAM_CODEC, ModNetwork::handleQuickDeposit);
         registrar.playToServer(DatabaseTabMutationPayload.TYPE, DatabaseTabMutationPayload.STREAM_CODEC, ModNetwork::handleTabMutation);
         registrar.playToServer(DepositAllPayload.TYPE, DepositAllPayload.STREAM_CODEC, ModNetwork::handleDepositAll);
+        registrar.playToServer(DepositExistingByTabPayload.TYPE, DepositExistingByTabPayload.STREAM_CODEC, ModNetwork::handleDepositExistingByTab);
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
         registrar.playToServer(DatabaseLogRequestPayload.TYPE, DatabaseLogRequestPayload.STREAM_CODEC, ModNetwork::handleLogRequest);
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
@@ -206,6 +207,18 @@ public final class ModNetwork {
             PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
             if (menu != null) {
                 menu.depositAllFromMainInventory(payload.targetScope(), payload.targetTabId());
+            }
+        });
+    }
+
+    private static void handleDepositExistingByTab(DepositExistingByTabPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
+            if (menu != null) {
+                menu.depositExistingByTab(payload.targetScope());
             }
         });
     }

@@ -28,12 +28,42 @@ final class PersonalDatabaseTargetSelectorModel {
             case TRANSFER_SELECTION, TRANSFER_TAB -> buildTransferRows(mode, viewState, sourceScope, sourceTabId);
             case AUTO_STORE_TARGET -> buildAutoStoreTargetRows(viewState);
             case DEPOSIT_ALL, CARRIED_STORE, QUICK_DEPOSIT -> buildDepositTargetRows(viewState, currentPanels);
+            case DEPOSIT_EXISTING_BY_TAB -> buildDepositExistingRows(viewState);
             case DELETE_TAB -> buildFlatRows(
                     DatabaseScope.normalize(sourceScope),
                     candidateTabs(mode, viewState, DatabaseScope.normalize(sourceScope), sourceTabId, currentPanels)
             );
             case NONE -> List.of();
         };
+    }
+
+    private static List<Row> buildDepositExistingRows(DatabaseViewState viewState) {
+        List<Row> rows = new ArrayList<>();
+        boolean hasPersonal = !concreteTabsForScope(viewState, DatabaseScope.PERSONAL).isEmpty();
+        boolean hasPublic = !concreteTabsForScope(viewState, DatabaseScope.PUBLIC).isEmpty();
+        if (!hasPersonal && !hasPublic) {
+            return List.of();
+        }
+        if (hasPersonal && hasPublic) {
+            appendTransferGroup(rows, DatabaseScope.PERSONAL, false, List.of(scopeTab(DatabaseScope.PERSONAL)));
+            appendTransferGroup(rows, DatabaseScope.PUBLIC, false, List.of(scopeTab(DatabaseScope.PUBLIC)));
+        } else if (hasPersonal) {
+            rows.add(Row.target(DatabaseScope.PERSONAL, scopeTab(DatabaseScope.PERSONAL)));
+        } else {
+            rows.add(Row.target(DatabaseScope.PUBLIC, scopeTab(DatabaseScope.PUBLIC)));
+        }
+        return List.copyOf(rows);
+    }
+
+    private static DatabaseTab scopeTab(DatabaseScope scope) {
+        return new DatabaseTab(
+                "",
+                "",
+                scope.translationKey(),
+                "minecraft:chest",
+                false,
+                true
+        );
     }
 
     private static List<Row> buildTransferRows(
@@ -157,7 +187,7 @@ final class PersonalDatabaseTargetSelectorModel {
                     .filter(DatabaseTab::isConcreteTab)
                     .filter(tab -> !tab.id().equals(sourceTabId == null ? "" : sourceTabId))
                     .toList();
-            case NONE, TRANSFER_SELECTION, TRANSFER_TAB, AUTO_STORE_TARGET -> List.of();
+            case NONE, TRANSFER_SELECTION, TRANSFER_TAB, AUTO_STORE_TARGET, DEPOSIT_EXISTING_BY_TAB -> List.of();
         };
     }
 

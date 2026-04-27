@@ -11,6 +11,7 @@ import com.agguy.infiniteinventory.network.DatabaseEnhancementPayload;
 import com.agguy.infiniteinventory.network.DatabaseQuickDepositPayload;
 import com.agguy.infiniteinventory.network.DatabaseTabMutationAction;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
+import com.agguy.infiniteinventory.network.DepositExistingByTabPayload;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -228,6 +229,7 @@ final class PersonalDatabaseScreenTargetHelper {
     static Component targetSelectorTitle(PersonalDatabaseScreen screen) {
         return switch (screen.targetSelectorMode) {
             case DEPOSIT_ALL -> Component.translatable("screen.infiniteinventory.target_selector.deposit_all");
+            case DEPOSIT_EXISTING_BY_TAB -> Component.translatable("screen.infiniteinventory.target_selector.deposit_existing");
             case CARRIED_STORE -> Component.translatable("screen.infiniteinventory.target_selector.store");
             case QUICK_DEPOSIT -> Component.translatable("screen.infiniteinventory.target_selector.quick_deposit");
             case TRANSFER_TAB -> Component.translatable("screen.infiniteinventory.target_selector.transfer");
@@ -284,6 +286,11 @@ final class PersonalDatabaseScreenTargetHelper {
                     screen.databaseMenu.viewState().sessionId(),
                     targetSelection.scope(),
                     targetTabId
+            ));
+            case DEPOSIT_EXISTING_BY_TAB -> PacketDistributor.sendToServer(new DepositExistingByTabPayload(
+                    screen.databaseMenu.containerId,
+                    screen.databaseMenu.viewState().sessionId(),
+                    targetSelection.scope()
             ));
             case CARRIED_STORE -> PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
                     screen,
@@ -351,6 +358,7 @@ final class PersonalDatabaseScreenTargetHelper {
     ) {
         Component label = screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.AUTO_STORE_TARGET
                 || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL
+                || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_EXISTING_BY_TAB
                 || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.CARRIED_STORE
                 || screen.targetSelectorMode == PersonalDatabaseScreenEnums.TargetSelectorMode.QUICK_DEPOSIT
                 ? Component.translatable(

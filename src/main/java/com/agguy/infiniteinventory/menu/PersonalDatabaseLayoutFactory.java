@@ -67,6 +67,14 @@ final class PersonalDatabaseLayoutFactory {
             nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + viewSelectorButtonWidth;
             viewSelectorButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), viewSelectorButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
         }
+        int depositExistingButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH;
+        PersonalDatabaseLayout.Rect depositExistingButtonRect = new PersonalDatabaseLayout.Rect(
+                nextLeft - PersonalDatabaseLayout.TOOLBAR_GAP - depositExistingButtonWidth,
+                titleRect.y(),
+                depositExistingButtonWidth,
+                PersonalDatabaseLayout.CONTROL_HEIGHT
+        );
+        nextLeft = depositExistingButtonRect.x();
         PersonalDatabaseLayout.Rect depositButtonRect = new PersonalDatabaseLayout.Rect(
                 nextLeft - PersonalDatabaseLayout.TOOLBAR_GAP - depositButtonWidth,
                 titleRect.y(),
@@ -206,6 +214,7 @@ final class PersonalDatabaseLayoutFactory {
                 settingsButtonRect,
                 sortButtonRect,
                 depositButtonRect,
+                depositExistingButtonRect,
                 viewSelectorButtonRect,
                 logButtonRect,
                 pageLabelRect,

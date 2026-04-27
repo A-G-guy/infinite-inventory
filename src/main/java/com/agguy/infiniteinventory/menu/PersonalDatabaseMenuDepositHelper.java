@@ -22,6 +22,23 @@ final class PersonalDatabaseMenuDepositHelper {
     }
 
     /**
+     * 将玩家主背包中已在数据库存在的物品，按各自已有标签页分别存入。
+     *
+     * <p>业务约束：仅处理 slotIndex >= 9 的主背包槽位；
+     * 不在数据库中的物品直接跳过；不产生 deposit conflict。
+     *
+     * @param targetScope 目标作用域，可为 null（默认 PERSONAL）
+     */
+    void depositExistingByTab(@Nullable DatabaseScope targetScope) {
+        DatabaseScope scope = targetScope == null ? DatabaseScope.PERSONAL : DatabaseScope.normalize(targetScope);
+        if (this.menu.owner instanceof ServerPlayer serverPlayer
+                && PersonalDatabaseService.INSTANCE.depositExistingByTab(serverPlayer, scope) > 0L) {
+            this.menu.broadcastChanges();
+            this.menu.syncAfterScopeMutation(serverPlayer, scope);
+        }
+    }
+
+    /**
      * 将玩家主背包所有物品存入数据库指定标签页。
      *
      * <p>业务约束：若目标标签页未指定，则按当前自动存储目标解析；

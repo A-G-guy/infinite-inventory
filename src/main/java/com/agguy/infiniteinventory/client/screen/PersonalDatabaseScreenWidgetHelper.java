@@ -112,6 +112,25 @@ final class PersonalDatabaseScreenWidgetHelper {
                     .build());
         }
 
+        PersonalDatabaseLayout.Rect depositExistingRect = screen.layout.depositExistingButtonRect();
+        screen.depositExistingButton = screen.addScreenButton(Button.builder(
+                        Component.translatable("screen.infiniteinventory.deposit_existing"),
+                        button -> {
+                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+                            screen.sortDropdownExpanded = false;
+                            screen.pagePickerExpanded = false;
+                            screen.enhancementPanelExpanded = false;
+                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+                            PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                                    screen,
+                                    PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_EXISTING_BY_TAB,
+                                    -1, -1, ""
+                            );
+                        }
+                )
+                .bounds(depositExistingRect.x(), depositExistingRect.y(), depositExistingRect.width(), depositExistingRect.height())
+                .build());
+
         PersonalDatabaseLayout.Rect depositRect = screen.layout.depositButtonRect();
         screen.depositButton = screen.addScreenButton(Button.builder(
                         Component.translatable("screen.infiniteinventory.deposit_all"),
@@ -296,6 +315,9 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.logButton.visible = logRect.width() > 0 && logRect.height() > 0;
             screen.logButton.active = true;
             screen.logButton.setMessage(Component.translatable("screen.infiniteinventory.log_button"));
+        }
+        if (screen.depositExistingButton != null) {
+            screen.depositExistingButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
         }
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;

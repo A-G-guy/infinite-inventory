@@ -248,6 +248,10 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.depositHelper.depositAllFromMainInventory(targetScope, targetTabId);
     }
 
+    public void depositExistingByTab(@Nullable DatabaseScope targetScope) {
+        this.depositHelper.depositExistingByTab(targetScope);
+    }
+
     public void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId) {
         this.depositHelper.depositInventorySlot(slotIndex, targetScope, targetTabId);
     }

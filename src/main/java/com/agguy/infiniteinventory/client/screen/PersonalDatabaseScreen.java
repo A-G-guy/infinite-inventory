@@ -124,6 +124,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     @Nullable
     DatabaseQuery pendingLayoutQuery;
     Button depositButton;
+    Button depositExistingButton;
     Button settingsButton;
     Button viewSelectorButton;
     Button logButton;
