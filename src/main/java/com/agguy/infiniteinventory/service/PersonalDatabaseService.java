@@ -406,7 +406,10 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-        PersonalDatabaseServiceSyncHelper.syncAmountDeltasToPlayer(this, player, scope);
+        boolean deltaSent = PersonalDatabaseServiceSyncHelper.syncAmountDeltasToPlayer(this, player, scope);
+        if (!deltaSent) {
+            PersonalDatabaseServiceSyncHelper.syncFullAmountsToPlayer(this, player);
+        }
         if (this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.FORCE_SAVE_ON_CRITICAL_MUTATION)) {
             try {
                 player.server.overworld().getDataStorage().save();

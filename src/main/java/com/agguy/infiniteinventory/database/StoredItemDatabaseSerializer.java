@@ -144,6 +144,7 @@ final class StoredItemDatabaseSerializer {
     static void deserialize(StoredItemDatabase database, HolderLookup.Provider provider, CompoundTag tag) {
         HolderLookup.Provider resolvedProvider = DatabaseHolderLookup.resolve(provider);
         database.resetContent();
+        database.drainPendingAmountDeltas();
         if (tag == null || tag.isEmpty()) {
             database.markRuntimeStateDirty();
             return;
