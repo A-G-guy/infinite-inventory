@@ -1,8 +1,8 @@
 # 无限库存
 
-[English](./README.md)
+[English](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/README.md)
 
-![无限库存横幅](./.github/assets/infiniteinventory-hero.png)
+![无限库存Logo](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/infiniteinventory-logo.png)
 
 **再也不用为背包空间发愁。**
 
@@ -55,6 +55,8 @@
 ## 合成获取
 
 在生存模式中合成**数据库终端**：
+
+![数据库终端](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/database_access_item.png)
 
 ```text
 D E D
@@ -135,9 +137,9 @@ D G D
 
 ## 参考文档
 
-- [架构说明](./docs/long-term/architecture/personal-database-architecture.md)
-- [安全与恢复指南](./docs/long-term/operations/database-safety-and-recovery.md)
-- [公共发布检查清单](./docs/long-term/operations/public-release-checklist.md)
+- [架构说明](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/architecture/personal-database-architecture.md)
+- [安全与恢复指南](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/database-safety-and-recovery.md)
+- [公共发布检查清单](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/public-release-checklist.md)
 
 ## 链接
 
@@ -147,5 +149,5 @@ D G D
 
 ## 许可证
 
-- 项目许可证：[Apache-2.0](./LICENSE)
-- 第三方声明：[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- 项目许可证：[Apache-2.0](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/LICENSE)
+- 第三方声明：[THIRD_PARTY_NOTICES.md](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/THIRD_PARTY_NOTICES.md)

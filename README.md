@@ -1,8 +1,8 @@
 # Infinite Inventory
 
-[简体中文](./README.zh-CN.md)
+[简体中文](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/README.zh-CN.md)
 
-![Infinite Inventory Banner](./.github/assets/infiniteinventory-hero.png)
+![Infinite Inventory Logo](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/infiniteinventory-logo.png)
 
 **Never run out of inventory space again.**
 
@@ -55,6 +55,8 @@ Then Infinite Inventory replaces all of that overhead with one full-screen datab
 ## Crafting
 
 Craft the **Database Terminal** in survival mode:
+
+![Database Terminal](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/database_access_item.png)
 
 ```text
 D E D
@@ -135,17 +137,17 @@ Your data is stored in the overworld's `SavedData` system, not on the terminal i
 
 ## Reference Documentation
 
-- [Architecture Overview](./docs/long-term/architecture/personal-database-architecture.md)
-- [Safety & Recovery Guide](./docs/long-term/operations/database-safety-and-recovery.md)
-- [Public Release Checklist](./docs/long-term/operations/public-release-checklist.md)
+- [Architecture Overview](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/architecture/personal-database-architecture.md)
+- [Safety & Recovery Guide](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/database-safety-and-recovery.md)
+- [Public Release Checklist](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/public-release-checklist.md)
 
 ## Links
 
 - **Source Code:** <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge>
-- **Issue Tracker:** <https://github.comagguy/minecraft-infinite-inventory-mod-neoforge/issues>
+- **Issue Tracker:** <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/issues>
 - **Planned Distribution:** Modrinth, CurseForge
 
 ## License
 
-- Project license: [Apache-2.0](./LICENSE)
-- Third-party attributions: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- Project license: [Apache-2.0](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/LICENSE)
+- Third-party attributions: [THIRD_PARTY_NOTICES.md](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/THIRD_PARTY_NOTICES.md)
