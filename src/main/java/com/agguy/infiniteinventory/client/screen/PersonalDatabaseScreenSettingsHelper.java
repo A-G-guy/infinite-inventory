@@ -48,9 +48,21 @@ final class PersonalDatabaseScreenSettingsHelper {
         // 渲染导航栏
         renderNavBar(screen, guiGraphics, navRect, mouseX, mouseY);
 
-        // 渲染右上角关闭按钮
-        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
+        guiGraphics.pose().popPose();
+    }
 
+    /**
+     * 渲染设置面板的关闭按钮，必须在所有子面板渲染完毕之后调用，
+     * 以确保关闭按钮显示在最上层而不被子面板背景遮挡。
+     */
+    static void renderSettingsPanelCloseButton(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (screen.layout == null) {
+            return;
+        }
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 248.0F);
+        PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenSettingsGeometry.settingsPanelRect(screen);
+        PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
         guiGraphics.pose().popPose();
     }
 

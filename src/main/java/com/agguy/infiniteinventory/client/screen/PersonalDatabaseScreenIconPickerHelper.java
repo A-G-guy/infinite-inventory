@@ -152,6 +152,8 @@ final class PersonalDatabaseScreenIconPickerHelper {
         }
         if (screen.iconSearchBox != null
                 && PersonalDatabaseScreenIconPickerGeometry.iconPickerSearchFieldRect(screen).contains(mouseX, mouseY)) {
+            screen.focusScreen(screen.iconSearchBox);
+            screen.iconSearchBox.setFocused(true);
             screen.iconSearchBox.mouseClicked(mouseX, mouseY, 0);
             return true;
         }
