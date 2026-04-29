@@ -1,7 +1,6 @@
 package com.agguy.infiniteinventory.network;
 
-import com.agguy.infiniteinventory.client.DatabaseAmountCache;
-import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
+import com.agguy.infiniteinventory.client.ClientPayloadHandlers;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.compat.CuriosCompat;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
@@ -12,9 +11,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.service.PersonalDatabaseTransferHelper;
-import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -30,9 +27,9 @@ public final class ModNetwork {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         PayloadRegistrar optionalRegistrar = registrar.optional();
-        registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
-        registrar.playToClient(DatabaseAmountSyncPayload.TYPE, DatabaseAmountSyncPayload.STREAM_CODEC, ModNetwork::handleAmountSync);
-        registrar.playToClient(DatabaseAmountDeltaSyncPayload.TYPE, DatabaseAmountDeltaSyncPayload.STREAM_CODEC, ModNetwork::handleAmountDeltaSync);
+        registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleSnapshot(payload)));
+        registrar.playToClient(DatabaseAmountSyncPayload.TYPE, DatabaseAmountSyncPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleAmountSync(payload)));
+        registrar.playToClient(DatabaseAmountDeltaSyncPayload.TYPE, DatabaseAmountDeltaSyncPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleAmountDeltaSync(payload)));
         optionalRegistrar.playToServer(DatabaseViewerLocalePayload.TYPE, DatabaseViewerLocalePayload.STREAM_CODEC, ModNetwork::handleViewerLocale);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
@@ -46,17 +43,9 @@ public final class ModNetwork {
         registrar.playToServer(DatabaseLogRequestPayload.TYPE, DatabaseLogRequestPayload.STREAM_CODEC, ModNetwork::handleLogRequest);
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
         registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
-        registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, ModNetwork::handleLogSnapshot);
-        registrar.playToClient(DatabaseDepositConflictPayload.TYPE, DatabaseDepositConflictPayload.STREAM_CODEC, ModNetwork::handleDepositConflict);
+        registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleLogSnapshot(payload)));
+        registrar.playToClient(DatabaseDepositConflictPayload.TYPE, DatabaseDepositConflictPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleDepositConflict(payload)));
         registrar.playToServer(DatabaseDepositResolvePayload.TYPE, DatabaseDepositResolvePayload.STREAM_CODEC, ModNetwork::handleDepositResolve);
-    }
-
-    private static void handleSnapshot(DatabaseSnapshotPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (Minecraft.getInstance().player != null) {
-                PersonalDatabaseClient.applySnapshot(payload.viewState());
-            }
-        });
     }
 
     private static void handleViewerLocale(DatabaseViewerLocalePayload payload, IPayloadContext context) {
@@ -255,10 +244,6 @@ public final class ModNetwork {
         });
     }
 
-    private static void handleLogSnapshot(DatabaseLogSnapshotPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> PersonalDatabaseClient.applyLogSnapshot(payload));
-    }
-
     private static void handleStarToggle(DatabaseStarPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) {
@@ -281,38 +266,6 @@ public final class ModNetwork {
                 menu.handleNoteUpdate(payload.scope(), payload.targetStacks(), payload.note());
             }
         });
-    }
-
-    private static void handleAmountSync(DatabaseAmountSyncPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> DatabaseAmountCache.INSTANCE.update(
-                toCacheEntries(payload.personalEntries()),
-                toCacheEntries(payload.publicEntries())
-        ));
-    }
-
-    private static void handleAmountDeltaSync(DatabaseAmountDeltaSyncPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> DatabaseAmountCache.INSTANCE.applyDelta(
-                toCacheDeltas(payload.personalDeltas()),
-                toCacheDeltas(payload.publicDeltas())
-        ));
-    }
-
-    private static List<DatabaseAmountCache.Entry> toCacheEntries(List<DatabaseAmountSyncPayload.AmountEntry> entries) {
-        return entries.stream()
-                .map(e -> new DatabaseAmountCache.Entry(e.stack(), e.tabName(), e.amount()))
-                .toList();
-    }
-
-    private static List<DatabaseAmountCache.Delta> toCacheDeltas(List<DatabaseAmountDeltaSyncPayload.DeltaEntry> deltas) {
-        List<DatabaseAmountCache.Delta> result = new ArrayList<>(deltas.size());
-        for (DatabaseAmountDeltaSyncPayload.DeltaEntry d : deltas) {
-            result.add(new DatabaseAmountCache.Delta(d.stack(), d.tabName(), d.amount(), d.removed()));
-        }
-        return result;
-    }
-
-    private static void handleDepositConflict(DatabaseDepositConflictPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> PersonalDatabaseClient.applyDepositConflict(payload));
     }
 
     private static void handleDepositResolve(DatabaseDepositResolvePayload payload, IPayloadContext context) {

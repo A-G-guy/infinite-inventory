@@ -353,6 +353,10 @@ public final class PersonalDatabaseService {
         PersonalDatabaseServiceViewerHelper.unregisterPublicViewer(player);
     }
 
+    public void onPlayerLogout(ServerPlayer player) {
+        PersonalDatabaseServiceViewerHelper.onPlayerLogout(player);
+    }
+
     StoredItemDatabase resolveDatabaseForView(ServerPlayer player, DatabaseScope scope) {
         DatabaseStorageSavedData storage = DatabaseStorageSavedData.get(player.server);
         if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {

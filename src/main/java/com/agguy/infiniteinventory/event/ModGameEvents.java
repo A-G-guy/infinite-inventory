@@ -85,4 +85,12 @@ public final class ModGameEvents {
         }
         PersonalDatabaseService.INSTANCE.syncAmountsToPlayer(player);
     }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        PersonalDatabaseService.INSTANCE.onPlayerLogout(player);
+    }
 }

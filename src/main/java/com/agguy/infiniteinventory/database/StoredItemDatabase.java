@@ -337,8 +337,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.logEntries.clear();
         this.nextSequence.set(1L);
         this.needsResave = false;
-        this.batchUpdateDepth.set(0);
-        this.batchDirty.set(false);
+        this.batchUpdateDepth.remove();
+        this.batchDirty.remove();
     }
     /**
      * 追加一条操作日志。

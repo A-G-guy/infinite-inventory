@@ -16,9 +16,20 @@ import net.neoforged.fml.ModList;
 
 public final class DatabaseCreativeTabSearchResolver {
     public static final DatabaseCreativeTabSearchResolver INSTANCE = new DatabaseCreativeTabSearchResolver();
+    private static final int MAX_ENVIRONMENT_CACHE_SIZE = 16;
 
-    private final Map<DatabaseSearchEnvironmentSignature, List<DatabaseCreativeTabSearchEntry>> availableTabsCache = new LinkedHashMap<>();
-    private final Map<DatabaseSearchEnvironmentSignature, Map<StoredStackKey, List<DatabaseCreativeTabSearchEntry>>> itemTabCache = new LinkedHashMap<>();
+    private final Map<DatabaseSearchEnvironmentSignature, List<DatabaseCreativeTabSearchEntry>> availableTabsCache = new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<DatabaseSearchEnvironmentSignature, List<DatabaseCreativeTabSearchEntry>> eldest) {
+            return this.size() > MAX_ENVIRONMENT_CACHE_SIZE;
+        }
+    };
+    private final Map<DatabaseSearchEnvironmentSignature, Map<StoredStackKey, List<DatabaseCreativeTabSearchEntry>>> itemTabCache = new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<DatabaseSearchEnvironmentSignature, Map<StoredStackKey, List<DatabaseCreativeTabSearchEntry>>> eldest) {
+            return this.size() > MAX_ENVIRONMENT_CACHE_SIZE;
+        }
+    };
 
     private DatabaseCreativeTabSearchResolver() {
     }
@@ -42,7 +53,7 @@ public final class DatabaseCreativeTabSearchResolver {
             return cachedTabs;
         }
 
-        java.util.ArrayList<DatabaseCreativeTabSearchEntry> matchedTabs = new java.util.ArrayList<>();
+        ArrayList<DatabaseCreativeTabSearchEntry> matchedTabs = new ArrayList<>();
         for (DatabaseCreativeTabSearchEntry tabEntry : this.availableTabs(searchEnvironment)) {
             if (tabEntry.tab().contains(key.displayStack())) {
                 matchedTabs.add(tabEntry);
@@ -66,7 +77,7 @@ public final class DatabaseCreativeTabSearchResolver {
                     searchEnvironment.registryAccess()
             );
         }
-        java.util.ArrayList<DatabaseCreativeTabSearchEntry> tabs = new ArrayList<>();
+        ArrayList<DatabaseCreativeTabSearchEntry> tabs = new ArrayList<>();
         for (CreativeModeTab tab : BuiltInRegistries.CREATIVE_MODE_TAB) {
             if (tab.getType() != CreativeModeTab.Type.CATEGORY || !tab.shouldDisplay()) {
                 continue;
