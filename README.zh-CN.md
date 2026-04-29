@@ -4,9 +4,22 @@
 
 ![无限库存Logo](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/infiniteinventory-logo.png)
 
+[![GitHub Release](https://img.shields.io/github/v/release/A-G-guy/infinite-inventory?style=flat-square)](https://github.com/A-G-guy/infinite-inventory/releases)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-62B47A?style=flat-square&logo=minecraft)](https://minecraft.net)
+[![NeoForge](https://img.shields.io/badge/NeoForge-21.1.x-orange?style=flat-square&logo=java)](https://neoforged.net)
+[![License](https://img.shields.io/github/license/A-G-guy/infinite-inventory?style=flat-square)](https://github.com/A-G-guy/infinite-inventory/blob/main/LICENSE)
+[![Modrinth](https://img.shields.io/badge/Modrinth-审核中-1DBF7A?style=flat-square&logo=modrinth)](https://modrinth.com/mod/agguy-infinite-inventory)
+
 **再也不用为背包空间发愁。**
 
-无限库存是一个面向 Minecraft 1.21.1 NeoForge 的模组。它将狭小的玩家背包升级为**个人专属的、可无限扩展的、数据库式仓储系统**。你不再需要 juggling 箱子、潜影盒和散布各处的储物室 —— 只需一个可检索的终端，就能携带全部物品收藏，按页签分类管理，支持双语智能搜索，并配备自动安全备份机制。
+无限库存是一个面向 Minecraft 1.21.1 NeoForge 的模组。它将狭小的玩家背包升级为**个人专属的、可无限扩展的、数据库式仓储系统**。你不再需要频繁整理箱子、潜影盒和散布各处的储物室 —— 只需一个可检索的终端，就能携带全部物品收藏，按页签分类管理，支持双语智能搜索，并配备自动安全备份机制。
+
+![Hero Banner](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/infiniteinventory-hero-v2.png)
+
+## 下载
+
+- **[Modrinth](https://modrinth.com/mod/agguy-infinite-inventory)** — 审核中，通过后即可下载。
+- **[GitHub Releases](https://github.com/A-G-guy/infinite-inventory/releases)** — 所有稳定版本与更新日志。
 
 ## 为什么要下载这个模组？
 
@@ -145,7 +158,7 @@ D G D
 
 - **源代码：** <https://github.com/A-G-guy/infinite-inventory>
 - **问题追踪：** <https://github.com/A-G-guy/infinite-inventory/issues>
-- **计划分发平台：** Modrinth、CurseForge
+- **Modrinth：** <https://modrinth.com/mod/agguy-infinite-inventory>
 
 ## 许可证
 

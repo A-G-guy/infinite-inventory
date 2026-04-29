@@ -4,9 +4,22 @@
 
 ![Infinite Inventory Logo](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/infiniteinventory-logo.png)
 
+[![GitHub Release](https://img.shields.io/github/v/release/A-G-guy/infinite-inventory?style=flat-square)](https://github.com/A-G-guy/infinite-inventory/releases)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-62B47A?style=flat-square&logo=minecraft)](https://minecraft.net)
+[![NeoForge](https://img.shields.io/badge/NeoForge-21.1.x-orange?style=flat-square&logo=java)](https://neoforged.net)
+[![License](https://img.shields.io/github/license/A-G-guy/infinite-inventory?style=flat-square)](https://github.com/A-G-guy/infinite-inventory/blob/main/LICENSE)
+[![Modrinth](https://img.shields.io/badge/Modrinth-Under_Review-1DBF7A?style=flat-square&logo=modrinth)](https://modrinth.com/mod/agguy-infinite-inventory)
+
 **Never run out of inventory space again.**
 
 Infinite Inventory is a NeoForge mod for Minecraft 1.21.1 that transforms the cramped player backpack into a **personal, infinitely-expandable, database-style storage system**. Instead of juggling chests, shulker boxes, and scattered storage rooms, you carry your entire item collection in a single searchable terminal — organized by tabs, filterable by bilingual search, and backed by automatic safety systems.
+
+![Hero Banner](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/infiniteinventory-hero-v2.png)
+
+## Downloads
+
+- **[Modrinth](https://modrinth.com/mod/agguy-infinite-inventory)** — Under review. Available once approved.
+- **[GitHub Releases](https://github.com/A-G-guy/infinite-inventory/releases)** — All stable versions and changelogs.
 
 ## Why Download This Mod?
 
@@ -145,7 +158,7 @@ Your data is stored in the overworld's `SavedData` system, not on the terminal i
 
 - **Source Code:** <https://github.com/A-G-guy/infinite-inventory>
 - **Issue Tracker:** <https://github.com/A-G-guy/infinite-inventory/issues>
-- **Planned Distribution:** Modrinth, CurseForge
+- **Modrinth:** <https://modrinth.com/mod/agguy-infinite-inventory>
 
 ## License
 
