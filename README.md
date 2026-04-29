@@ -2,37 +2,59 @@
 
 [简体中文](./README.zh-CN.md)
 
-![Infinite Inventory Hero](./.github/assets/infiniteinventory-hero.png)
+![Infinite Inventory Banner](./.github/assets/infiniteinventory-hero.png)
 
-`Infinite Inventory` is a NeoForge mod for Minecraft 1.21.1 that turns item storage into a personal database-style workflow with full-screen search, tab organization, fast extraction, and optional public storage.
+**Never run out of inventory space again.**
 
-## Highlights
+Infinite Inventory is a NeoForge mod for Minecraft 1.21.1 that transforms the cramped player backpack into a **personal, infinitely-expandable, database-style storage system**. Instead of juggling chests, shulker boxes, and scattered storage rooms, you carry your entire item collection in a single searchable terminal — organized by tabs, filterable by bilingual search, and backed by automatic safety systems.
 
-- Full-screen database UI with personal storage, public storage, and mixed multi-panel views.
-- Bilingual search that understands Chinese item names, English aliases, item IDs, namespaces, and pinyin.
-- Custom tab management with rename, icon pick, reorder, full-tab transfer, and delete-with-migration flow.
-- Stable sorting by recent changes, recently added, name, count, namespace, and item ID.
-- Data safety features including unresolved-item preservation, rolling backups, manual backups, and restore commands.
-- Optional `Accessories` integration: wearable database terminal, compatible layout, and quick open support.
+## Why Download This Mod?
 
-## Compatibility
+If you have ever:
+- Run out of hotbar and inventory slots while mining or building
+- Spent more time sorting chests than actually playing
+- Lost track of which chest contains which item
+- Wanted to find an item instantly without memorizing storage layouts
 
-- Minecraft: `1.21.1`
-- Loader: `NeoForge`
-- Supported NeoForge range: `21.1.222+`
-- Java: `21`
-- Optional dependency: `Accessories 1.1.0-beta.53+1.21.1`
+Then Infinite Inventory replaces all of that overhead with one full-screen database interface. Search by name, pinyin, item ID, tag, or mod — and extract exactly what you need in seconds.
+
+## Core Features
+
+- **Infinite Personal Storage** — One database, zero slot limits. Store as many unique item stacks as you want.
+- **Full-Screen Database UI** — Multi-panel views: personal storage, public storage (server-wide shared pool), or mixed mode.
+- **Bilingual Smart Search** — Understands Chinese display names, English aliases, item IDs, namespaces, and pinyin (full spelling + initials).
+- **JEI-Style Advanced Search Syntax** — Filter by mod (`@`), item tag (`#`), registry name (`&`), creative tab (`%`), with AND/OR/NOT logic.
+- **Tab Organization** — Create, rename, reorder, and assign custom icons to tabs. Move entire tab contents in one action.
+- **Stable Sorting** — Sort by recent changes, recently added, name, count, namespace, or item ID.
+- **Star & Note System** — Mark frequently-used items as starred, or attach custom notes to any item.
+- **Operation Log Viewer** — Review history of deposits, extractions, and other database actions.
+- **Auto-Store Enhancement** — Automatically send picked-up items into a designated target tab.
+- **Data Safety** — Rolling auto-backups every 15 minutes, manual backup/restore commands, and unresolved-item preservation when mods are temporarily missing.
+- **Optional Accessories Integration** — Wear the database terminal as a back-slot accessory for quick access.
+
+## Environment
+
+| Aspect | Value |
+|---|---|
+| **Side** | Client and Server (required on both for full functionality; server-side handles data persistence and public storage) |
+| **Minecraft** | 1.21.1 |
+| **Mod Loader** | NeoForge |
+| **Supported NeoForge** | 21.1.222+ |
+| **Java** | 21 |
+| **Optional Dependency** | Accessories 1.1.0-beta.53+1.21.1 |
 
 ## Installation
 
-1. Install Minecraft `1.21.1`.
-2. Install a compatible NeoForge build in the supported `21.1.x` range.
-3. Drop the released `Infinite Inventory` JAR into the `mods/` directory.
-4. Install `Accessories` only if you want wearable access from the back slot and the extra panel integration.
+1. Install Minecraft **1.21.1**.
+2. Install a compatible **NeoForge** build in the **21.1.x** range.
+3. Place the `Infinite Inventory` JAR into your `mods/` folder.
+4. *(Optional)* Install **Accessories** if you want wearable terminal access from the back slot.
+
+> **Note:** The mod must be present on **both client and server** for multiplayer. The server handles data persistence and public storage; the client renders the UI and handles search input.
 
 ## Crafting
 
-The database terminal is craftable in survival:
+Craft the **Database Terminal** in survival mode:
 
 ```text
 D E D
@@ -40,60 +62,88 @@ R C R
 D G D
 ```
 
-- `D`: Diamond Block
-- `E`: Ender Pearl
-- `R`: Redstone Block
-- `C`: Chest
-- `G`: Gold Block
+| Symbol | Item |
+|---|---|
+| D | Diamond Block |
+| E | Ender Pearl |
+| R | Redstone Block |
+| C | Chest |
+| G | Gold Block |
 
-The item ID is `infiniteinventory:database_access_item`.
+Item ID: `infiniteinventory:database_access_item`
 
-## Gameplay Flow
+## How to Use
 
-- Open the database terminal to access the full-screen inventory database.
-- Switch between personal storage, public storage, or mixed views from the top toolbar.
-- Search by display name, item ID, namespace, English alias, Chinese alias, or pinyin initials/full spellings.
-- Use JEI-style special syntax for focused search: `@mod`, `#item_tag`, `&item_id`, `%creative_tab`, plus `|` for OR and `-` for exclusion.
-- Use tabs to organize categories, move batches of items, and keep storage readable at scale.
-- Extract individual items, half stacks, full stacks, or custom amounts directly back to the player inventory.
-- Enable the optional auto-store enhancement to send picked-up items into a chosen target tab automatically.
+### Opening the Database
+Right-click with the Database Terminal to open the full-screen interface.
 
-## Search and Sorting
+### Switching Views
+Use the top toolbar to toggle between:
+- **Personal** — your own private item database
+- **Public** — server-wide shared storage (if enabled)
+- **Mixed** — combined view of both
 
-- Search supports bilingual item names from `zh_cn` and `en_us`.
-- Chinese names also generate pinyin full spellings and initials for fast keyboard lookup.
-- Special search supports `@` mod filters, `#` item tag filters, `&` registry-name filters, `%` creative-tab filters, implicit AND by spaces, `|` OR clauses, and `-` exclusions.
-- Multi-word mod names and creative tabs can be written directly when they stay unambiguous, such as `@infinite inventory` or `%building blocks`.
-- Advanced search weights let you rebalance display name, item ID, namespace, pinyin, and count boost.
-- Non-empty searches keep result ranking stable by combining exact, prefix, contains, fuzzy, and sort-based ordering.
+### Searching
+Type in the search bar to filter items. The search understands:
+- Chinese item names and pinyin
+- English display names and aliases
+- Exact item IDs and namespaces
+
+**Special search syntax:**
+
+| Prefix | Meaning | Example |
+|---|---|---|
+| `@` | Filter by mod ID | `@infiniteinventory` |
+| `#` | Filter by item tag | `#minecraft:logs` |
+| `&` | Filter by registry name | `&diamond` |
+| `%` | Filter by creative tab | `%building blocks` |
+| `\|` | OR operator | `diamond \| emerald` |
+| `-` | Exclude | `-stone` |
+
+Spaces between terms act as **AND**.
+
+### Extracting Items
+- **Left-click** an item to extract 1
+- **Shift+click** to extract a full stack
+- **Right-click** for contextual options (custom amount, half stack)
+
+### Managing Tabs
+- Create tabs to categorize your items
+- Drag tabs to reorder them
+- Right-click a tab to rename, change icon, or move its entire contents
+- Hide less-used tabs to keep the interface clean
+
+### Auto-Store
+Enable auto-store to automatically deposit newly picked-up items into a target tab of your choice.
 
 ## Data Safety
 
-- The real database is stored in overworld `SavedData`, not on the access item itself.
-- Missing items or temporarily unavailable mods are preserved as unresolved entries instead of being dropped.
-- Automatic rolling backups protect dirty database state every 15 minutes.
-- Manual backup and restore commands are available for operators.
+Your data is stored in the overworld's `SavedData` system, not on the terminal item itself. This means:
 
-Reference docs:
+- **Terminal is replaceable** — losing or breaking the terminal does not delete your database.
+- **Unresolved items preserved** — if a mod is temporarily removed, its items are kept as unresolved entries and restored when the mod returns.
+- **Auto-backups** — the database is backed up automatically every 15 minutes.
+- **Manual backup/restore** — server operators can create snapshots and restore from them at any time.
 
-- [Architecture](./docs/long-term/architecture/personal-database-architecture.md)
-- [Safety & Recovery](./docs/long-term/operations/database-safety-and-recovery.md)
+### Backup Commands
+
+```
+/infiniteinventory database backup now       # Create a manual backup
+/infiniteinventory database backup list      # List available backups
+/infiniteinventory database restore <name>   # Restore from a named backup
+```
+
+## Reference Documentation
+
+- [Architecture Overview](./docs/long-term/architecture/personal-database-architecture.md)
+- [Safety & Recovery Guide](./docs/long-term/operations/database-safety-and-recovery.md)
 - [Public Release Checklist](./docs/long-term/operations/public-release-checklist.md)
 
-## Commands
+## Links
 
-- `/infiniteinventory database backup now`
-- `/infiniteinventory database backup list`
-- `/infiniteinventory database restore <snapshot>`
-
-## Releases
-
-- GitHub source and releases:
-  <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge>
-- Planned public distribution targets:
-  `Modrinth` and `CurseForge`
-- Platform-specific publishing notes and metadata checklist:
-  [docs/long-term/operations/public-release-checklist.md](./docs/long-term/operations/public-release-checklist.md)
+- **Source Code:** <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge>
+- **Issue Tracker:** <https://github.comagguy/minecraft-infinite-inventory-mod-neoforge/issues>
+- **Planned Distribution:** Modrinth, CurseForge
 
 ## License
 
