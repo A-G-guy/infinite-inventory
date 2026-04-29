@@ -388,6 +388,80 @@ class StoredItemDatabaseTest {
         assertEquals((long) threadCount, database.revision());
         assertEquals((long) threadCount * operationsPerThread, database.getAmount(StoredStackKey.of(new ItemStack(Items.STONE))));
     }
+    // ---------- amount delta tracking tests ----------
+    @Test
+    void storeShouldTrackAmountDelta() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.STONE, 8), "blocks");
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(1, deltas.size());
+        assertEquals("blocks", deltas.get(0).tabId());
+        assertEquals(8L, deltas.get(0).amount());
+        assertFalse(deltas.get(0).removed());
+    }
+    @Test
+    void extractShouldTrackRemovalDelta() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.STONE, 4), "blocks");
+        database.drainPendingAmountDeltas();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+        database.extract(key, 4);
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(1, deltas.size());
+        assertTrue(deltas.get(0).removed());
+        assertEquals(0L, deltas.get(0).amount());
+    }
+    @Test
+    void extractShouldTrackReducedAmountDelta() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.STONE, 8), "blocks");
+        database.drainPendingAmountDeltas();
+        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+        database.extract(key, 3);
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(1, deltas.size());
+        assertEquals(5L, deltas.get(0).amount());
+        assertFalse(deltas.get(0).removed());
+    }
+    @Test
+    void drainShouldClearQueue() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.STONE, 1));
+        assertEquals(1, database.drainPendingAmountDeltas().size());
+        assertTrue(database.drainPendingAmountDeltas().isEmpty());
+    }
+    @Test
+    void batchUpdateShouldAccumulateDeltas() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.beginBatchUpdate();
+        database.store(new ItemStack(Items.STONE, 4), "blocks");
+        database.store(new ItemStack(Items.DIRT, 2), "building");
+        database.endBatchUpdate();
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(2, deltas.size());
+    }
+    @Test
+    void clearShouldTrackRemovedDeltaForAllEntries() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.store(new ItemStack(Items.STONE, 4), "blocks");
+        database.store(new ItemStack(Items.DIRT, 2), "building");
+        database.drainPendingAmountDeltas();
+        database.clear();
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(2, deltas.size());
+        assertTrue(deltas.stream().allMatch(StoredItemDatabase.AmountDelta::removed));
+    }
+    @Test
+    void duplicateKeyDeltasShouldMergeOnDrain() {
+        StoredItemDatabase database = new StoredItemDatabase();
+        database.beginBatchUpdate();
+        database.store(new ItemStack(Items.STONE, 4), "blocks");
+        database.store(new ItemStack(Items.STONE, 2), "blocks");
+        database.endBatchUpdate();
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        assertEquals(1, deltas.size());
+        assertEquals(6L, deltas.get(0).amount());
+    }
     private CompoundTag entryTag(CompoundTag stackTag, long count, DatabaseCategory category, long lastModified) {
         CompoundTag entryTag = new CompoundTag();
         entryTag.put("stack", stackTag);

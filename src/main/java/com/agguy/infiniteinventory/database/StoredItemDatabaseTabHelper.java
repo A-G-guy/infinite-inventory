@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.database;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * 负责 {@link StoredItemDatabase} 的标签页迁移与校验逻辑。
@@ -34,8 +35,12 @@ final class StoredItemDatabaseTabHelper {
         }
         long sequence = database.nextSequence();
         boolean changed = false;
-        for (StoredStackEntry entry : database.entries().values()) {
-            changed = entry.tabId().equals(normalizedSourceTabId) && entry.moveToTab(normalizedTargetTabId, sequence) || changed;
+        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
+            StoredStackEntry entry = mapEntry.getValue();
+            if (entry.tabId().equals(normalizedSourceTabId) && entry.moveToTab(normalizedTargetTabId, sequence)) {
+                changed = true;
+                database.trackAmountDelta(mapEntry.getKey(), normalizedTargetTabId, entry.amount(), false);
+            }
         }
         if (!database.unresolvedEntries().isEmpty()) {
             ArrayList<UnresolvedStoredEntry> updatedEntries = new ArrayList<>(database.unresolvedEntries().size());
@@ -77,6 +82,7 @@ final class StoredItemDatabaseTabHelper {
         }
         boolean changed = entry.moveToTab(targetTabId, database.nextSequence());
         if (changed) {
+            database.trackAmountDelta(key, DatabaseTabs.normalizeConcreteTarget(targetTabId), entry.amount(), false);
             database.markRuntimeStateDirty();
         }
         return changed;
@@ -99,10 +105,12 @@ final class StoredItemDatabaseTabHelper {
         }
         String defaultTabId = tabDirectory.defaultConcreteTab().id();
         boolean changed = false;
-        for (StoredStackEntry entry : database.entries().values()) {
+        for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
+            StoredStackEntry entry = mapEntry.getValue();
             if (!tabDirectory.containsConcreteTab(entry.tabId())) {
                 entry.moveToTab(defaultTabId, entry.lastModified());
                 changed = true;
+                database.trackAmountDelta(mapEntry.getKey(), defaultTabId, entry.amount(), false);
             }
         }
         if (!database.unresolvedEntries().isEmpty()) {

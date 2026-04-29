@@ -49,6 +49,7 @@ final class StoredItemDatabaseStoreHelper {
             database.entriesInternal().put(key, entry);
         }
         entry.add(stack.getCount(), sequence);
+        database.trackAmountDelta(key, entry.tabId(), entry.amount(), false);
         database.markRuntimeStateDirty();
     }
 
@@ -82,6 +83,9 @@ final class StoredItemDatabaseStoreHelper {
         ItemStack extractedStack = key.toStack(extractedAmount);
         if (entry.isEmpty()) {
             database.entriesInternal().remove(key);
+            database.trackAmountDelta(key, entry.tabId(), 0L, true);
+        } else {
+            database.trackAmountDelta(key, entry.tabId(), entry.amount(), false);
         }
         database.markRuntimeStateDirty();
         return extractedStack;

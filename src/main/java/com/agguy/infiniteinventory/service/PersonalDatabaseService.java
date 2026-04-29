@@ -326,7 +326,7 @@ public final class PersonalDatabaseService {
     }
 
     public void syncAmountsToPlayer(ServerPlayer player) {
-        PersonalDatabaseServiceSyncHelper.syncAmountsToPlayer(this, player);
+        PersonalDatabaseServiceSyncHelper.syncFullAmountsToPlayer(this, player);
     }
 
     public void syncPublicViewers(MinecraftServer server) {
@@ -406,7 +406,7 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-        this.syncAmountsToPlayer(player);
+        PersonalDatabaseServiceSyncHelper.syncAmountDeltasToPlayer(this, player);
         if (this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.FORCE_SAVE_ON_CRITICAL_MUTATION)) {
             try {
                 player.server.overworld().getDataStorage().save();

@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.service;
 
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.network.DatabaseAmountDeltaSyncPayload;
 import com.agguy.infiniteinventory.network.DatabaseAmountSyncPayload;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.database.DatabaseTab;
@@ -30,12 +31,31 @@ final class PersonalDatabaseServiceSyncHelper {
     }
 
     /**
-     * 将玩家在个人与公共仓库中的物品数量及所属分类同步到客户端，使其悬浮提示显示可用数量。
+     * 将玩家在个人与公共仓库中的物品数量及所属分类**增量同步**到客户端。
+     *
+     * <p>只发送自上次同步以来发生变更的条目。若当前无 pending deltas，则不发送网络包。</p>
      *
      * @param service 服务实例
      * @param player  目标玩家
      */
-    static void syncAmountsToPlayer(PersonalDatabaseService service, ServerPlayer player) {
+    static void syncAmountDeltasToPlayer(PersonalDatabaseService service, ServerPlayer player) {
+        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> personalDeltas = buildDeltaEntries(service, player, DatabaseScope.PERSONAL);
+        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> publicDeltas = buildDeltaEntries(service, player, DatabaseScope.PUBLIC);
+        if (personalDeltas.isEmpty() && publicDeltas.isEmpty()) {
+            return;
+        }
+        PacketDistributor.sendToPlayer(player, new DatabaseAmountDeltaSyncPayload(personalDeltas, publicDeltas));
+    }
+
+    /**
+     * 将玩家在个人与公共仓库中的物品数量及所属分类**全量同步**到客户端。
+     *
+     * <p>用于登录、强制刷新等需要完整基准数据的场景。</p>
+     *
+     * @param service 服务实例
+     * @param player  目标玩家
+     */
+    static void syncFullAmountsToPlayer(PersonalDatabaseService service, ServerPlayer player) {
         List<DatabaseAmountSyncPayload.AmountEntry> personalEntries = buildAmountEntries(service, player, DatabaseScope.PERSONAL);
         List<DatabaseAmountSyncPayload.AmountEntry> publicEntries = buildAmountEntries(service, player, DatabaseScope.PUBLIC);
         PacketDistributor.sendToPlayer(player, new DatabaseAmountSyncPayload(personalEntries, publicEntries));
@@ -51,6 +71,26 @@ final class PersonalDatabaseServiceSyncHelper {
                     entry.getKey().displayStack(),
                     tabName,
                     entry.getValue().amount()
+            ));
+        }
+        return result;
+    }
+
+    private static List<DatabaseAmountDeltaSyncPayload.DeltaEntry> buildDeltaEntries(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope) {
+        StoredItemDatabase database = service.resolveDatabaseForView(player, scope);
+        List<StoredItemDatabase.AmountDelta> deltas = database.drainPendingAmountDeltas();
+        if (deltas.isEmpty()) {
+            return List.of();
+        }
+        DatabaseTabDirectory tabDirectory = service.resolveTabsForView(player, scope);
+        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> result = new ArrayList<>(deltas.size());
+        for (StoredItemDatabase.AmountDelta delta : deltas) {
+            String tabName = resolveTabDisplayName(tabDirectory, delta.tabId());
+            result.add(new DatabaseAmountDeltaSyncPayload.DeltaEntry(
+                    delta.key().displayStack(),
+                    tabName,
+                    delta.amount(),
+                    delta.removed()
             ));
         }
         return result;

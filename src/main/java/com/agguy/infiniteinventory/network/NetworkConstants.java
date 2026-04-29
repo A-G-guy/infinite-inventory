@@ -21,6 +21,8 @@ public final class NetworkConstants {
     public static final int MAX_LOG_ENTRY_COUNT = 1000;
     /** 数量同步条目列表的最大数量（{@code DatabaseAmountSyncPayload}）。 */
     public static final int MAX_AMOUNT_SYNC_ENTRY_COUNT = 100000;
+    /** 增量数量同步条目列表的最大数量（{@code DatabaseAmountDeltaSyncPayload}）。 */
+    public static final int MAX_AMOUNT_DELTA_SYNC_ENTRY_COUNT = 100000;
     /** Query 中可见标签页的最大数量。 */
     public static final int MAX_QUERY_VISIBLE_TAB_COUNT = 16;
     /** Query 中标签状态的最大数量。 */

@@ -42,6 +42,36 @@ public final class DatabaseAmountCache {
         }
     }
 
+    public synchronized void applyDelta(List<Delta> personal, List<Delta> publicItems) {
+        applyDeltaToMap(this.personalAmounts, personal);
+        applyDeltaToMap(this.publicAmounts, publicItems);
+    }
+
+    private static void applyDeltaToMap(Map<ItemStack, Entry> map, List<Delta> deltas) {
+        for (Delta delta : deltas) {
+            ItemStack stackKey = delta.stack().copyWithCount(1);
+            if (delta.removed()) {
+                removeMatchingEntry(map, stackKey);
+            } else {
+                removeMatchingEntry(map, stackKey);
+                map.put(stackKey, new Entry(delta.stack(), delta.tabName(), delta.amount()));
+            }
+        }
+    }
+
+    private static void removeMatchingEntry(Map<ItemStack, Entry> map, ItemStack target) {
+        ItemStack keyToRemove = null;
+        for (Map.Entry<ItemStack, Entry> e : map.entrySet()) {
+            if (ItemStack.isSameItemSameComponents(e.getKey(), target)) {
+                keyToRemove = e.getKey();
+                break;
+            }
+        }
+        if (keyToRemove != null) {
+            map.remove(keyToRemove);
+        }
+    }
+
     public synchronized Entry getPersonal(ItemStack stack) {
         return findEntry(this.personalAmounts, stack);
     }
@@ -64,5 +94,8 @@ public final class DatabaseAmountCache {
     }
 
     public record Entry(ItemStack stack, String tabName, long amount) {
+    }
+
+    public record Delta(ItemStack stack, String tabName, long amount, boolean removed) {
     }
 }

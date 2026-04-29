@@ -12,6 +12,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.service.PersonalDatabaseTransferHelper;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,6 +32,7 @@ public final class ModNetwork {
         PayloadRegistrar optionalRegistrar = registrar.optional();
         registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
         registrar.playToClient(DatabaseAmountSyncPayload.TYPE, DatabaseAmountSyncPayload.STREAM_CODEC, ModNetwork::handleAmountSync);
+        registrar.playToClient(DatabaseAmountDeltaSyncPayload.TYPE, DatabaseAmountDeltaSyncPayload.STREAM_CODEC, ModNetwork::handleAmountDeltaSync);
         optionalRegistrar.playToServer(DatabaseViewerLocalePayload.TYPE, DatabaseViewerLocalePayload.STREAM_CODEC, ModNetwork::handleViewerLocale);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
@@ -288,10 +290,25 @@ public final class ModNetwork {
         ));
     }
 
+    private static void handleAmountDeltaSync(DatabaseAmountDeltaSyncPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> DatabaseAmountCache.INSTANCE.applyDelta(
+                toCacheDeltas(payload.personalDeltas()),
+                toCacheDeltas(payload.publicDeltas())
+        ));
+    }
+
     private static List<DatabaseAmountCache.Entry> toCacheEntries(List<DatabaseAmountSyncPayload.AmountEntry> entries) {
         return entries.stream()
                 .map(e -> new DatabaseAmountCache.Entry(e.stack(), e.tabName(), e.amount()))
                 .toList();
+    }
+
+    private static List<DatabaseAmountCache.Delta> toCacheDeltas(List<DatabaseAmountDeltaSyncPayload.DeltaEntry> deltas) {
+        List<DatabaseAmountCache.Delta> result = new ArrayList<>(deltas.size());
+        for (DatabaseAmountDeltaSyncPayload.DeltaEntry d : deltas) {
+            result.add(new DatabaseAmountCache.Delta(d.stack(), d.tabName(), d.amount(), d.removed()));
+        }
+        return result;
     }
 
     private static void handleDepositConflict(DatabaseDepositConflictPayload payload, IPayloadContext context) {
