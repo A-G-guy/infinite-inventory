@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.network;
 import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
+import com.agguy.infiniteinventory.compat.CuriosCompat;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
@@ -228,7 +229,9 @@ public final class ModNetwork {
             if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
-            if (!AccessoriesCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get())) {
+            boolean backEquipped = AccessoriesCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get())
+                    || CuriosCompat.isBackSlotEquipped(player, ModItems.DATABASE_ACCESS_ITEM.get());
+            if (!backEquipped) {
                 return;
             }
             PersonalDatabaseService.INSTANCE.open(player);

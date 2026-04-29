@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.menu;
 
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
 import com.agguy.infiniteinventory.compat.AccessorySlotGroup;
+import com.agguy.infiniteinventory.compat.CuriosCompat;
 import com.agguy.infiniteinventory.database.DatabaseAutoStoreTarget;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabasePage;
@@ -18,6 +19,7 @@ import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import com.agguy.infiniteinventory.service.PersonalDatabaseServiceDepositHelper;
 import com.mojang.datafixers.util.Pair;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.resources.ResourceLocation;
@@ -92,7 +94,10 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         this.hotbarSlotRange = this.addHotbarSlots(playerInventory);
         this.playerStorageSlotRange = MenuSlotRange.span(this.mainInventorySlotRange, this.hotbarSlotRange);
         this.offhandSlotIndex = this.addTrackedSlot(new OffhandDisplaySlot(playerInventory, owner, 40, TOP_SECTION_OFFHAND_X, TOP_SECTION_OFFHAND_Y));
-        this.accessorySlotGroups = List.copyOf(AccessoriesCompat.appendAccessorySlots(owner, this::addTrackedSlot));
+        List<AccessorySlotGroup> allGroups = new ArrayList<>();
+        allGroups.addAll(AccessoriesCompat.appendAccessorySlots(owner, this::addTrackedSlot));
+        allGroups.addAll(CuriosCompat.appendAccessorySlots(owner, this::addTrackedSlot));
+        this.accessorySlotGroups = List.copyOf(allGroups);
         this.accessorySlotRange = MenuSlotRange.fromGroups(this.accessorySlotGroups);
     }
 
