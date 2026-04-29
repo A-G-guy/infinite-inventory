@@ -19,6 +19,11 @@ class DatabaseAmountCacheTest {
         MinecraftTestBootstrap.ensureBootstrapped();
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        DatabaseAmountCache.INSTANCE.update(List.of(), List.of());
+    }
+
     @Test
     void applyDeltaShouldUpdateExistingEntry() {
         // 每次测试使用独立实例，避免状态污染

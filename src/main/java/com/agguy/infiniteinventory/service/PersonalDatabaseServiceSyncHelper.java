@@ -35,16 +35,23 @@ final class PersonalDatabaseServiceSyncHelper {
      *
      * <p>只发送自上次同步以来发生变更的条目。若当前无 pending deltas，则不发送网络包。</p>
      *
+     * <p>设计约束：本方法只 drain 与 {@code scope} 对应的数据库，避免将另一作用域的 deltas 误发给当前玩家。
+     * 公共数据库因被多玩家共享，仍保持全量同步路径（{@link #syncFullAmountsToPlayer}）。</p>
+     *
      * @param service 服务实例
      * @param player  目标玩家
+     * @param scope   发生变更的作用域
      */
-    static void syncAmountDeltasToPlayer(PersonalDatabaseService service, ServerPlayer player) {
-        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> personalDeltas = buildDeltaEntries(service, player, DatabaseScope.PERSONAL);
-        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> publicDeltas = buildDeltaEntries(service, player, DatabaseScope.PUBLIC);
-        if (personalDeltas.isEmpty() && publicDeltas.isEmpty()) {
+    static void syncAmountDeltasToPlayer(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope) {
+        if (DatabaseScope.normalize(scope) == DatabaseScope.PUBLIC) {
+            syncFullAmountsToPlayer(service, player);
             return;
         }
-        PacketDistributor.sendToPlayer(player, new DatabaseAmountDeltaSyncPayload(personalDeltas, publicDeltas));
+        List<DatabaseAmountDeltaSyncPayload.DeltaEntry> personalDeltas = buildDeltaEntries(service, player, DatabaseScope.PERSONAL);
+        if (personalDeltas.isEmpty()) {
+            return;
+        }
+        PacketDistributor.sendToPlayer(player, new DatabaseAmountDeltaSyncPayload(personalDeltas, List.of()));
     }
 
     /**
@@ -56,6 +63,12 @@ final class PersonalDatabaseServiceSyncHelper {
      * @param player  目标玩家
      */
     static void syncFullAmountsToPlayer(PersonalDatabaseService service, ServerPlayer player) {
+        // 全量同步前清理两个数据库的 pending deltas，防止增量队列无限累积
+        StoredItemDatabase personalDb = service.resolveDatabaseForView(player, DatabaseScope.PERSONAL);
+        personalDb.drainPendingAmountDeltas();
+        StoredItemDatabase publicDb = service.resolveDatabaseForView(player, DatabaseScope.PUBLIC);
+        publicDb.drainPendingAmountDeltas();
+
         List<DatabaseAmountSyncPayload.AmountEntry> personalEntries = buildAmountEntries(service, player, DatabaseScope.PERSONAL);
         List<DatabaseAmountSyncPayload.AmountEntry> publicEntries = buildAmountEntries(service, player, DatabaseScope.PUBLIC);
         PacketDistributor.sendToPlayer(player, new DatabaseAmountSyncPayload(personalEntries, publicEntries));
