@@ -1,8 +1,8 @@
 # 无限库存
 
-[English](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/README.md)
+[English](https://github.com/A-G-guy/infinite-inventory/blob/main/README.md)
 
-![无限库存Logo](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/infiniteinventory-logo.png)
+![无限库存Logo](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/infiniteinventory-logo.png)
 
 **再也不用为背包空间发愁。**
 
@@ -56,7 +56,7 @@
 
 在生存模式中合成**数据库终端**：
 
-![数据库终端](https://raw.githubusercontent.com/agguy/minecraft-infinite-inventory-mod-neoforge/main/.github/assets/database_access_item.png)
+![数据库终端](https://raw.githubusercontent.com/A-G-guy/infinite-inventory/main/.github/assets/database_access_item.png)
 
 ```text
 D E D
@@ -137,17 +137,17 @@ D G D
 
 ## 参考文档
 
-- [架构说明](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/architecture/personal-database-architecture.md)
-- [安全与恢复指南](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/database-safety-and-recovery.md)
-- [公共发布检查清单](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/docs/long-term/operations/public-release-checklist.md)
+- [架构说明](https://github.com/A-G-guy/infinite-inventory/blob/main/docs/long-term/architecture/personal-database-architecture.md)
+- [安全与恢复指南](https://github.com/A-G-guy/infinite-inventory/blob/main/docs/long-term/operations/database-safety-and-recovery.md)
+- [公共发布检查清单](https://github.com/A-G-guy/infinite-inventory/blob/main/docs/long-term/operations/public-release-checklist.md)
 
 ## 链接
 
-- **源代码：** <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge>
-- **问题追踪：** <https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/issues>
+- **源代码：** <https://github.com/A-G-guy/infinite-inventory>
+- **问题追踪：** <https://github.com/A-G-guy/infinite-inventory/issues>
 - **计划分发平台：** Modrinth、CurseForge
 
 ## 许可证
 
-- 项目许可证：[Apache-2.0](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/LICENSE)
-- 第三方声明：[THIRD_PARTY_NOTICES.md](https://github.com/agguy/minecraft-infinite-inventory-mod-neoforge/blob/main/THIRD_PARTY_NOTICES.md)
+- 项目许可证：[Apache-2.0](https://github.com/A-G-guy/infinite-inventory/blob/main/LICENSE)
+- 第三方声明：[THIRD_PARTY_NOTICES.md](https://github.com/A-G-guy/infinite-inventory/blob/main/THIRD_PARTY_NOTICES.md)
