@@ -43,7 +43,7 @@ class NetworkConstantsTest {
         assertTrue(NetworkConstants.MAX_PANEL_COUNT > 0);
         assertTrue(NetworkConstants.MAX_TAB_COUNT > 0);
         assertTrue(NetworkConstants.MAX_LOG_ENTRY_COUNT > 0);
-        assertTrue(NetworkConstants.MAX_JEI_ENTRY_COUNT > 0);
+        assertTrue(NetworkConstants.MAX_AMOUNT_SYNC_ENTRY_COUNT > 0);
         assertTrue(NetworkConstants.MAX_QUERY_VISIBLE_TAB_COUNT > 0);
         assertTrue(NetworkConstants.MAX_QUERY_TAB_STATE_COUNT > 0);
         assertTrue(NetworkConstants.MAX_QUERY_HIDDEN_TOP_TAB_COUNT > 0);

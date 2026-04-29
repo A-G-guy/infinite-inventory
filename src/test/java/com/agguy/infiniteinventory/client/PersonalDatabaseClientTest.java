@@ -60,7 +60,7 @@ class PersonalDatabaseClientTest {
         DatabaseEnhancementConfig config = PersonalDatabaseClient.lastKnownEnhancementConfig();
 
         assertFalse(config.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
-        assertTrue(config.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertTrue(config.isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP));
     }
 
     @Test

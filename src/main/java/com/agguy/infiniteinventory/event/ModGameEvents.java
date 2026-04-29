@@ -1,7 +1,6 @@
 package com.agguy.infiniteinventory.event;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
-import com.agguy.infiniteinventory.compat.jei.JeiCompat;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
@@ -84,7 +83,6 @@ public final class ModGameEvents {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        JeiCompat.onPlayerLogin(player);
-        PersonalDatabaseService.INSTANCE.syncJeiAmountsToPlayer(player);
+        PersonalDatabaseService.INSTANCE.syncAmountsToPlayer(player);
     }
 }

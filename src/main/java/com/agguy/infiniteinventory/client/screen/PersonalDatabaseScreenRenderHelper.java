@@ -1,5 +1,6 @@
 package com.agguy.infiniteinventory.client.screen;
 
+import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSortDirection;
@@ -67,15 +68,10 @@ final class PersonalDatabaseScreenRenderHelper {
         renderDatabaseScaffold(screen, guiGraphics);
         renderPanelTextFields(screen, guiGraphics);
 
-        if (screen.minecraftClient() != null && screen.minecraftClient().player != null) {
-            screen.inventoryPaneProvider.renderEquipmentPanel(
-                    guiGraphics,
-                    screen.minecraftClient().player,
-                    screen.layout.equipmentPanelRect().x(),
-                    screen.layout.equipmentPanelRect().y(),
-                    mouseX,
-                    mouseY
-            );
+        var mc = screen.minecraftClient();
+        if (mc != null && mc.player != null) {
+            screen.inventoryPaneProvider.renderEquipmentPanel(guiGraphics, mc.player,
+                    screen.layout.equipmentPanelRect().x(), screen.layout.equipmentPanelRect().y(), mouseX, mouseY);
         }
         screen.inventoryPaneProvider.renderBottomInventory(
                 guiGraphics,
@@ -281,20 +277,11 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
     static void renderScreenTooltips(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        if (screen.customExtractOverlayExpanded
-                || screen.contextMenuExpanded
-                || screen.tabContextMenuExpanded
-                || screen.sortDropdownExpanded
-                || screen.pagePickerExpanded
-                || screen.advancedSearchExpanded
-                || screen.enhancementPanelExpanded
-                || screen.viewSelectorExpanded
-                || screen.moreTabsExpanded
-                || screen.topTabActionPromptExpanded
-                || screen.topTabReplaceExpanded
-                || screen.tabManagementExpanded
-                || screen.iconPickerExpanded
-                || screen.targetSelectorExpanded) {
+        if (screen.customExtractOverlayExpanded || screen.contextMenuExpanded || screen.tabContextMenuExpanded
+                || screen.sortDropdownExpanded || screen.pagePickerExpanded || screen.advancedSearchExpanded
+                || screen.enhancementPanelExpanded || screen.viewSelectorExpanded || screen.moreTabsExpanded
+                || screen.topTabActionPromptExpanded || screen.topTabReplaceExpanded || screen.tabManagementExpanded
+                || screen.iconPickerExpanded || screen.targetSelectorExpanded) {
             return;
         }
         screen.invokeSuperRenderTooltip(guiGraphics, mouseX, mouseY);
@@ -347,6 +334,10 @@ final class PersonalDatabaseScreenRenderHelper {
                         PersonalDatabaseScreenCommonHelper.findTab(screen, entry.tabId())
                 ).copy().withStyle(ChatFormatting.BLUE));
                 tooltip.add(Component.literal(entry.registryName()).withStyle(ChatFormatting.DARK_GRAY));
+                var pa = DatabaseAmountCache.INSTANCE.getPersonal(entry.stack());
+                var pu = DatabaseAmountCache.INSTANCE.getPublic(entry.stack());
+                if (pa != null) tooltip.add(Component.translatable("screen.infiniteinventory.amount.personal", pa.tabName(), CompactNumberFormatter.format(pa.amount())).withColor(0x55FFFF));
+                if (pu != null) tooltip.add(Component.translatable("screen.infiniteinventory.amount.public", pu.tabName(), CompactNumberFormatter.format(pu.amount())).withColor(0xFFAA00));
                 guiGraphics.renderTooltip(screen.screenFont(), tooltip, entry.stack().getTooltipImage(), mouseX, mouseY);
                 return;
             }

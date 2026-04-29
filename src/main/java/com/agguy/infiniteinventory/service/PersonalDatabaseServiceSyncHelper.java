@@ -1,21 +1,26 @@
 package com.agguy.infiniteinventory.service;
 
 import com.agguy.infiniteinventory.database.DatabaseScope;
+import com.agguy.infiniteinventory.network.DatabaseAmountSyncPayload;
 import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
+import com.agguy.infiniteinventory.database.DatabaseTab;
+import com.agguy.infiniteinventory.database.DatabaseTabDirectory;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
 import com.agguy.infiniteinventory.database.StoredStackEntry;
 import com.agguy.infiniteinventory.database.StoredStackKey;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * 负责 {@link PersonalDatabaseService} 中的 JEI 数量同步与多玩家视图刷新。
+ * 负责 {@link PersonalDatabaseService} 中的数量同步与多玩家视图刷新。
  *
  * <p>设计意图：将同步相关的独立职责从服务门面中剥离，降低原类复杂度。
- * 包含 JEI 数量同步、公共仓库视图刷新、全量视图刷新及未解析条目通知。</p>
+ * 包含数量同步、公共仓库视图刷新、全量视图刷新及未解析条目通知。</p>
  *
  * <p>本类为包级可见，仅由 PersonalDatabaseService 委托调用。</p>
  */
@@ -25,21 +30,44 @@ final class PersonalDatabaseServiceSyncHelper {
     }
 
     /**
-     * 将玩家在个人与公共仓库中的物品数量同步到 JEI，使其配方界面显示可用数量。
+     * 将玩家在个人与公共仓库中的物品数量及所属分类同步到客户端，使其悬浮提示显示可用数量。
      *
      * @param service 服务实例
      * @param player  目标玩家
      */
-    static void syncJeiAmountsToPlayer(PersonalDatabaseService service, ServerPlayer player) {
-        Map<ItemStack, Long> personalAmounts = new LinkedHashMap<>();
-        Map<ItemStack, Long> publicAmounts = new LinkedHashMap<>();
-        for (Map.Entry<StoredStackKey, StoredStackEntry> entry : service.resolveDatabaseForView(player, DatabaseScope.PERSONAL).entries().entrySet()) {
-            personalAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
+    static void syncAmountsToPlayer(PersonalDatabaseService service, ServerPlayer player) {
+        List<DatabaseAmountSyncPayload.AmountEntry> personalEntries = buildAmountEntries(service, player, DatabaseScope.PERSONAL);
+        List<DatabaseAmountSyncPayload.AmountEntry> publicEntries = buildAmountEntries(service, player, DatabaseScope.PUBLIC);
+        PacketDistributor.sendToPlayer(player, new DatabaseAmountSyncPayload(personalEntries, publicEntries));
+    }
+
+    private static List<DatabaseAmountSyncPayload.AmountEntry> buildAmountEntries(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope) {
+        List<DatabaseAmountSyncPayload.AmountEntry> result = new ArrayList<>();
+        StoredItemDatabase database = service.resolveDatabaseForView(player, scope);
+        DatabaseTabDirectory tabDirectory = service.resolveTabsForView(player, scope);
+        for (Map.Entry<StoredStackKey, StoredStackEntry> entry : database.entries().entrySet()) {
+            String tabName = resolveTabDisplayName(tabDirectory, entry.getValue().tabId());
+            result.add(new DatabaseAmountSyncPayload.AmountEntry(
+                    entry.getKey().displayStack(),
+                    tabName,
+                    entry.getValue().amount()
+            ));
         }
-        for (Map.Entry<StoredStackKey, StoredStackEntry> entry : service.resolveDatabaseForView(player, DatabaseScope.PUBLIC).entries().entrySet()) {
-            publicAmounts.put(entry.getKey().displayStack(), entry.getValue().amount());
+        return result;
+    }
+
+    private static String resolveTabDisplayName(DatabaseTabDirectory tabDirectory, String tabId) {
+        DatabaseTab tab = tabDirectory.find(tabId).orElse(null);
+        if (tab == null) {
+            return tabId;
         }
-        com.agguy.infiniteinventory.compat.jei.JeiCompat.syncAmounts(player, personalAmounts, publicAmounts);
+        if (!tab.customName().isBlank()) {
+            return tab.customName();
+        }
+        if (!tab.translationKey().isBlank()) {
+            return Component.translatable(tab.translationKey()).getString();
+        }
+        return tabId;
     }
 
     /**

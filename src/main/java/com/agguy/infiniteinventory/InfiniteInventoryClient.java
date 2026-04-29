@@ -1,8 +1,8 @@
 package com.agguy.infiniteinventory;
 
+import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.client.screen.PersonalDatabaseScreen;
-import com.agguy.infiniteinventory.compat.jei.JeiAmountCache;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.network.OpenEquippedDatabasePayload;
 import com.agguy.infiniteinventory.registry.ModMenus;
@@ -58,10 +58,10 @@ public final class InfiniteInventoryClient {
     }
 
     public static void onItemTooltip(ItemTooltipEvent event) {
-        if (!JeiAmountCache.isAvailable()) {
+        if (!DatabaseAmountCache.INSTANCE.isAvailable()) {
             return;
         }
-        if (!PersonalDatabaseClient.lastKnownEnhancementConfig().isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP)) {
+        if (!PersonalDatabaseClient.lastKnownEnhancementConfig().isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP)) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -72,9 +72,9 @@ public final class InfiniteInventoryClient {
         if (stack.isEmpty()) {
             return;
         }
-        long personal = JeiAmountCache.INSTANCE.getPersonalAmount(stack);
-        long publicItems = JeiAmountCache.INSTANCE.getPublicAmount(stack);
-        if (personal <= 0 && publicItems <= 0) {
+        DatabaseAmountCache.Entry personal = DatabaseAmountCache.INSTANCE.getPersonal(stack);
+        DatabaseAmountCache.Entry publicItems = DatabaseAmountCache.INSTANCE.getPublic(stack);
+        if (personal == null && publicItems == null) {
             return;
         }
         List<Component> tooltip = event.getToolTip();
@@ -86,18 +86,20 @@ public final class InfiniteInventoryClient {
                 break;
             }
         }
-        if (personal > 0) {
+        if (personal != null) {
             MutableComponent line = Component.translatable(
-                    "screen.infiniteinventory.jei.amount.personal",
-                    CompactNumberFormatter.format(personal)
+                    "screen.infiniteinventory.amount.personal",
+                    personal.tabName(),
+                    CompactNumberFormatter.format(personal.amount())
             );
             tooltip.add(insertIndex, line.withColor(0x55FFFF));
             insertIndex++;
         }
-        if (publicItems > 0) {
+        if (publicItems != null) {
             MutableComponent line = Component.translatable(
-                    "screen.infiniteinventory.jei.amount.public",
-                    CompactNumberFormatter.format(publicItems)
+                    "screen.infiniteinventory.amount.public",
+                    publicItems.tabName(),
+                    CompactNumberFormatter.format(publicItems.amount())
             );
             tooltip.add(insertIndex, line.withColor(0xFFAA00));
         }

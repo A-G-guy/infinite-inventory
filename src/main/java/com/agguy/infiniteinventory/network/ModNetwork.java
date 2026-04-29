@@ -1,8 +1,8 @@
 package com.agguy.infiniteinventory.network;
 
+import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.client.PersonalDatabaseClient;
 import com.agguy.infiniteinventory.compat.AccessoriesCompat;
-import com.agguy.infiniteinventory.compat.jei.JeiAmountCache;
 import com.agguy.infiniteinventory.database.DatabaseLogEntry;
 import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.StoredItemDatabase;
@@ -20,7 +20,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.jetbrains.annotations.Nullable;
 
 public final class ModNetwork {
-    private static final String NETWORK_VERSION = "19";
+    private static final String NETWORK_VERSION = "20";
 
     private ModNetwork() {
     }
@@ -29,7 +29,7 @@ public final class ModNetwork {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         PayloadRegistrar optionalRegistrar = registrar.optional();
         registrar.playToClient(DatabaseSnapshotPayload.TYPE, DatabaseSnapshotPayload.STREAM_CODEC, ModNetwork::handleSnapshot);
-        registrar.playToClient(JeiAmountSyncPayload.TYPE, JeiAmountSyncPayload.STREAM_CODEC, ModNetwork::handleJeiAmountSync);
+        registrar.playToClient(DatabaseAmountSyncPayload.TYPE, DatabaseAmountSyncPayload.STREAM_CODEC, ModNetwork::handleAmountSync);
         optionalRegistrar.playToServer(DatabaseViewerLocalePayload.TYPE, DatabaseViewerLocalePayload.STREAM_CODEC, ModNetwork::handleViewerLocale);
         registrar.playToServer(DatabaseQueryPayload.TYPE, DatabaseQueryPayload.STREAM_CODEC, ModNetwork::handleQuery);
         registrar.playToServer(DatabaseEnhancementPayload.TYPE, DatabaseEnhancementPayload.STREAM_CODEC, ModNetwork::handleEnhancementConfig);
@@ -278,8 +278,17 @@ public final class ModNetwork {
         });
     }
 
-    private static void handleJeiAmountSync(JeiAmountSyncPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> JeiAmountCache.INSTANCE.update(payload.personalMap(), payload.publicMap()));
+    private static void handleAmountSync(DatabaseAmountSyncPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> DatabaseAmountCache.INSTANCE.update(
+                toCacheEntries(payload.personalEntries()),
+                toCacheEntries(payload.publicEntries())
+        ));
+    }
+
+    private static List<DatabaseAmountCache.Entry> toCacheEntries(List<DatabaseAmountSyncPayload.AmountEntry> entries) {
+        return entries.stream()
+                .map(e -> new DatabaseAmountCache.Entry(e.stack(), e.tabName(), e.amount()))
+                .toList();
     }
 
     private static void handleDepositConflict(DatabaseDepositConflictPayload payload, IPayloadContext context) {

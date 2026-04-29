@@ -74,7 +74,7 @@ final class PersonalDatabaseServiceViewerHelper {
                     notifyViewerAboutUnresolvedEntries(onlinePlayer, menu.activeScope());
                 }
             }
-            PersonalDatabaseService.INSTANCE.syncJeiAmountsToPlayer(onlinePlayer);
+            PersonalDatabaseService.INSTANCE.syncAmountsToPlayer(onlinePlayer);
         }
     }
 

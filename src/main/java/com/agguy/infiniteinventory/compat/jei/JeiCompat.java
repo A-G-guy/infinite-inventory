@@ -2,9 +2,7 @@ package com.agguy.infiniteinventory.compat.jei;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import org.apache.logging.log4j.LogManager;
@@ -32,10 +30,6 @@ public final class JeiCompat {
 
     public static void onPlayerLogin(Player player) {
         BRIDGE.onPlayerLogin(player);
-    }
-
-    public static void syncAmounts(Player player, Map<ItemStack, Long> personalAmounts, Map<ItemStack, Long> publicAmounts) {
-        BRIDGE.syncAmounts(player, personalAmounts, publicAmounts);
     }
 
     private static JeiCompatBridge createBridge() {

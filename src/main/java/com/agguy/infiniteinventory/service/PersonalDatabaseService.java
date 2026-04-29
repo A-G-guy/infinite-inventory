@@ -325,8 +325,8 @@ public final class PersonalDatabaseService {
         return this.resolveDatabaseForView(player, scope).revision();
     }
 
-    public void syncJeiAmountsToPlayer(ServerPlayer player) {
-        PersonalDatabaseServiceSyncHelper.syncJeiAmountsToPlayer(this, player);
+    public void syncAmountsToPlayer(ServerPlayer player) {
+        PersonalDatabaseServiceSyncHelper.syncAmountsToPlayer(this, player);
     }
 
     public void syncPublicViewers(MinecraftServer server) {
@@ -406,7 +406,7 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-        this.syncJeiAmountsToPlayer(player);
+        this.syncAmountsToPlayer(player);
         if (this.getEnhancementConfig(player).isEnabled(DatabaseEnhancementOption.FORCE_SAVE_ON_CRITICAL_MUTATION)) {
             try {
                 player.server.overworld().getDataStorage().save();

@@ -6,7 +6,7 @@ import net.minecraft.network.FriendlyByteBuf;
 public record DatabaseEnhancementConfig(long enabledMask) {
     private static final String ENABLED_MASK_KEY = "enabled_mask";
     private static final DatabaseEnhancementConfig DEFAULT = new DatabaseEnhancementConfig(
-            (1L << DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP.ordinal())
+            (1L << DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP.ordinal())
     );
 
     public static DatabaseEnhancementConfig defaultConfig() {

@@ -15,7 +15,7 @@ class DatabaseEnhancementConfigTest {
     void shouldRoundTripEnabledOptionsThroughTagAndBuffer() {
         DatabaseEnhancementConfig config = DatabaseEnhancementConfig.defaultConfig()
                 .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true)
-                .withOption(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP, true);
+                .withOption(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP, true);
 
         DatabaseEnhancementConfig restoredFromTag = DatabaseEnhancementConfig.fromTag(config.toTag());
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
@@ -25,32 +25,32 @@ class DatabaseEnhancementConfigTest {
         assertEquals(config, restoredFromTag);
         assertEquals(config, restoredFromBuffer);
         assertTrue(restoredFromBuffer.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
-        assertTrue(restoredFromBuffer.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertTrue(restoredFromBuffer.isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP));
     }
 
     @Test
     void shouldDisableOptionWithoutAffectingDefaultConfigInstance() {
         DatabaseEnhancementConfig enabledConfig = DatabaseEnhancementConfig.defaultConfig()
                 .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true)
-                .withOption(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP, true);
+                .withOption(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP, true);
         DatabaseEnhancementConfig disabledConfig = enabledConfig
                 .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, false)
-                .withOption(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP, false);
+                .withOption(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP, false);
 
         assertTrue(enabledConfig.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
-        assertTrue(enabledConfig.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertTrue(enabledConfig.isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP));
         assertFalse(disabledConfig.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
-        assertFalse(disabledConfig.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertFalse(disabledConfig.isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP));
     }
 
     @Test
     void shouldSupportAllEnhancementOptionsIndependently() {
         DatabaseEnhancementConfig config = DatabaseEnhancementConfig.defaultConfig()
                 .withOption(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, true)
-                .withOption(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP, false);
+                .withOption(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP, false);
 
         assertTrue(config.isEnabled(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS));
-        assertFalse(config.isEnabled(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP));
+        assertFalse(config.isEnabled(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP));
     }
 
     @Test

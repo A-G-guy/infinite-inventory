@@ -25,7 +25,7 @@ class DatabaseEnhancementOptionTest {
         var ordered = DatabaseEnhancementOption.orderedValues();
         assertEquals(3, ordered.size());
         assertEquals(DatabaseEnhancementOption.AUTO_STORE_PICKED_UP_ITEMS, ordered.get(0));
-        assertEquals(DatabaseEnhancementOption.SHOW_JEI_AMOUNT_IN_TOOLTIP, ordered.get(1));
+        assertEquals(DatabaseEnhancementOption.SHOW_AMOUNT_IN_TOOLTIP, ordered.get(1));
         assertEquals(DatabaseEnhancementOption.FORCE_SAVE_ON_CRITICAL_MUTATION, ordered.get(2));
     }
 }

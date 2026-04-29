@@ -1,8 +1,6 @@
 package com.agguy.infiniteinventory.compat.jei;
 
-import java.util.Map;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 
 /**
  * JEI 兼容桥接口。
@@ -12,6 +10,4 @@ public interface JeiCompatBridge {
     boolean isAvailable();
 
     void onPlayerLogin(Player player);
-
-    void syncAmounts(Player player, Map<ItemStack, Long> personalAmounts, Map<ItemStack, Long> publicAmounts);
 }
