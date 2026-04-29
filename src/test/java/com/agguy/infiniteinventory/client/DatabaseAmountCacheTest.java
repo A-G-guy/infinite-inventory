@@ -8,8 +8,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link DatabaseAmountCache} 增量更新测试。
@@ -134,5 +136,61 @@ class DatabaseAmountCacheTest {
 
         assertEquals(6L, cache.getPersonal(new ItemStack(Items.STONE)).amount());
         assertEquals(2L, cache.getPersonal(new ItemStack(Items.DIRT)).amount());
+    }
+
+    @Test
+    void applyDeltaShouldUpdatePublicItems() {
+        DatabaseAmountCache cache = DatabaseAmountCache.INSTANCE;
+        cache.update(List.of(), List.of(new DatabaseAmountCache.Entry(new ItemStack(Items.DIAMOND), "ores", 16L)));
+
+        cache.applyDelta(
+                List.of(),
+                List.of(new DatabaseAmountCache.Delta(new ItemStack(Items.DIAMOND), "gems", 32L, false))
+        );
+
+        DatabaseAmountCache.Entry entry = cache.getPublic(new ItemStack(Items.DIAMOND));
+        assertNotNull(entry);
+        assertEquals(32L, entry.amount());
+        assertEquals("gems", entry.tabName());
+    }
+
+    @Test
+    void applyDeltaShouldRemoveNonExistentEntryWithoutError() {
+        DatabaseAmountCache cache = DatabaseAmountCache.INSTANCE;
+        cache.update(List.of(), List.of());
+
+        cache.applyDelta(
+                List.of(new DatabaseAmountCache.Delta(new ItemStack(Items.STONE), "", 0L, true)),
+                List.of()
+        );
+
+        assertNull(cache.getPersonal(new ItemStack(Items.STONE)));
+    }
+
+    @Test
+    void isAvailableShouldReflectCacheState() {
+        DatabaseAmountCache cache = DatabaseAmountCache.INSTANCE;
+        cache.update(List.of(), List.of());
+        assertFalse(cache.isAvailable());
+
+        cache.update(List.of(new DatabaseAmountCache.Entry(new ItemStack(Items.STONE), "blocks", 4L)), List.of());
+        assertTrue(cache.isAvailable());
+
+        cache.update(List.of(), List.of(new DatabaseAmountCache.Entry(new ItemStack(Items.DIAMOND), "ores", 16L)));
+        assertTrue(cache.isAvailable());
+
+        cache.update(List.of(), List.of());
+        assertFalse(cache.isAvailable());
+    }
+
+    @Test
+    void getPublicShouldReturnPublicEntry() {
+        DatabaseAmountCache cache = DatabaseAmountCache.INSTANCE;
+        cache.update(List.of(), List.of(new DatabaseAmountCache.Entry(new ItemStack(Items.APPLE), "food", 8L)));
+
+        DatabaseAmountCache.Entry entry = cache.getPublic(new ItemStack(Items.APPLE));
+        assertNotNull(entry);
+        assertEquals(8L, entry.amount());
+        assertEquals("food", entry.tabName());
     }
 }

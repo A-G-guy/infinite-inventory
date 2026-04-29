@@ -41,18 +41,6 @@ final class PersonalDatabaseServiceSyncHelper {
      * @param service 服务实例
      * @param player  目标玩家
      * @param scope   发生变更的作用域
-     */
-    /**
-     * 将玩家在个人与公共仓库中的物品数量及所属分类**增量同步**到客户端。
-     *
-     * <p>只发送自上次同步以来发生变更的条目。若当前无 pending deltas，则不发送网络包。</p>
-     *
-     * <p>设计约束：本方法只 drain 与 {@code scope} 对应的数据库，避免将另一作用域的 deltas 误发给当前玩家。
-     * 公共数据库因被多玩家共享，仍保持全量同步路径（{@link #syncFullAmountsToPlayer}）。</p>
-     *
-     * @param service 服务实例
-     * @param player  目标玩家
-     * @param scope   发生变更的作用域
      * @return 若实际发送了网络包则返回 {@code true}
      */
     static boolean syncAmountDeltasToPlayer(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope) {

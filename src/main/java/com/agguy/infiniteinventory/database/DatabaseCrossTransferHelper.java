@@ -68,6 +68,7 @@ public final class DatabaseCrossTransferHelper {
 
             // 从源库移除
             sourceDatabase.entriesInternal().remove(key);
+            sourceDatabase.trackAmountDelta(key, sourceEntry.tabId(), 0L, true);
 
             // 合并到目标库
             StoredStackEntry targetEntry = targetDatabase.entriesInternal().get(key);
@@ -86,6 +87,8 @@ public final class DatabaseCrossTransferHelper {
                         StoredItemDatabaseHelper.mergeFirstAdded(targetEntry.firstAdded(), sourceEntry.firstAdded())
                 ));
             }
+            StoredStackEntry newTargetEntry = targetDatabase.entriesInternal().get(key);
+            targetDatabase.trackAmountDelta(key, newTargetEntry.tabId(), newTargetEntry.amount(), false);
         }
 
         sourceDatabase.markRuntimeStateDirty();
@@ -120,6 +123,7 @@ public final class DatabaseCrossTransferHelper {
             StoredStackKey key = entry.getKey();
 
             resolvedIterator.remove();
+            sourceDatabase.trackAmountDelta(key, sourceEntry.tabId(), 0L, true);
 
             StoredStackEntry targetEntry = targetDatabase.entriesInternal().get(key);
             if (targetEntry == null) {
@@ -137,6 +141,8 @@ public final class DatabaseCrossTransferHelper {
                         StoredItemDatabaseHelper.mergeFirstAdded(targetEntry.firstAdded(), sourceEntry.firstAdded())
                 ));
             }
+            StoredStackEntry newTargetEntry = targetDatabase.entriesInternal().get(key);
+            targetDatabase.trackAmountDelta(key, newTargetEntry.tabId(), newTargetEntry.amount(), false);
             highestMovedSequence = Math.max(highestMovedSequence, sourceEntry.lastModified());
             changed = true;
         }
