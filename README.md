@@ -43,7 +43,7 @@ Then Infinite Inventory replaces all of that overhead with one full-screen datab
 - **Operation Log Viewer** — Review history of deposits, extractions, and other database actions.
 - **Auto-Store Enhancement** — Automatically send picked-up items into a designated target tab.
 - **Data Safety** — Rolling auto-backups every 15 minutes, manual backup/restore commands, and unresolved-item preservation when mods are temporarily missing.
-- **Optional Accessories Integration** — Wear the database terminal as a back-slot accessory for quick access.
+- **Optional Accessories / Curios Integration** — Wear the database terminal as a back-slot accessory for quick access via a configurable hotkey.
 
 ## Environment
 
@@ -54,14 +54,14 @@ Then Infinite Inventory replaces all of that overhead with one full-screen datab
 | **Mod Loader** | NeoForge |
 | **Supported NeoForge** | 21.1.222+ |
 | **Java** | 21 |
-| **Optional Dependency** | Accessories 1.1.0-beta.53+1.21.1 |
+| **Optional Dependencies** | Accessories 1.1.0-beta.53+1.21.1, Curios 9.5.1+1.21.1 |
 
 ## Installation
 
 1. Install Minecraft **1.21.1**.
 2. Install a compatible **NeoForge** build in the **21.1.x** range.
 3. Place the `Infinite Inventory` JAR into your `mods/` folder.
-4. *(Optional)* Install **Accessories** if you want wearable terminal access from the back slot.
+4. *(Optional)* Install **Accessories** or **Curios** if you want wearable terminal access from the back slot.
 
 > **Note:** The mod must be present on **both client and server** for multiplayer. The server handles data persistence and public storage; the client renders the UI and handles search input.
 
@@ -90,7 +90,8 @@ Item ID: `infiniteinventory:database_access_item`
 ## How to Use
 
 ### Opening the Database
-Right-click with the Database Terminal to open the full-screen interface.
+- **Handheld:** Right-click with the Database Terminal to open the full-screen interface.
+- **Equipped (Accessories / Curios):** Bind a hotkey in Controls → Key Binds → "Infinite Inventory" → "Open Equipped Database" to open the UI instantly when the terminal is worn in the back slot.
 
 ### Switching Views
 Use the top toolbar to toggle between:
@@ -98,9 +99,25 @@ Use the top toolbar to toggle between:
 - **Public** — server-wide shared storage (if enabled)
 - **Mixed** — combined view of both
 
+### Depositing Items
+- **Left-click** an item in your inventory to deposit 1
+- **Shift+click** to deposit a full stack into a target tab
+- **Store All** button — deposits your entire player inventory into the database
+- **Store Existing** button — deposits only items that already have a matching entry in the database (useful for bulk restocking)
+
+> **Deposit Conflict:** If an item already exists in a different tab, a popup will let you choose whether to deposit to the original tab or move everything to the target tab.
+
+### Extracting Items
+- **Left-click** a database entry to extract 1
+- **Shift+click** to extract a full stack directly to your inventory
+- **Right-click** for contextual options:
+  - Pick up a full stack to your cursor
+  - Pick up half a stack to your inventory
+  - Extract a custom amount (opens a number input overlay)
+
 ### Searching
 Type in the search bar to filter items. The search understands:
-- Chinese item names and pinyin
+- Chinese item names and pinyin (full spelling + initials)
 - English display names and aliases
 - Exact item IDs and namespaces
 
@@ -117,19 +134,28 @@ Type in the search bar to filter items. The search understands:
 
 Spaces between terms act as **AND**.
 
-### Extracting Items
-- **Left-click** an item to extract 1
-- **Shift+click** to extract a full stack
-- **Right-click** for contextual options (custom amount, half stack)
-
 ### Managing Tabs
-- Create tabs to categorize your items
-- Drag tabs to reorder them
-- Right-click a tab to rename, change icon, or move its entire contents
-- Hide less-used tabs to keep the interface clean
+- **Create** new tabs via the tab bar to categorize items
+- **Drag** tabs to reorder them
+- **Right-click** a tab to rename, change its icon, transfer its contents to another tab, or delete it
+- **Hide** less-used tabs to keep the interface clean
+- **Batch transfer:** Multi-select entries (click and drag or Shift+click), then right-click → "Move Selected to Another Category"
 
-### Auto-Store
-Enable auto-store to automatically deposit newly picked-up items into a target tab of your choice.
+### Stars & Notes
+- **Star** frequently-used items for quick access
+- **Right-click** → "Edit Note" to attach a custom note to any item
+- Notes can be applied to a single item or to all selected items at once
+
+### Database Settings (Gear Icon)
+The settings panel provides 5 navigation tabs:
+- **Adv. Search** — Configure search behavior and default filters
+- **Boost** — Toggle optional enhancements:
+  - *Auto-store picked-up items* — automatically deposit newly picked-up items into a designated target tab
+  - *Show amount in tooltip* — display the total stored count of an item in its tooltip
+  - *Force save on critical mutation* — immediately persist the database after important changes
+- **Views** — Preview and switch between personal, public, and mixed views
+- **Manage** — Create, delete, rename, reorder, and reorganize tabs in bulk
+- **Log** — Review a chronological history of all deposits, extractions, transfers, and other database actions
 
 ## Data Safety
 
