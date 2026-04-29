@@ -39,6 +39,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private boolean needsResave;
     private boolean nextSequenceOverflowWarned;
     private long lastValidatedTabDirectoryRevision = -1L;
+    private final ThreadLocal<Integer> batchUpdateDepth = ThreadLocal.withInitial(() -> 0);
+    private final ThreadLocal<Boolean> batchDirty = ThreadLocal.withInitial(() -> false);
 
     /**
      * 获取所有已解析物品条目的不可变视图。
@@ -376,7 +378,45 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.markRuntimeStateDirty();
     }
 
+    /**
+     * 进入批量更新模式。
+     *
+     * <p>设计意图：在批量操作（如一次性存入多个物品）期间，延迟 revision 递增和索引重建，
+     * 直到 {@link #endBatchUpdate()} 被调用。支持嵌套调用，只有最外层结束时才真正触发 dirty。</p>
+     *
+     * <p>业务约束：必须与 {@link #endBatchUpdate()} 成对使用，建议使用 try-finally 确保配对。</p>
+     */
+    public synchronized void beginBatchUpdate() {
+        this.batchUpdateDepth.set(this.batchUpdateDepth.get() + 1);
+    }
+
+    /**
+     * 退出批量更新模式。
+     *
+     * <p>若当前为最外层 batch 且期间发生过数据变更，则触发一次 revision 递增。
+     * 嵌套调用时只有 depth 归零时才真正执行。</p>
+     */
+    public synchronized void endBatchUpdate() {
+        int depth = this.batchUpdateDepth.get();
+        if (depth <= 0) {
+            this.batchUpdateDepth.set(0);
+            return;
+        }
+        depth--;
+        this.batchUpdateDepth.set(depth);
+        if (depth == 0 && this.batchDirty.get()) {
+            this.batchDirty.set(false);
+            if (this.revision < Long.MAX_VALUE) {
+                this.revision++;
+            }
+        }
+    }
+
     synchronized void markRuntimeStateDirty() {
+        if (this.batchUpdateDepth.get() > 0) {
+            this.batchDirty.set(true);
+            return;
+        }
         if (this.revision < Long.MAX_VALUE) {
             this.revision++;
         }

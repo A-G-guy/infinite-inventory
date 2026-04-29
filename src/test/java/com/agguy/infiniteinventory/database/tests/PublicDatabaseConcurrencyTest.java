@@ -157,4 +157,42 @@ class PublicDatabaseConcurrencyTest {
         StoredStackKey stoneKey = StoredStackKey.of(new ItemStack(Items.STONE));
         assertEquals(50L, database.getAmount(stoneKey));
     }
+
+    @Test
+    void concurrentBatchOperationsShouldPreserveConsistency() throws Exception {
+        StoredItemDatabase database = new StoredItemDatabase();
+        int threadCount = 8;
+        int operationsPerThread = 50;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        List<Callable<Void>> tasks = new ArrayList<>();
+        for (int thread = 0; thread < threadCount; thread++) {
+            final int threadIndex = thread;
+            tasks.add(() -> {
+                database.beginBatchUpdate();
+                for (int i = 0; i < operationsPerThread; i++) {
+                    database.store(new ItemStack(Items.STONE, 1));
+                    if (threadIndex % 2 == 1 && i % 5 == 0) {
+                        StoredStackKey key = StoredStackKey.of(new ItemStack(Items.STONE));
+                        database.extract(key, 1);
+                    }
+                }
+                database.endBatchUpdate();
+                return null;
+            });
+        }
+
+        List<Future<Void>> futures = executor.invokeAll(tasks);
+        for (Future<Void> future : futures) {
+            future.get();
+        }
+        executor.shutdown();
+
+        // 4 个偶数线程纯存 50 个 = +200; 4 个奇数线程存 50 个取 10 个 = +160; 总计 = 360
+        StoredStackKey stoneKey = StoredStackKey.of(new ItemStack(Items.STONE));
+        long expectedAmount = (long) (threadCount / 2) * operationsPerThread
+                + (long) (threadCount / 2) * (operationsPerThread - operationsPerThread / 5);
+        assertEquals(expectedAmount, database.getAmount(stoneKey));
+        assertEquals((long) threadCount, database.revision());
+    }
 }

@@ -1,5 +1,4 @@
 package com.agguy.infiniteinventory.service;
-
 import com.agguy.infiniteinventory.database.DatabasePage;
 import com.agguy.infiniteinventory.database.DatabasePageEntry;
 import com.agguy.infiniteinventory.database.DatabasePagination;
@@ -37,7 +36,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import net.minecraft.world.item.ItemStack;
-
 /**
  * 数据库查询引擎，负责将原始数据库条目按标签页、搜索条件、排序规则过滤分页，
  * 并构建带有搜索排名和缓存的展示页面。
@@ -46,17 +44,13 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class DatabaseQueryEngine {
     public static final DatabaseQueryEngine INSTANCE = new DatabaseQueryEngine();
-
-    private static final int MAX_SEARCH_CACHE_SIZE = 32;
-
+    private static final int MAX_SEARCH_CACHE_SIZE = 128;
     private final DatabaseEntrySorter entrySorter = DatabaseEntrySorter.INSTANCE;
     private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
     private final DatabaseSearchExpressionEvaluator searchExpressionEvaluator = DatabaseSearchExpressionEvaluator.INSTANCE;
     private final Map<StoredItemDatabase, LocalizedRuntimeIndexes> runtimeIndexes = new WeakHashMap<>();
-
     private DatabaseQueryEngine() {
     }
-
     /**
      * 构建展示页面（最简重载）。使用默认语言与默认搜索环境。
      *
@@ -81,7 +75,6 @@ public final class DatabaseQueryEngine {
                 DatabaseSearchEnvironment.defaultEnvironment()
         );
     }
-
     /**
      * 构建展示页面（指定显示语言）。使用默认搜索环境。
      *
@@ -108,7 +101,6 @@ public final class DatabaseQueryEngine {
                 DatabaseSearchEnvironment.defaultEnvironment()
         );
     }
-
     /**
      * 构建展示页面（完全版）。所有重载的最终入口，负责参数校验、索引重建、缓存与分页切片。
      *
@@ -141,7 +133,6 @@ public final class DatabaseQueryEngine {
         );
         return this.toPage(normalizedQuery, queryResult, normalizedScopedTab, resolvedTabDirectory.resolve(normalizedTabId));
     }
-
     private DatabaseRuntimeIndex runtimeIndexFor(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
         ViewerLanguage normalizedLanguage = viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage;
         LocalizedRuntimeIndexes cachedIndexes = this.runtimeIndexes.get(database);
@@ -151,13 +142,11 @@ public final class DatabaseQueryEngine {
                 return cachedIndex;
             }
         }
-
         LocalizedRuntimeIndexes activeIndexes = cachedIndexes;
         if (activeIndexes == null || activeIndexes.revision() != database.revision()) {
             activeIndexes = new LocalizedRuntimeIndexes(database.revision());
             this.runtimeIndexes.put(database, activeIndexes);
         }
-
         DatabaseRuntimeIndex rebuiltIndex;
         synchronized (database) {
             rebuiltIndex = DatabaseRuntimeIndex.build(database, normalizedLanguage);
@@ -165,7 +154,6 @@ public final class DatabaseQueryEngine {
         activeIndexes.put(normalizedLanguage, rebuiltIndex);
         return rebuiltIndex;
     }
-
     private CachedQueryResult resolveQueryResult(
             DatabaseRuntimeIndex runtimeIndex,
             DatabaseTabQueryState tabQueryState,
@@ -184,7 +172,6 @@ public final class DatabaseQueryEngine {
         }
         return this.resolveSearchResult(runtimeIndex, tabQueryState, tabId, parsedQuery, searchEnvironment);
     }
-
     private CachedQueryResult resolveNoSearchResult(DatabaseRuntimeIndex runtimeIndex, DatabaseTabQueryState tabQueryState, String tabId) {
         String normalizedTabId = normalizeTabId(tabId, null);
         return runtimeIndex.noSearchResult(normalizedTabId, tabQueryState.sortOption(), () -> {
@@ -196,7 +183,6 @@ public final class DatabaseQueryEngine {
             return new CachedQueryResult(sortedRecords, runtimeIndex.totalItemsFor(normalizedTabId));
         });
     }
-
     private CachedQueryResult resolveSearchResult(
             DatabaseRuntimeIndex runtimeIndex,
             DatabaseTabQueryState tabQueryState,
@@ -210,7 +196,6 @@ public final class DatabaseQueryEngine {
         if (cachedResult != null) {
             return cachedResult;
         }
-
         List<ResolvedQueryRecord> matchedRecords = new ArrayList<>();
         long totalItems = 0L;
         for (DatabaseRuntimeEntryRecord entryRecord : runtimeIndex.recordsFor(normalizedTabId)) {
@@ -230,12 +215,10 @@ public final class DatabaseQueryEngine {
             totalItems = safeAdd(totalItems, entryRecord.entry().amount());
         }
         matchedRecords.sort(Comparator.comparing(ResolvedQueryRecord::sortSnapshot, this.entrySorter.comparatorFor(tabQueryState)));
-
         CachedQueryResult builtResult = new CachedQueryResult(matchedRecords, totalItems);
         runtimeIndex.cacheSearchResult(fingerprint, builtResult);
         return builtResult;
     }
-
     private DatabasePage toPage(
             DatabaseQuery query,
             CachedQueryResult queryResult,
@@ -248,7 +231,6 @@ public final class DatabaseQueryEngine {
         int pageIndex = Math.min(query.pageIndexFor(scopedTab), totalPages - 1);
         int fromIndex = resolvePageFromIndex(pageIndex, safePageSize, totalEntries);
         int toIndex = resolvePageToIndex(fromIndex, safePageSize, totalEntries);
-
         List<DatabasePageEntry> pageEntries = new ArrayList<>(safePageSize);
         for (int index = fromIndex; index < toIndex; index++) {
             ResolvedQueryRecord record = queryResult.records().get(index);
@@ -256,17 +238,14 @@ public final class DatabaseQueryEngine {
         }
         return new DatabasePage(scopedTab, tab, pageIndex, safePageSize, totalEntries, totalPages, queryResult.totalItems(), pageEntries);
     }
-
     private static int resolvePageFromIndex(int pageIndex, int pageSize, int totalEntries) {
         long startIndex = Math.min((long) Math.max(0, pageIndex) * Math.max(1L, pageSize), Math.max(0L, totalEntries));
         return (int) startIndex;
     }
-
     private static int resolvePageToIndex(int fromIndex, int pageSize, int totalEntries) {
         long endIndex = Math.min((long) Math.max(0L, totalEntries), (long) Math.max(0L, fromIndex) + Math.max(1L, pageSize));
         return (int) endIndex;
     }
-
     private static String normalizeTabId(String tabId, DatabaseTabDirectory tabDirectory) {
         if (tabDirectory == null) {
             if (DatabaseTabs.isAllTabId(tabId)) {
@@ -283,7 +262,6 @@ public final class DatabaseQueryEngine {
         }
         return tabDirectory.defaultConcreteTab().id();
     }
-
     private static DatabaseScopedTabRef normalizeScopedTab(
             DatabaseScopedTabRef scopedTab,
             DatabaseTabDirectory tabDirectory,
@@ -294,7 +272,6 @@ public final class DatabaseQueryEngine {
         }
         return DatabaseScopedTabRef.concreteTab(scopedTab.scope(), normalizeTabId(scopedTab.tabId(), tabDirectory));
     }
-
     private static long safeAdd(long left, long right) {
         if (right <= 0L) {
             return left;
@@ -304,7 +281,6 @@ public final class DatabaseQueryEngine {
         }
         return left + right;
     }
-
     private record QueryFingerprint(
             String tabId,
             DatabaseSortOption sortOption,
@@ -327,17 +303,14 @@ public final class DatabaseQueryEngine {
             );
         }
     }
-
     private record CachedQueryResult(List<ResolvedQueryRecord> records, long totalItems) {
         private CachedQueryResult(List<ResolvedQueryRecord> records, long totalItems) {
             this.records = List.copyOf(records);
             this.totalItems = Math.max(0L, totalItems);
         }
     }
-
     private record ResolvedQueryRecord(DatabaseRuntimeEntryRecord entryRecord, DatabaseSortSnapshot sortSnapshot) {
     }
-
     private record DatabaseRuntimeEntryRecord(
             StoredStackKey key,
             StoredStackEntry entry,
@@ -374,13 +347,12 @@ public final class DatabaseQueryEngine {
                     )
             );
         }
-
         private DatabasePageEntry toPageEntry(DatabaseScope scope) {
             return new DatabasePageEntry(
                     this.key,
                     new VisibleDatabaseEntry(
                             scope,
-                            this.displayStack.copyWithCount(1),
+                            this.displayStack,
                             this.entry.amount(),
                             this.entry.tabId(),
                             this.key.registryName(),
@@ -390,15 +362,20 @@ public final class DatabaseQueryEngine {
             );
         }
     }
-
     private static final class DatabaseRuntimeIndex {
         private static final int SEARCH_CACHE_INITIAL_CAPACITY = 16;
         private static final float SEARCH_CACHE_LOAD_FACTOR = 0.75F;
-
         private final long revision;
         private final Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets;
         private final Map<String, Long> tabTotals;
-        private final Map<String, java.util.EnumMap<DatabaseSortOption, CachedQueryResult>> noSearchSortedCache = new LinkedHashMap<>();
+        private static final int MAX_NO_SEARCH_TAB_CACHE_SIZE = 64;
+        private final Map<String, java.util.EnumMap<DatabaseSortOption, CachedQueryResult>> noSearchSortedCache =
+                new LinkedHashMap<>() {
+                    @Override
+                    protected boolean removeEldestEntry(Map.Entry<String, java.util.EnumMap<DatabaseSortOption, CachedQueryResult>> eldest) {
+                        return this.size() > MAX_NO_SEARCH_TAB_CACHE_SIZE;
+                    }
+                };
         private final LinkedHashMap<QueryFingerprint, CachedQueryResult> searchCache =
                 new LinkedHashMap<>(SEARCH_CACHE_INITIAL_CAPACITY, SEARCH_CACHE_LOAD_FACTOR, true) {
                     @Override
@@ -406,7 +383,6 @@ public final class DatabaseQueryEngine {
                         return this.size() > MAX_SEARCH_CACHE_SIZE;
                     }
                 };
-
         private DatabaseRuntimeIndex(
                 long revision,
                 Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets,
@@ -416,15 +392,12 @@ public final class DatabaseQueryEngine {
             this.tabBuckets = tabBuckets;
             this.tabTotals = tabTotals;
         }
-
         private List<DatabaseRuntimeEntryRecord> recordsFor(String tabId) {
             return this.tabBuckets.getOrDefault(normalizeTabId(tabId, null), List.of());
         }
-
         private long totalItemsFor(String tabId) {
             return this.tabTotals.getOrDefault(normalizeTabId(tabId, null), 0L);
         }
-
         private CachedQueryResult noSearchResult(
                 String tabId,
                 DatabaseSortOption sortOption,
@@ -434,15 +407,12 @@ public final class DatabaseQueryEngine {
                     this.noSearchSortedCache.computeIfAbsent(normalizeTabId(tabId, null), ignored -> new java.util.EnumMap<>(DatabaseSortOption.class));
             return tabCache.computeIfAbsent(sortOption, ignored -> builder.get());
         }
-
         private CachedQueryResult searchResult(QueryFingerprint fingerprint) {
             return this.searchCache.get(fingerprint);
         }
-
         private void cacheSearchResult(QueryFingerprint fingerprint, CachedQueryResult result) {
             this.searchCache.put(fingerprint, result);
         }
-
         private static DatabaseRuntimeIndex build(StoredItemDatabase database, ViewerLanguage viewerLanguage) {
             Map<String, List<DatabaseRuntimeEntryRecord>> tabBuckets = new LinkedHashMap<>();
             Map<String, Long> tabTotals = new LinkedHashMap<>();
@@ -450,7 +420,6 @@ public final class DatabaseQueryEngine {
             tabTotals.put(DatabaseTabs.ALL_TAB_ID, 0L);
             tabBuckets.put(DatabaseTabs.FAVORITES_TAB_ID, new ArrayList<>());
             tabTotals.put(DatabaseTabs.FAVORITES_TAB_ID, 0L);
-
             for (Map.Entry<StoredStackKey, StoredStackEntry> mapEntry : database.entries().entrySet()) {
                 String note = database.noteFor(mapEntry.getKey());
                 boolean starred = database.isStarred(mapEntry.getKey());
@@ -465,7 +434,6 @@ public final class DatabaseQueryEngine {
                     tabTotals.put(DatabaseTabs.FAVORITES_TAB_ID, safeAdd(tabTotals.get(DatabaseTabs.FAVORITES_TAB_ID), record.entry().amount()));
                 }
             }
-
             Map<String, List<DatabaseRuntimeEntryRecord>> immutableBuckets = new LinkedHashMap<>();
             for (Map.Entry<String, List<DatabaseRuntimeEntryRecord>> entry : tabBuckets.entrySet()) {
                 immutableBuckets.put(entry.getKey(), List.copyOf(entry.getValue()));
@@ -473,23 +441,18 @@ public final class DatabaseQueryEngine {
             return new DatabaseRuntimeIndex(database.revision(), Map.copyOf(immutableBuckets), Map.copyOf(tabTotals));
         }
     }
-
     private static final class LocalizedRuntimeIndexes {
         private final long revision;
         private final java.util.EnumMap<ViewerLanguage, DatabaseRuntimeIndex> localizedIndexes = new java.util.EnumMap<>(ViewerLanguage.class);
-
         private LocalizedRuntimeIndexes(long revision) {
             this.revision = Math.max(0L, revision);
         }
-
         private long revision() {
             return this.revision;
         }
-
         private DatabaseRuntimeIndex indexFor(ViewerLanguage viewerLanguage) {
             return this.localizedIndexes.get(viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage);
         }
-
         private void put(ViewerLanguage viewerLanguage, DatabaseRuntimeIndex runtimeIndex) {
             this.localizedIndexes.put(viewerLanguage == null ? ViewerLanguage.defaultLanguage() : viewerLanguage, runtimeIndex);
         }

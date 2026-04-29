@@ -181,7 +181,7 @@ final class StoredItemDatabaseSerializer {
             if (stackTag.isEmpty() || noteText.isEmpty() || provider == null) {
                 continue;
             }
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag);
             if (!stack.isEmpty()) {
                 database.notesInternal().put(StoredStackKey.of(stack), noteText);
             }
@@ -194,7 +194,7 @@ final class StoredItemDatabaseSerializer {
             if (stackTag.isEmpty() || provider == null) {
                 continue;
             }
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag);
             if (!stack.isEmpty()) {
                 database.starredEntriesInternal().add(StoredStackKey.of(stack));
             }
@@ -233,7 +233,7 @@ final class StoredItemDatabaseSerializer {
                 }
                 continue;
             }
-            ItemStack stack = ItemStack.parseOptional(provider, stackTag.copy());
+            ItemStack stack = ItemStack.parseOptional(provider, stackTag);
             if (stack.isEmpty()) {
                 if (preserveInvalidEntries && !stackTag.isEmpty()) {
                     database.unresolvedEntriesInternal().add(new UnresolvedStoredEntry(stackTag, amount, tabId, lastModified, firstAdded));

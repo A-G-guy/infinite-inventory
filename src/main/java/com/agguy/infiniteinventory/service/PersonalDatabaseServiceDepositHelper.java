@@ -70,24 +70,29 @@ public final class PersonalDatabaseServiceDepositHelper {
         StoredItemDatabase database = service.resolveDatabaseForMutation(player, scope);
         long movedItems = 0L;
         boolean movedAny = false;
-        for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
-            if (!PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex)) {
-                continue;
+        database.beginBatchUpdate();
+        try {
+            for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
+                if (!PersonalDatabaseServiceStorageHelper.isPrimaryStorageSlot(slotIndex)) {
+                    continue;
+                }
+                ItemStack stack = inventory.items.get(slotIndex);
+                if (!service.canStore(stack)) {
+                    continue;
+                }
+                StoredStackKey key = StoredStackKey.of(stack);
+                StoredStackEntry entry = database.entries().get(key);
+                if (entry == null) {
+                    continue;
+                }
+                movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
+                movedAny = true;
+                database.store(stack.copy(), entry.tabId());
+                PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", entry.tabId(), null);
+                inventory.items.set(slotIndex, ItemStack.EMPTY);
             }
-            ItemStack stack = inventory.items.get(slotIndex);
-            if (!service.canStore(stack)) {
-                continue;
-            }
-            StoredStackKey key = StoredStackKey.of(stack);
-            StoredStackEntry entry = database.entries().get(key);
-            if (entry == null) {
-                continue;
-            }
-            movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
-            movedAny = true;
-            database.store(stack.copy(), entry.tabId());
-            PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", entry.tabId(), null);
-            inventory.items.set(slotIndex, ItemStack.EMPTY);
+        } finally {
+            database.endBatchUpdate();
         }
         if (movedAny) {
             service.markScopeDirty(player, scope);
@@ -102,19 +107,24 @@ public final class PersonalDatabaseServiceDepositHelper {
         String resolvedTargetTabId = service.resolveConcreteTargetTabId(player, scope, targetTabId);
         long movedItems = 0L;
         boolean movedAny = false;
-        for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
-            if (!PersonalDatabaseServiceHelper.isPrimaryStorageSlot(slotIndex)) {
-                continue;
+        database.beginBatchUpdate();
+        try {
+            for (int slotIndex = 0; slotIndex < inventory.items.size(); slotIndex++) {
+                if (!PersonalDatabaseServiceHelper.isPrimaryStorageSlot(slotIndex)) {
+                    continue;
+                }
+                ItemStack stack = inventory.items.get(slotIndex);
+                if (!service.canStore(stack)) {
+                    continue;
+                }
+                movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
+                movedAny = true;
+                database.store(stack.copy(), resolvedTargetTabId);
+                PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
+                inventory.items.set(slotIndex, ItemStack.EMPTY);
             }
-            ItemStack stack = inventory.items.get(slotIndex);
-            if (!service.canStore(stack)) {
-                continue;
-            }
-            movedItems = PersonalDatabaseServiceStorageHelper.safeAddMovedItems(movedItems, stack);
-            movedAny = true;
-            database.store(stack.copy(), resolvedTargetTabId);
-            PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DEPOSIT, stack, stack.getCount(), "", resolvedTargetTabId, null);
-            inventory.items.set(slotIndex, ItemStack.EMPTY);
+        } finally {
+            database.endBatchUpdate();
         }
         if (movedAny) {
             service.markScopeDirty(player, scope);

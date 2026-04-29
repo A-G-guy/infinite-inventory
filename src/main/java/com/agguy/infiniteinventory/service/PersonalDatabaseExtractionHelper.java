@@ -35,25 +35,30 @@ final class PersonalDatabaseExtractionHelper {
         String originalTabId = PersonalDatabaseServiceHelper.entryTabId(database, key);
         long movedItems = 0L;
         long remainingAmount = requestedAmount;
-        while (remainingAmount > 0L && hasSpaceFor(inventory, key)) {
-            int extractedCount = (int) Math.min((long) key.maxStackSize(), remainingAmount);
-            ItemStack extracted = database.extract(key, extractedCount);
-            if (extracted.isEmpty()) {
-                break;
+        database.beginBatchUpdate();
+        try {
+            while (remainingAmount > 0L && hasSpaceFor(inventory, key)) {
+                int extractedCount = (int) Math.min((long) key.maxStackSize(), remainingAmount);
+                ItemStack extracted = database.extract(key, extractedCount);
+                if (extracted.isEmpty()) {
+                    break;
+                }
+                int originalCount = extracted.getCount();
+                inventory.add(extracted);
+                int movedNow = originalCount - extracted.getCount();
+                if (movedNow <= 0) {
+                    database.store(extracted, originalTabId);
+                    break;
+                }
+                movedItems = safeAddMovedItems(movedItems, movedNow);
+                remainingAmount -= movedNow;
+                if (!extracted.isEmpty()) {
+                    database.store(extracted, originalTabId);
+                    break;
+                }
             }
-            int originalCount = extracted.getCount();
-            inventory.add(extracted);
-            int movedNow = originalCount - extracted.getCount();
-            if (movedNow <= 0) {
-                database.store(extracted, originalTabId);
-                break;
-            }
-            movedItems = safeAddMovedItems(movedItems, movedNow);
-            remainingAmount -= movedNow;
-            if (!extracted.isEmpty()) {
-                database.store(extracted, originalTabId);
-                break;
-            }
+        } finally {
+            database.endBatchUpdate();
         }
         if (movedItems > 0L) {
             service.markScopeDirty(player, scope);
