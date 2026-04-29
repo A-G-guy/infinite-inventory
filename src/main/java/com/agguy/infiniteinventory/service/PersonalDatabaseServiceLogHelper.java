@@ -29,7 +29,7 @@ final class PersonalDatabaseServiceLogHelper {
         database.appendLogEntry(new DatabaseLogEntry(
                 System.currentTimeMillis(),
                 player.getUUID(),
-                anonymizePlayerName(player.getUUID()),
+                player.getGameProfile().getName(),
                 action,
                 stack.copyWithCount(1),
                 amount,
@@ -39,11 +39,4 @@ final class PersonalDatabaseServiceLogHelper {
         ));
     }
 
-    private static String anonymizePlayerName(java.util.UUID playerId) {
-        if (playerId == null) {
-            return "";
-        }
-        String uuidString = playerId.toString();
-        return uuidString.substring(0, Math.min(8, uuidString.length()));
-    }
 }
