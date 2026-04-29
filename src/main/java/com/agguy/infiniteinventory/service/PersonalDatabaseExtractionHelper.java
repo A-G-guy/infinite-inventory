@@ -38,7 +38,7 @@ final class PersonalDatabaseExtractionHelper {
         database.beginBatchUpdate();
         try {
             while (remainingAmount > 0L && hasSpaceFor(inventory, key)) {
-                int extractedCount = (int) Math.min((long) key.maxStackSize(), remainingAmount);
+                int extractedCount = (int) Math.min((long) key.maxStackSize(), Math.min(remainingAmount, (long) Integer.MAX_VALUE));
                 ItemStack extracted = database.extract(key, extractedCount);
                 if (extracted.isEmpty()) {
                     break;

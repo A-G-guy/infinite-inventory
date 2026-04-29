@@ -10,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
  *
  * <p>采用 LRU 淘汰策略防止极端情况下内存无限增长。上限设为 4096，
  * 对绝大多数使用场景足够且内存占用可控。不依赖 JEI，为模组独立功能。</p>
+ *
+ * <p>设计说明：虽然使用 {@link ItemStack} 作为 {@link Map} 键在理论上存在可变性风险，
+ * 但本类的所有查找操作均通过 {@link ItemStack#isSameItemSameComponents} 进行线性比对，
+ * 不依赖 {@code hashCode}，因此不受键对象状态变更影响。</p>
  */
 public final class DatabaseAmountCache {
     public static final DatabaseAmountCache INSTANCE = new DatabaseAmountCache();
@@ -94,8 +98,24 @@ public final class DatabaseAmountCache {
     }
 
     public record Entry(ItemStack stack, String tabName, long amount) {
+        public Entry {
+            stack = stack == null ? ItemStack.EMPTY : stack.copy();
+        }
+
+        @Override
+        public ItemStack stack() {
+            return this.stack.copy();
+        }
     }
 
     public record Delta(ItemStack stack, String tabName, long amount, boolean removed) {
+        public Delta {
+            stack = stack == null ? ItemStack.EMPTY : stack.copy();
+        }
+
+        @Override
+        public ItemStack stack() {
+            return this.stack.copy();
+        }
     }
 }

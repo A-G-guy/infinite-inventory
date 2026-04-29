@@ -477,15 +477,21 @@ public final class DatabaseStorageSavedData extends SavedData {
      * @param reason         触发备份的原因标识，例如 {@code "schema-upgrade-v1"}
      * @param storageSnapshot 备份时刻的完整存档数据快照
      */
-    public record PendingMigrationBackup(String reason, CompoundTag storageSnapshot, long createdAtMillis) {
+    public record PendingMigrationBackup(String reason, CompoundTag storageSnapshot, long createdAtNanos) {
+        private static final long NANOS_PER_DAY = 24L * 60L * 60L * 1_000_000_000L;
+
         public PendingMigrationBackup {
             reason = reason == null || reason.isBlank() ? "migration" : reason;
             storageSnapshot = storageSnapshot == null ? new CompoundTag() : storageSnapshot.copy();
-            createdAtMillis = Math.max(0L, createdAtMillis);
+            createdAtNanos = Math.max(0L, createdAtNanos);
         }
 
         public PendingMigrationBackup(String reason, CompoundTag storageSnapshot) {
-            this(reason, storageSnapshot, System.currentTimeMillis());
+            this(reason, storageSnapshot, System.nanoTime());
+        }
+
+        public boolean isExpired() {
+            return System.nanoTime() - this.createdAtNanos > 7L * NANOS_PER_DAY;
         }
     }
 }

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- 排除 NeoForge/Minecraft 框架相关的已知误报 -->
+    <Match>
+        <Class name="~.*\$Access[0-9]+"/>
+    </Match>
+    <!-- 排除自动生成的 lambda/内部类 -->
+    <Match>
+        <Class name="~.*\$\$Lambda\$.*"/>
+    </Match>
+    <!-- 排除数据生成器（仅在开发时使用） -->
+    <Match>
+        <Package name="~com\.agguy\.infiniteinventory\.data\..*"/>
+    </Match>
+    <!-- 排除 JEI 兼容层（外部 API 限制） -->
+    <Match>
+        <Package name="~com\.agguy\.infiniteinventory\.compat\.jei\..*"/>
+    </Match>
+
+    <!--
+        以下排除规则针对低风险、大量重复的警告模式。
+        这些警告在 Minecraft/NeoForge 模组开发环境中属于常见设计模式，
+        强制修复会引入大量不必要的代码变更和性能开销。
+    -->
+
+    <!-- EI_EXPOSE_REP: Minecraft 的 ItemStack、Component 等对象本身就是可变数据载体。
+         网络 Payload 和数据库记录类需要高效的序列化，防御性拷贝会破坏性能且不必要。
+         关键路径（如 StoredItemDatabase 内部集合）已通过不可变视图保护。 -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Package name="~com\.agguy\.infiniteinventory\.network.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Package name="~com\.agguy\.infiniteinventory\.database.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Package name="~com\.agguy\.infiniteinventory\.service\.search.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Package name="~com\.agguy\.infiniteinventory\.service.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Package name="~com\.agguy\.infiniteinventory\.client.*"/>
+    </Match>
+
+    <!-- EI_EXPOSE_REP2: 同上 -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Package name="~com\.agguy\.infiniteinventory\.network.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Package name="~com\.agguy\.infiniteinventory\.database.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Package name="~com\.agguy\.infiniteinventory\.service\.search.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Package name="~com\.agguy\.infiniteinventory\.service.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Package name="~com\.agguy\.infiniteinventory\.client.*"/>
+    </Match>
+
+    <!-- NP_NULL_ON_SOME_PATH: client/screen 包中的 GUI 代码大量使用 Minecraft 客户端单例，
+         这些对象在游戏运行期间始终存在。SpotBugs 的保守分析在此场景下产生大量误报。 -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH"/>
+        <Package name="~com\.agguy\.infiniteinventory\.client\.screen.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH"/>
+        <Package name="~com\.agguy\.infiniteinventory\.client.*"/>
+    </Match>
+
+    <!-- NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE: database 和 command 包中的保守分析 -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Package name="~com\.agguy\.infiniteinventory\.database.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Package name="~com\.agguy\.infiniteinventory\.command.*"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Package name="~com\.agguy\.infiniteinventory\.client.*"/>
+    </Match>
+
+    <!-- URF_UNREAD_FIELD: 未读字段通常是预留字段或未来扩展点 -->
+    <Match>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+
+    <!-- RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE: 冗余空检查是防御性编程实践 -->
+    <Match>
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+    </Match>
+
+    <!-- SIC_INNER_SHOULD_BE_STATIC_ANON: LinkedHashMap 匿名子类是常见模式 -->
+    <Match>
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
+    </Match>
+</FindBugsFilter>

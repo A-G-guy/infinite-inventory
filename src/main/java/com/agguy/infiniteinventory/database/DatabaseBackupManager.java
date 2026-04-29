@@ -59,7 +59,7 @@ public final class DatabaseBackupManager {
         if (pendingMigrationBackup == null) {
             return;
         }
-        if (System.currentTimeMillis() - pendingMigrationBackup.createdAtMillis() > 7L * 24L * 60L * 60L * 1000L) {
+        if (pendingMigrationBackup.isExpired()) {
             LOGGER.warn("迁移备份已过期（超过7天），跳过创建: {}", pendingMigrationBackup.reason());
             return;
         }

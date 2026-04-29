@@ -42,8 +42,8 @@ final class PersonalDatabaseLayoutFactory {
         boolean compactTopBar = frameRect.width() <= 520;
         boolean compactAccessoryLayout = isCompactAccessoryLayout(screenWidth, screenHeight);
         int settingsButtonWidth = compactTopBar ? 48 : 56;
-        int depositButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH;
-        int defaultScopeButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH;
+        int depositButtonWidth = resolveCompactWidth(compactTopBar, 76, PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH);
+        int defaultScopeButtonWidth = resolveCompactWidth(compactTopBar, 76, PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH);
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
         int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
         boolean showViewSelector = !compactTopBar && frameRect.width() >= 680;
@@ -67,7 +67,7 @@ final class PersonalDatabaseLayoutFactory {
             nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + viewSelectorButtonWidth;
             viewSelectorButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), viewSelectorButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
         }
-        int depositExistingButtonWidth = compactTopBar ? 76 : PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH;
+        int depositExistingButtonWidth = depositButtonWidth;
         PersonalDatabaseLayout.Rect depositExistingButtonRect = new PersonalDatabaseLayout.Rect(
                 nextLeft - PersonalDatabaseLayout.TOOLBAR_GAP - depositExistingButtonWidth,
                 titleRect.y(),
@@ -382,6 +382,10 @@ final class PersonalDatabaseLayoutFactory {
                 + PersonalDatabaseLayout.SECTION_GAP
                 + bottomInventoryHeight;
         return requiredBottom <= frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING;
+    }
+
+    private static int resolveCompactWidth(boolean compact, int compactWidth, int normalWidth) {
+        return compact ? compactWidth : normalWidth;
     }
 
     private static boolean isCompactAccessoryLayout(int screenWidth, int screenHeight) {

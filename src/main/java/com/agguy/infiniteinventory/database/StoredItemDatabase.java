@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -31,8 +32,8 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
     private final java.util.List<UnresolvedStoredEntry> unresolvedEntries = new java.util.ArrayList<>();
     private final java.util.List<DatabaseLogEntry> logEntries = new java.util.ArrayList<>();
     private final java.util.List<AmountDelta> pendingAmountDeltas = new java.util.ArrayList<>();
-    private long nextSequence = 1L;
-    private long revision;
+    private final AtomicLong nextSequence = new AtomicLong(1L);
+    private final AtomicLong revision = new AtomicLong();
     private boolean needsResave;
     private boolean nextSequenceOverflowWarned;
     private long lastValidatedTabDirectoryRevision = -1L;
@@ -114,7 +115,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * @return 当前版本号
      */
-    public long revision() { return this.revision; }
+    public long revision() { return this.revision.get(); }
     /**
      * 判断数据是否需要重新保存。
      *
@@ -122,7 +123,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
      *
      * @return 若需要重新保存则返回 {@code true}
      */
-    public boolean needsResave() { return this.needsResave; }
+    public synchronized boolean needsResave() { return this.needsResave; }
     /**
      * 清空仓库中的所有数据（包括已解析、未解析、备注、收藏、日志）。
      *
@@ -315,17 +316,18 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         StoredItemDatabaseSerializer.deserialize(this, provider, tag);
     }
     long nextSequence() {
-        if (this.nextSequence == Long.MAX_VALUE) {
+        long current = this.nextSequence.get();
+        if (current == Long.MAX_VALUE) {
             if (!this.nextSequenceOverflowWarned) {
                 LOGGER.warn("StoredItemDatabase sequence number has reached Long.MAX_VALUE and will remain fixed. Timestamps may collide.");
                 this.nextSequenceOverflowWarned = true;
             }
             return Long.MAX_VALUE;
         }
-        return this.nextSequence++;
+        return this.nextSequence.getAndIncrement();
     }
     private boolean hasStoredContent() {
-        return !this.entries.isEmpty() || !this.unresolvedEntries.isEmpty() || this.nextSequence != 1L;
+        return !this.entries.isEmpty() || !this.unresolvedEntries.isEmpty() || this.nextSequence.get() != 1L;
     }
     synchronized void resetContent() {
         this.entries.clear();
@@ -333,8 +335,10 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.starredEntries.clear();
         this.unresolvedEntries.clear();
         this.logEntries.clear();
-        this.nextSequence = 1L;
+        this.nextSequence.set(1L);
         this.needsResave = false;
+        this.batchUpdateDepth.set(0);
+        this.batchDirty.set(false);
     }
     /**
      * 追加一条操作日志。
@@ -379,9 +383,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         this.batchUpdateDepth.set(depth);
         if (depth == 0 && this.batchDirty.get()) {
             this.batchDirty.set(false);
-            if (this.revision < Long.MAX_VALUE) {
-                this.revision++;
-            }
+            this.revision.incrementAndGet();
         }
     }
     synchronized void markRuntimeStateDirty() {
@@ -389,9 +391,7 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
             this.batchDirty.set(true);
             return;
         }
-        if (this.revision < Long.MAX_VALUE) {
-            this.revision++;
-        }
+        this.revision.incrementAndGet();
     }
     // 包级可见的内部状态访问方法，仅供同包辅助类使用
     Map<StoredStackKey, StoredStackEntry> entriesInternal() {
@@ -410,13 +410,13 @@ public class StoredItemDatabase implements INBTSerializable<CompoundTag> {
         return this.starredEntries;
     }
     long nextSequenceInternal() {
-        return this.nextSequence;
+        return this.nextSequence.get();
     }
-    void setNeedsResave(boolean needsResave) {
+    synchronized void setNeedsResave(boolean needsResave) {
         this.needsResave = needsResave;
     }
-    void setNextSequence(long nextSequence) {
-        this.nextSequence = nextSequence;
+    synchronized void setNextSequence(long nextSequence) {
+        this.nextSequence.set(nextSequence);
     }
     synchronized void mergeResolvedEntryInternal(StoredStackKey key, StoredStackEntry incomingEntry) {
         if (key == null || incomingEntry == null || incomingEntry.isEmpty()) {

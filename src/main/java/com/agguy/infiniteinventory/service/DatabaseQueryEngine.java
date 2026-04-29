@@ -29,6 +29,7 @@ import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParser;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchQueryParserContext;
 import com.agguy.infiniteinventory.service.search.DatabaseSearchRanking;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,7 +49,8 @@ public final class DatabaseQueryEngine {
     private final DatabaseEntrySorter entrySorter = DatabaseEntrySorter.INSTANCE;
     private final DatabaseSearchEvaluator searchEvaluator = new DatabaseSearchEvaluator();
     private final DatabaseSearchExpressionEvaluator searchExpressionEvaluator = DatabaseSearchExpressionEvaluator.INSTANCE;
-    private final Map<StoredItemDatabase, LocalizedRuntimeIndexes> runtimeIndexes = new WeakHashMap<>();
+    private final Map<StoredItemDatabase, LocalizedRuntimeIndexes> runtimeIndexes =
+            Collections.synchronizedMap(new WeakHashMap<>());
     private DatabaseQueryEngine() {
     }
     /**

@@ -34,7 +34,7 @@ public final class DatabaseModMetadataResolver {
         if (!this.metadataByNamespace.isEmpty()) {
             return;
         }
-        synchronized (this.metadataByNamespace) {
+        synchronized (this) {
             if (!this.metadataByNamespace.isEmpty()) {
                 return;
             }
@@ -57,9 +57,10 @@ public final class DatabaseModMetadataResolver {
                     continue;
                 }
                 ModMetadata metadata = ModMetadata.of(namespace, modInfo.getDisplayName());
-                this.metadataByNamespace.putIfAbsent(namespace, metadata);
-                if (!metadata.displayNameNormalized().isEmpty()) {
-                    candidates.add(metadata.displayNameNormalized());
+                ModMetadata existing = this.metadataByNamespace.putIfAbsent(namespace, metadata);
+                ModMetadata resolvedMetadata = existing != null ? existing : metadata;
+                if (!resolvedMetadata.displayNameNormalized().isEmpty()) {
+                    candidates.add(resolvedMetadata.displayNameNormalized());
                 }
             }
             this.modDisplayNameCandidates = Set.copyOf(candidates);

@@ -101,7 +101,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         this.accessorySlotRange = MenuSlotRange.fromGroups(this.accessorySlotGroups);
     }
 
-    protected MenuSlotRange addCraftingSlots() {
+    private MenuSlotRange addCraftingSlots() {
         int start = this.slots.size();
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 2; column++) {
@@ -116,7 +116,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         return MenuSlotRange.of(start, this.slots.size() - start);
     }
 
-    protected MenuSlotRange addArmorSlots(Inventory playerInventory, Player owner) {
+    private MenuSlotRange addArmorSlots(Inventory playerInventory, Player owner) {
         int start = this.slots.size();
         for (int index = 0; index < ARMOR_ORDER.length; index++) {
             EquipmentSlot equipmentSlot = ARMOR_ORDER[index];
@@ -184,7 +184,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         return MenuSlotRange.of(start, this.slots.size() - start);
     }
 
-    protected int addTrackedSlot(Slot slot) {
+    private int addTrackedSlot(Slot slot) {
         int index = this.slots.size();
         this.addSlot(slot);
         return index;

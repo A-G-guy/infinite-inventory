@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.compat.jei;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
+import java.util.concurrent.atomic.AtomicReference;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IRecipeTransferRegistration;
@@ -12,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 @JeiPlugin
 public final class JeiCompatPlugin implements IModPlugin {
-    private static IJeiRuntime runtime;
+    private static final AtomicReference<IJeiRuntime> RUNTIME = new AtomicReference<>();
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -21,10 +22,10 @@ public final class JeiCompatPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        runtime = jeiRuntime;
+        RUNTIME.set(jeiRuntime);
     }
 
     static IJeiRuntime runtime() {
-        return runtime;
+        return RUNTIME.get();
     }
 }

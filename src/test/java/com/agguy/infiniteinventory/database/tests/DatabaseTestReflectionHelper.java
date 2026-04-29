@@ -7,6 +7,7 @@ import com.agguy.infiniteinventory.database.UnresolvedStoredEntry;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import sun.misc.Unsafe;
@@ -26,7 +27,8 @@ public final class DatabaseTestReflectionHelper {
     public static void forceNextSequence(StoredItemDatabase database, long nextSequence) throws ReflectiveOperationException {
         Field nextSequenceField = StoredItemDatabase.class.getDeclaredField("nextSequence");
         nextSequenceField.setAccessible(true);
-        nextSequenceField.setLong(database, nextSequence);
+        AtomicLong atomicLong = (AtomicLong) nextSequenceField.get(database);
+        atomicLong.set(nextSequence);
     }
 
     @SuppressWarnings("unchecked")
@@ -40,13 +42,15 @@ public final class DatabaseTestReflectionHelper {
     public static long readNextSequence(StoredItemDatabase database) throws ReflectiveOperationException {
         Field nextSequenceField = StoredItemDatabase.class.getDeclaredField("nextSequence");
         nextSequenceField.setAccessible(true);
-        return nextSequenceField.getLong(database);
+        AtomicLong atomicLong = (AtomicLong) nextSequenceField.get(database);
+        return atomicLong.get();
     }
 
     public static long readRevision(StoredItemDatabase database) throws ReflectiveOperationException {
         Field revisionField = StoredItemDatabase.class.getDeclaredField("revision");
         revisionField.setAccessible(true);
-        return revisionField.getLong(database);
+        AtomicLong atomicLong = (AtomicLong) revisionField.get(database);
+        return atomicLong.get();
     }
 
     public static boolean invokeRecategorizeResolvedEntriesIfNeeded(StoredItemDatabase database, int storedClassifierVersion) throws ReflectiveOperationException {

@@ -317,7 +317,7 @@ final class PersonalDatabaseScreenTabHelper {
     }
 
     static boolean isWithinTabContextMenu(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
-        if (!screen.tabContextMenuExpanded) {
+        if (!screen.tabContextMenuExpanded || screen.tabContextMenuTarget == null) {
             return false;
         }
         List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(

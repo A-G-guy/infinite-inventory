@@ -53,7 +53,7 @@ public final class DatabaseCreativeTabSearchResolver {
         return resolvedTabs;
     }
 
-    private List<DatabaseCreativeTabSearchEntry> availableTabs(DatabaseSearchEnvironment searchEnvironment) {
+    private synchronized List<DatabaseCreativeTabSearchEntry> availableTabs(DatabaseSearchEnvironment searchEnvironment) {
         DatabaseSearchEnvironment normalizedEnvironment = normalizeEnvironment(searchEnvironment);
         return this.availableTabsCache.computeIfAbsent(normalizedEnvironment.signature(), ignored -> this.loadTabs(normalizedEnvironment));
     }

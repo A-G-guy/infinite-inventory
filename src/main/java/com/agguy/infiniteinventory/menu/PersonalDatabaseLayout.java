@@ -225,9 +225,11 @@ public record PersonalDatabaseLayout(
 
     public Rect databaseSlotBounds(int viewportIndex, int slotIndex) {
         DatabaseViewportLayout viewportLayout = this.databaseViewportLayout(viewportIndex);
+        int column = slotIndex % viewportLayout.columns();
+        int row = slotIndex / viewportLayout.columns();
         return new Rect(
-                viewportLayout.gridRect().x() + slotIndex % viewportLayout.columns() * DATABASE_SLOT_SIZE,
-                viewportLayout.gridRect().y() + slotIndex / viewportLayout.columns() * DATABASE_SLOT_SIZE,
+                viewportLayout.gridRect().x() + column * DATABASE_SLOT_SIZE,
+                viewportLayout.gridRect().y() + row * DATABASE_SLOT_SIZE,
                 DATABASE_SLOT_SIZE,
                 DATABASE_SLOT_SIZE
         );
