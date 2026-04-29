@@ -344,6 +344,41 @@ class DatabaseQueryEngineTest {
         );
     }
     @Test
+    void concurrentBuildPageShouldNotCorruptRuntimeIndexes() throws ReflectiveOperationException, InterruptedException {
+        StoredItemDatabase database = this.seededBrowseDatabase();
+        DatabaseTabDirectory tabDirectory = new DatabaseTabDirectory();
+        DatabaseQuery query = this.query(DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.NAME_ASC, "", 0, 10);
+        DatabaseScopedTabRef scopedTab = DatabaseScopedTabRef.allTab(DatabaseScope.PERSONAL);
+
+        int threadCount = 8;
+        int iterationsPerThread = 50;
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(threadCount);
+        java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger exceptionCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        for (int t = 0; t < threadCount; t++) {
+            new Thread(() -> {
+                try {
+                    for (int i = 0; i < iterationsPerThread; i++) {
+                        try {
+                            this.queryEngine.buildPage(database, tabDirectory, query, scopedTab);
+                            callCount.incrementAndGet();
+                        } catch (Exception e) {
+                            exceptionCount.incrementAndGet();
+                        }
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            }).start();
+        }
+
+        assertTrue(latch.await(30L, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, exceptionCount.get(), "并发 buildPage 不应抛出异常");
+        assertEquals(threadCount * iterationsPerThread, callCount.get());
+    }
+
+    @Test
     void pageWindowCalculationShouldAvoidIntegerOverflow() throws ReflectiveOperationException {
         Method fromIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageFromIndex", int.class, int.class, int.class);
         Method toIndexMethod = DatabaseQueryEngine.class.getDeclaredMethod("resolvePageToIndex", int.class, int.class, int.class);

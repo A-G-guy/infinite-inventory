@@ -193,4 +193,35 @@ class DatabaseAmountCacheTest {
         assertEquals(8L, entry.amount());
         assertEquals("food", entry.tabName());
     }
+
+    @Test
+    void entryShouldDefensivelyCopyStackOnConstruction() {
+        ItemStack original = new ItemStack(Items.DIAMOND_SWORD);
+        original.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("原始名称"));
+
+        DatabaseAmountCache.Entry entry = new DatabaseAmountCache.Entry(original, "combat", 1L);
+        original.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("修改后名称"));
+
+        assertEquals("原始名称", entry.stack().get(net.minecraft.core.component.DataComponents.CUSTOM_NAME).getString());
+    }
+
+    @Test
+    void entryStackAccessorShouldReturnDefensiveCopy() {
+        DatabaseAmountCache.Entry entry = new DatabaseAmountCache.Entry(new ItemStack(Items.DIAMOND_SWORD), "combat", 1L);
+        ItemStack firstAccess = entry.stack();
+        firstAccess.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("修改后"));
+
+        assertTrue(entry.stack().get(net.minecraft.core.component.DataComponents.CUSTOM_NAME) == null);
+    }
+
+    @Test
+    void deltaShouldDefensivelyCopyStackOnConstruction() {
+        ItemStack original = new ItemStack(Items.APPLE);
+        original.setCount(16);
+
+        DatabaseAmountCache.Delta delta = new DatabaseAmountCache.Delta(original, "food", 16L, false);
+        original.setCount(1);
+
+        assertEquals(16, delta.stack().getCount());
+    }
 }

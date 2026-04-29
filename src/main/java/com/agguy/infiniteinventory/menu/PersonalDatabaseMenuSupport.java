@@ -56,9 +56,10 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     protected static final int BOTTOM_SECTION_INVENTORY_X = 8;
     protected static final int BOTTOM_SECTION_INVENTORY_Y = 1;
     protected static final int BOTTOM_SECTION_HOTBAR_Y = 59;
+    // 兼容性说明：Slot.x / Slot.y 是 protected 字段，无公共 setter。NeoForge 通过 --add-opens
+    // 开放了反射权限。若未来字段更名或改为 final，findSlotField 会在类初始化时抛出异常。
     protected static final Field SLOT_X_FIELD = findSlotField("x");
     protected static final Field SLOT_Y_FIELD = findSlotField("y");
-
     protected final CraftingContainer craftSlots = new TransientCraftingContainer(this, 2, 2);
     protected final ResultContainer resultSlots = new ResultContainer();
     protected final Player owner;
@@ -81,7 +82,6 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     protected ViewerLanguage viewerLanguage = ViewerLanguage.defaultLanguage();
     protected DatabaseViewState viewState;
     protected List<DatabasePage> currentPages = List.of();
-
     protected PersonalDatabaseMenuSupport(int containerId, Inventory playerInventory, Player owner, long sessionId) {
         super(ModMenus.PERSONAL_DATABASE_MENU.get(), containerId);
         this.owner = owner;
@@ -291,6 +291,8 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         return this.currentPages.get(panelIndex).entryAt(pageSlotIndex);
     }
 
+    // 反射修改 Slot 坐标以响应布局变化。若失败说明 --add-opens 被破坏或字段不兼容，
+    // 此时抛出 IllegalStateException 确保问题立即暴露，而非静默忽略。
     protected void moveSlot(int slotIndex, int x, int y) {
         Slot slot = this.slots.get(slotIndex);
         try {
@@ -301,6 +303,8 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         }
     }
 
+    // 反射获取 Slot 坐标字段。失败时抛出 ExceptionInInitializerError，防止字段不可达时
+    // 继续运行导致更隐蔽的 GUI 错位。
     private static Field findSlotField(String fieldName) {
         try {
             Field field = Slot.class.getDeclaredField(fieldName);
