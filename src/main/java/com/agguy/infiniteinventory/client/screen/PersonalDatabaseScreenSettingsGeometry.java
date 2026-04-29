@@ -87,7 +87,8 @@ final class PersonalDatabaseScreenSettingsGeometry {
             return PersonalDatabaseLayout.Rect.empty();
         }
         int itemX = navRect.x() + NAV_PADDING;
-        int itemY = navRect.y() + NAV_PADDING + index * (NAV_ITEM_HEIGHT + NAV_ITEM_GAP);
+        int titleBottom = settingsNavTitleRect(navRect).bottom();
+        int itemY = titleBottom + NAV_ITEM_GAP + index * (NAV_ITEM_HEIGHT + NAV_ITEM_GAP);
         int itemWidth = Math.max(1, navRect.width() - NAV_PADDING * 2);
         return new PersonalDatabaseLayout.Rect(itemX, itemY, itemWidth, NAV_ITEM_HEIGHT);
     }
@@ -127,10 +128,6 @@ final class PersonalDatabaseScreenSettingsGeometry {
     static int clickedNavItemIndex(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
         PersonalDatabaseLayout.Rect navRect = settingsNavRect(screen);
         if (!navRect.contains(mouseX, mouseY)) {
-            return -1;
-        }
-        PersonalDatabaseLayout.Rect titleRect = settingsNavTitleRect(navRect);
-        if (mouseY < titleRect.bottom() + NAV_ITEM_GAP) {
             return -1;
         }
         for (int i = 0; i < PersonalDatabaseScreenEnums.SettingsPanelTab.values().length; i++) {

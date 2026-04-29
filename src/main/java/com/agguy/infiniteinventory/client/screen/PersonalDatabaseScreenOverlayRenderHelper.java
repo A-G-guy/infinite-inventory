@@ -392,18 +392,6 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             if (rowY >= menuBottom) {
                 break;
             }
-            if (item == null) {
-                int dividerY = rowY + PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT / 2;
-                guiGraphics.fill(
-                        menuRect.x() + 6,
-                        dividerY,
-                        menuRect.right() - 6,
-                        dividerY + 1,
-                        0x70A89E8C
-                );
-                rowY += PersonalDatabaseScreen.CONTEXT_MENU_ROW_HEIGHT;
-                continue;
-            }
             PersonalDatabaseLayout.Rect rowRect = new PersonalDatabaseLayout.Rect(
                     menuRect.x() + 2,
                     rowY,

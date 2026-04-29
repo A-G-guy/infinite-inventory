@@ -67,10 +67,13 @@ final class PersonalDatabaseScreenPopupInteractionHelper {
         if (dropdownRect.contains(mouseX, mouseY)) {
             return true;
         }
-        if (!PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex).contains(mouseX, mouseY)) {
+        if (PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex).contains(mouseX, mouseY)) {
             screen.sortDropdownExpanded = false;
             screen.activeSortPanelIndex = -1;
+            return true;
         }
+        screen.sortDropdownExpanded = false;
+        screen.activeSortPanelIndex = -1;
         return true;
     }
 

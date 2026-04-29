@@ -190,19 +190,15 @@ class PersonalDatabaseScreenTabContextMenuBuilderTest {
     // ========== 分隔线 ==========
 
     @Test
-    void separatorsShouldSeparateLogicalGroups() {
+    void menuShouldContainNoSeparators() {
         List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(
                 concreteTab("t1", "Tab1"),
                 true, 2, 4, true, true, false
         );
 
-        int separatorCount = 0;
         for (PersonalDatabaseScreenTabContextMenuItem item : items) {
-            if (item == null) {
-                separatorCount++;
-            }
+            assertNotNull(item);
         }
-        assertEquals(3, separatorCount);
     }
 
     @Test

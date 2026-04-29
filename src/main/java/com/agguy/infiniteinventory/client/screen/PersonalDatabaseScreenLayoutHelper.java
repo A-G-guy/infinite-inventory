@@ -173,6 +173,11 @@ final class PersonalDatabaseScreenLayoutHelper {
             return;
         }
         screen.activeSearchTab = null;
+        for (net.minecraft.client.gui.components.EditBox searchBox : screen.panelSearchBoxes) {
+            if (searchBox.isFocused()) {
+                searchBox.setFocused(false);
+            }
+        }
     }
 
     static void changePanelPage(PersonalDatabaseScreen screen, int panelIndex, int delta) {

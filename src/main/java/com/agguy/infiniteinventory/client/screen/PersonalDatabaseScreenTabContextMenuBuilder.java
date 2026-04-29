@@ -58,8 +58,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
                 PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.SINGLE_VIEW
         ));
 
-        items.add(null);
-
         if (canMoveLeft) {
             items.add(new PersonalDatabaseScreenTabContextMenuItem(
                     "screen.infiniteinventory.tab_context.move_left",
@@ -74,8 +72,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
             ));
         }
 
-        items.add(null);
-
         if (tab.canRename()) {
             items.add(new PersonalDatabaseScreenTabContextMenuItem(
                     "screen.infiniteinventory.tab_context.rename",
@@ -87,8 +83,6 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
                 "screen.infiniteinventory.tab_context.change_icon",
                 PersonalDatabaseScreenTabContextMenuItem.TabContextMenuAction.CHANGE_ICON
         ));
-
-        items.add(null);
 
         items.add(new PersonalDatabaseScreenTabContextMenuItem(
                 isHiddenInTop

@@ -118,6 +118,12 @@ final class PersonalDatabaseScreenRenderHelper {
         if (screen.layout == null) {
             return;
         }
+        if (screen.settingsPanelExpanded) {
+            return;
+        }
+        PersonalDatabaseLayout.Rect logPanelRect = screen.logPanelExpanded
+                ? PersonalDatabaseScreenLogGeometry.logPanelRect(screen)
+                : PersonalDatabaseLayout.Rect.empty();
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
@@ -132,6 +138,9 @@ final class PersonalDatabaseScreenRenderHelper {
             }
             for (int slotIndex = 0; slotIndex < screen.layout.visibleDatabaseSlotCount(panelIndex); slotIndex++) {
                 PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
+                if (logPanelRect.intersects(slotRect)) {
+                    continue;
+                }
                 if (slotIndex < panel.entries().size()) {
                     VisibleDatabaseEntry entry = panel.entries().get(slotIndex);
                     if (PersonalDatabaseScreenSelectionHelper.isSelected(screen, entry)) {
@@ -167,7 +176,7 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
     static void renderEmptyState(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
-        if (screen.layout == null) {
+        if (screen.layout == null || screen.settingsPanelExpanded) {
             return;
         }
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
@@ -439,10 +448,19 @@ final class PersonalDatabaseScreenRenderHelper {
         if (screen.layout == null) {
             return;
         }
+        if (screen.settingsPanelExpanded) {
+            return;
+        }
+        PersonalDatabaseLayout.Rect logPanelRect = screen.logPanelExpanded
+                ? PersonalDatabaseScreenLogGeometry.logPanelRect(screen)
+                : PersonalDatabaseLayout.Rect.empty();
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             int visibleSlotCount = screen.layout.visibleDatabaseSlotCount(panelIndex);
             for (int slotIndex = 0; slotIndex < visibleSlotCount; slotIndex++) {
                 PersonalDatabaseLayout.Rect slotRect = screen.layout.visibleDatabaseSlotBounds(panelIndex, slotIndex);
+                if (logPanelRect.intersects(slotRect)) {
+                    continue;
+                }
                 VanillaWidgetRenderer.renderSlot(guiGraphics, slotRect.x(), slotRect.y());
             }
         }
