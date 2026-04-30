@@ -351,7 +351,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
             RemixIcon icon = PersonalDatabaseScreenContextMenuBuilder.contextMenuItemIcon(item);
             if (icon != null) {
-                VanillaWidgetRenderer.renderRemixIcon(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2);
+                VanillaWidgetRenderer.renderRemixIconWithShadow(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2, 16);
             }
             int textX = icon != null ? rowRect.x() + 24 : rowRect.x() + 8;
             guiGraphics.drawString(
@@ -406,7 +406,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
             RemixIcon icon = PersonalDatabaseScreenTabContextMenuBuilder.tabContextMenuItemIcon(item);
             if (icon != null) {
-                VanillaWidgetRenderer.renderRemixIcon(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2);
+                VanillaWidgetRenderer.renderRemixIconWithShadow(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2, 16);
             }
             int textX = icon != null ? rowRect.x() + 24 : rowRect.x() + 8;
             guiGraphics.drawString(

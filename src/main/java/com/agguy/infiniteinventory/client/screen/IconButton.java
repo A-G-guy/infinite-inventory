@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  */
 final class IconButton extends Button {
     private static final int ICON_SIZE = 12;
-    private static final int ICON_TEXT_GAP = 3;
+    private static final int ICON_TEXT_GAP = 4;
 
     private @Nullable RemixIcon icon;
 
@@ -62,20 +62,20 @@ final class IconButton extends Button {
             return;
         }
 
-        int iconY = this.getY() + (this.getHeight() - ICON_SIZE) / 2;
+        int textY = this.getY() + (this.getHeight() - 8) / 2;
 
         if (this.getMessage().getString().isEmpty()) {
+            // 纯图标按钮：图标与文字共用同一顶部基准线，视觉更对齐
             int iconX = this.getX() + (this.getWidth() - ICON_SIZE) / 2;
-            VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, iconX, iconY, ICON_SIZE);
+            VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, iconX, textY, ICON_SIZE);
             return;
         }
 
         int textWidth = font.width(this.getMessage());
         int totalWidth = ICON_SIZE + ICON_TEXT_GAP + textWidth;
         int contentX = this.getX() + (this.getWidth() - totalWidth) / 2;
-        int textY = this.getY() + (this.getHeight() - 8) / 2;
 
-        VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, contentX, iconY, ICON_SIZE);
+        VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, contentX, textY, ICON_SIZE);
         guiGraphics.drawString(font, this.getMessage(), contentX + ICON_SIZE + ICON_TEXT_GAP, textY, color);
     }
 }

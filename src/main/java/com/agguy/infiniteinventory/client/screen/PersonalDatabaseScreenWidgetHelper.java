@@ -406,7 +406,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             PersonalDatabaseLayout.Rect previousRect = PersonalDatabaseScreenGeometry.panelPreviousPageButtonRect(screen, panelIndex);
             screen.panelPreviousPageButtons.add(screen.addScreenButton(IconButton.create(
                     previousRect.x(), previousRect.y(), previousRect.width(), previousRect.height(),
-                    Component.literal("<"),
+                    Component.empty(),
                     button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, -1),
                     RemixIcon.PAGE_PREVIOUS
             )));
@@ -427,7 +427,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             PersonalDatabaseLayout.Rect nextRect = PersonalDatabaseScreenGeometry.panelNextPageButtonRect(screen, panelIndex);
             screen.panelNextPageButtons.add(screen.addScreenButton(IconButton.create(
                     nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height(),
-                    Component.literal(">"),
+                    Component.empty(),
                     button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, 1),
                     RemixIcon.PAGE_NEXT
             )));

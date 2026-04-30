@@ -76,6 +76,13 @@
 
 `RemixIcon` 枚举集中管理全部图标定义与翻译键/动作到图标的映射查找，`VanillaWidgetRenderer` 提供 `renderRemixIcon` 静态辅助方法，`IconButton` 继承原版 `Button` 并覆盖 `renderString` 实现图标+文字的联合居中渲染。未映射的菜单项回退到无图标+文字左对齐，避免新增菜单项时造成渲染阻塞。
 
+图标渲染遵循以下视觉约定：
+
+- **颜色**：所有 PNG 图标统一为白色（RGB 255,255,255），在深色按钮背景上天然具备高对比度；在浅色菜单背景上通过 `renderRemixIconWithShadow` 附加 1px 半透明阴影保证可读性。
+- **尺寸**：按钮图标使用 12x12 像素，菜单图标使用 16x16 像素，均从 Remix Icon SVG 源通过 `rsvg-convert` 生成后使用 NEAREST 过滤缩放到目标尺寸，保证像素边缘锐利。
+- **语义**：排序按钮使用 `arrow-up-down`（而非 `filter`），增强面板使用 `equalizer`（而非 `flashlight`），手绘搜索 glyph 和排序方向箭头已全部替换为 Remix Icon，消除风格混用。
+- **排版**：图标与文字间距 4px，分页按钮去掉冗余的 `<`/`>` 文字仅保留图标，避免同一按钮上多种视觉元素叠加。
+
 ### `network`
 
 自定义 payload 用于客户端与服务端同步：

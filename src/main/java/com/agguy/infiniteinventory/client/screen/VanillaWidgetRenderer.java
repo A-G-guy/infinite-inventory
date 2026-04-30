@@ -109,14 +109,8 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderSearchGlyph(GuiGraphics guiGraphics, int x, int y, int color) {
-        guiGraphics.fill(x + 1, y + 1, x + 5, y + 2, color);
-        guiGraphics.fill(x, y + 2, x + 1, y + 5, color);
-        guiGraphics.fill(x + 5, y + 2, x + 6, y + 5, color);
-        guiGraphics.fill(x + 1, y + 5, x + 5, y + 6, color);
-        guiGraphics.fill(x + 5, y + 5, x + 6, y + 6, color);
-        guiGraphics.fill(x + 6, y + 6, x + 7, y + 7, color);
-        guiGraphics.fill(x + 7, y + 7, x + 8, y + 8, color);
-        guiGraphics.fill(x + 8, y + 8, x + 9, y + 9, color);
+        // 使用 RemixIcon 替代手绘像素，color 参数保留以兼容调用方但不再使用
+        renderRemixIcon(guiGraphics, RemixIcon.SEARCH, x, y, 9);
     }
 
     static void renderDropdownIndicator(GuiGraphics guiGraphics, int centerX, int centerY, int color) {
@@ -133,15 +127,9 @@ final class VanillaWidgetRenderer {
             boolean ascending,
             int color
     ) {
-        if (ascending) {
-            guiGraphics.fill(centerX, centerY - 3, centerX + 1, centerY + 1, color);
-            guiGraphics.fill(centerX - 1, centerY - 2, centerX + 2, centerY - 1, color);
-            guiGraphics.fill(centerX - 2, centerY - 1, centerX + 3, centerY, color);
-            return;
-        }
-        guiGraphics.fill(centerX, centerY - 1, centerX + 1, centerY + 3, color);
-        guiGraphics.fill(centerX - 1, centerY + 1, centerX + 2, centerY + 2, color);
-        guiGraphics.fill(centerX - 2, centerY + 2, centerX + 3, centerY + 3, color);
+        // color 参数保留以兼容调用方但不再使用
+        RemixIcon icon = ascending ? RemixIcon.SORT_ASC : RemixIcon.SORT_DESC;
+        renderRemixIcon(guiGraphics, icon, centerX - 6, centerY - 6, 12);
     }
 
     static void renderRemixIcon(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
@@ -157,5 +145,18 @@ final class VanillaWidgetRenderer {
 
     static void renderRemixIconSmall(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y) {
         renderRemixIcon(guiGraphics, icon, x, y, 12);
+    }
+
+    /**
+     * 在浅色背景上渲染 Remix Icon，附加 1px 右下偏移的半透明阴影以提升可读性。
+     */
+    static void renderRemixIconWithShadow(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
+        if (icon == null) {
+            return;
+        }
+        guiGraphics.setColor(0.0f, 0.0f, 0.0f, 0.35f);
+        guiGraphics.blitSprite(icon.location(), x + 1, y + 1, size, size);
+        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        guiGraphics.blitSprite(icon.location(), x, y, size, size);
     }
 }

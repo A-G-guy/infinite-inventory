@@ -58,7 +58,10 @@ enum RemixIcon {
     PAGE_INDICATOR("icon/page_indicator"),
     SEARCH_TOGGLE("icon/search_toggle"),
     SEARCH_WEIGHT("icon/search_weight"),
-    ENHANCEMENT("icon/enhancement");
+    ENHANCEMENT("icon/enhancement"),
+    SEARCH("icon/search"),
+    SORT_ASC("icon/sort_asc"),
+    SORT_DESC("icon/sort_desc");
 
     private final ResourceLocation location;
 
