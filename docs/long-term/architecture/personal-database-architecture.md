@@ -67,6 +67,15 @@
 
 为了控制文件规模，客户端界面实现已按职责拆成同包辅助类，分别承担布局同步、控件构建、基础渲染、overlay 渲染、页签交互、管理面板、图标选择器、几何命中与输入分发。`PersonalDatabaseScreen` 自身只保留生命周期入口和桥接职责。
 
+#### 图标系统
+
+客户端 UI 使用两套图标体系，按用途分离：
+
+- **页签图标**：继续使用游戏内物品图标（`ItemStack` + `renderItem`），由玩家在图标选择器中从全部注册物品中自选，保证页签与游戏内容的视觉关联和沉浸感。
+- **操作图标**：右键菜单、标签页上下文菜单、以及全部系统按钮（设置、视图选择器、统计、存入、排序、分页等）使用统一的 Remix Icon（Filled 风格）自定义精灵图，通过 `blitSprite` 渲染。图标资源位于 `assets/infiniteinventory/textures/gui/sprites/icon/`，由 Minecraft 的 `GuiSpriteManager` 自动打包进 GUI 纹理图集，零额外纹理绑定开销。
+
+`RemixIcon` 枚举集中管理全部图标定义与翻译键/动作到图标的映射查找，`VanillaWidgetRenderer` 提供 `renderRemixIcon` 静态辅助方法，`IconButton` 继承原版 `Button` 并覆盖 `renderString` 实现图标+文字的联合居中渲染。未映射的菜单项回退到无图标+文字左对齐，避免新增菜单项时造成渲染阻塞。
+
 ### `network`
 
 自定义 payload 用于客户端与服务端同步：
