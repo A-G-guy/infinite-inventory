@@ -127,9 +127,9 @@ final class VanillaWidgetRenderer {
             boolean ascending,
             int color
     ) {
-        // color 参数保留以兼容调用方但不再使用
         RemixIcon icon = ascending ? RemixIcon.SORT_ASC : RemixIcon.SORT_DESC;
-        renderRemixIcon(guiGraphics, icon, centerX - 6, centerY - 6, 12);
+        int size = 14;
+        renderRemixIcon(guiGraphics, icon, centerX - size / 2, centerY - size / 2, size);
     }
 
     static void renderRemixIcon(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
@@ -144,7 +144,7 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderRemixIconSmall(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y) {
-        renderRemixIcon(guiGraphics, icon, x, y, 12);
+        renderRemixIcon(guiGraphics, icon, x, y, 14);
     }
 
     /**

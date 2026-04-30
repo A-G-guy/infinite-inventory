@@ -10,12 +10,12 @@ import org.jetbrains.annotations.Nullable;
  * 支持在文字左侧绘制 Remix Icon 的按钮组件。
  *
  * <p>继承自原版 {@link Button}，覆盖 {@link #renderString} 方法实现图标+文字的
- * 联合居中渲染。图标尺寸固定为 12x12，图标与文字间距为 3 像素。
+ * 联合居中渲染。图标尺寸固定为 14x14，图标与文字间距为 4 像素。
  *
  * <p>若图标为 null 或按钮消息为空，则回退到原版纯文字渲染，保持与现有行为的兼容性。
  */
 final class IconButton extends Button {
-    private static final int ICON_SIZE = 12;
+    private static final int ICON_SIZE = 14;
     private static final int ICON_TEXT_GAP = 4;
 
     private @Nullable RemixIcon icon;
@@ -63,8 +63,7 @@ final class IconButton extends Button {
         }
 
         int textY = this.getY() + (this.getHeight() - 8) / 2;
-        // 图标视觉中心需与文字视觉中心对齐：文字中心 ≈ textY + 4，图标中心 = iconY + 6
-        int iconY = textY - 2;
+        int iconY = this.getY() + (this.getHeight() - ICON_SIZE) / 2;
 
         if (this.getMessage().getString().isEmpty()) {
             int iconX = this.getX() + (this.getWidth() - ICON_SIZE) / 2;

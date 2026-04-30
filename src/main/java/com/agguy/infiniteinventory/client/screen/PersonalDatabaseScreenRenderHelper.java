@@ -374,7 +374,7 @@ final class PersonalDatabaseScreenRenderHelper {
             String sortLabel = PersonalDatabaseScreenCommonHelper.truncateToWidth(
                     screen,
                     PersonalDatabaseScreenCommonHelper.sortButtonLabel(sortOption).getString(),
-                    Math.max(0, sortRect.width() - 26)
+                    Math.max(0, sortRect.width() - 28)
             );
             guiGraphics.drawString(
                     screen.screenFont(),
@@ -386,7 +386,7 @@ final class PersonalDatabaseScreenRenderHelper {
             );
             VanillaWidgetRenderer.renderSortDirectionIndicator(
                     guiGraphics,
-                    sortRect.right() - 18,
+                    sortRect.right() - 21,
                     sortRect.y() + sortRect.height() / 2,
                     sortOption.direction() == DatabaseSortDirection.ASC,
                     0xFFD8D0C4
