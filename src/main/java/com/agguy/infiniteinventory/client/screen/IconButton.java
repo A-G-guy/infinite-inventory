@@ -63,11 +63,12 @@ final class IconButton extends Button {
         }
 
         int textY = this.getY() + (this.getHeight() - 8) / 2;
+        // 图标视觉中心需与文字视觉中心对齐：文字中心 ≈ textY + 4，图标中心 = iconY + 6
+        int iconY = textY - 2;
 
         if (this.getMessage().getString().isEmpty()) {
-            // 纯图标按钮：图标与文字共用同一顶部基准线，视觉更对齐
             int iconX = this.getX() + (this.getWidth() - ICON_SIZE) / 2;
-            VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, iconX, textY, ICON_SIZE);
+            VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, iconX, iconY, ICON_SIZE);
             return;
         }
 
@@ -75,7 +76,7 @@ final class IconButton extends Button {
         int totalWidth = ICON_SIZE + ICON_TEXT_GAP + textWidth;
         int contentX = this.getX() + (this.getWidth() - totalWidth) / 2;
 
-        VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, contentX, textY, ICON_SIZE);
+        VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, contentX, iconY, ICON_SIZE);
         guiGraphics.drawString(font, this.getMessage(), contentX + ICON_SIZE + ICON_TEXT_GAP, textY, color);
     }
 }
