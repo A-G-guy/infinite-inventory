@@ -3,6 +3,7 @@ package com.agguy.infiniteinventory.client.screen;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 final class VanillaWidgetRenderer {
     private static final int OVERLAY_SHADOW_COLOR = 0x70000000;
@@ -141,5 +142,20 @@ final class VanillaWidgetRenderer {
         guiGraphics.fill(centerX, centerY - 1, centerX + 1, centerY + 3, color);
         guiGraphics.fill(centerX - 1, centerY + 1, centerX + 2, centerY + 2, color);
         guiGraphics.fill(centerX - 2, centerY + 2, centerX + 3, centerY + 3, color);
+    }
+
+    static void renderRemixIcon(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
+        if (icon == null) {
+            return;
+        }
+        guiGraphics.blitSprite(icon.location(), x, y, size, size);
+    }
+
+    static void renderRemixIcon(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y) {
+        renderRemixIcon(guiGraphics, icon, x, y, 16);
+    }
+
+    static void renderRemixIconSmall(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y) {
+        renderRemixIcon(guiGraphics, icon, x, y, 12);
     }
 }

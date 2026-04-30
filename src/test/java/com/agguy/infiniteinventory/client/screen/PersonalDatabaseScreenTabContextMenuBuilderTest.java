@@ -254,4 +254,17 @@ class PersonalDatabaseScreenTabContextMenuBuilderTest {
 
         assertTrue(PersonalDatabaseScreenTabContextMenuBuilder.menuWidth(null, items) >= PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH);
     }
+
+    @Test
+    void everyMenuItemShouldHaveIconMapping() {
+        List<PersonalDatabaseScreenTabContextMenuItem> items = PersonalDatabaseScreenTabContextMenuBuilder.buildMenuItems(
+                concreteTab("t1", "Tab1"),
+                true, 2, 4, true, true, false
+        );
+        for (PersonalDatabaseScreenTabContextMenuItem item : items) {
+            if (item == null) continue;
+            assertNotNull(RemixIcon.forTabContextMenuAction(item.action()),
+                    "Item " + item.translationKey() + " should have an icon");
+        }
+    }
 }

@@ -349,11 +349,15 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             );
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
-            guiGraphics.renderItem(PersonalDatabaseScreenContextMenuBuilder.contextMenuItemIcon(item), rowRect.x() + 4, rowRect.y() + 2);
+            RemixIcon icon = PersonalDatabaseScreenContextMenuBuilder.contextMenuItemIcon(item);
+            if (icon != null) {
+                VanillaWidgetRenderer.renderRemixIcon(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2);
+            }
+            int textX = icon != null ? rowRect.x() + 24 : rowRect.x() + 8;
             guiGraphics.drawString(
                     screen.screenFont(),
                     PersonalDatabaseScreenContextMenuBuilder.contextMenuLabel(item),
-                    rowRect.x() + 24,
+                    textX,
                     rowRect.y() + 5,
                     PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                     false
@@ -400,10 +404,15 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
             );
             boolean hovered = rowRect.contains(mouseX, mouseY);
             VanillaWidgetRenderer.renderOverlayRow(guiGraphics, rowRect, hovered, false);
+            RemixIcon icon = PersonalDatabaseScreenTabContextMenuBuilder.tabContextMenuItemIcon(item);
+            if (icon != null) {
+                VanillaWidgetRenderer.renderRemixIcon(guiGraphics, icon, rowRect.x() + 4, rowRect.y() + 2);
+            }
+            int textX = icon != null ? rowRect.x() + 24 : rowRect.x() + 8;
             guiGraphics.drawString(
                     screen.screenFont(),
                     Component.translatable(item.translationKey()),
-                    rowRect.x() + 6,
+                    textX,
                     rowRect.y() + 5,
                     PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
                     false

@@ -36,153 +36,149 @@ final class PersonalDatabaseScreenWidgetHelper {
         buildEnhancementButtons(screen);
 
         PersonalDatabaseLayout.Rect settingsRect = screen.layout.settingsButtonRect();
-        screen.settingsButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.settings_button"),
-                        button -> {
-                            PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
-                            screen.settingsPanelExpanded = true;
-                            screen.activeSettingsTab = PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
-                            PersonalDatabaseScreenSettingsHelper.syncSettingsSubPanelStates(screen);
-                        }
-                )
-                .bounds(settingsRect.x(), settingsRect.y(), settingsRect.width(), settingsRect.height())
-                .build());
+        screen.settingsButton = screen.addScreenButton(IconButton.create(
+                settingsRect.x(), settingsRect.y(), settingsRect.width(), settingsRect.height(),
+                Component.translatable("screen.infiniteinventory.settings_button"),
+                button -> {
+                    PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                    screen.settingsPanelExpanded = true;
+                    screen.activeSettingsTab = PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
+                    PersonalDatabaseScreenSettingsHelper.syncSettingsSubPanelStates(screen);
+                },
+                RemixIcon.SETTINGS
+        ));
 
         PersonalDatabaseLayout.Rect viewSelectorRect = screen.layout.viewSelectorButtonRect();
         if (viewSelectorRect.width() > 0 && viewSelectorRect.height() > 0) {
-            screen.viewSelectorButton = screen.addScreenButton(Button.builder(
-                            Component.translatable("screen.infiniteinventory.view_selector_button"),
-                            button -> {
-                                PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
-                                screen.viewSelectorExpanded = !screen.viewSelectorExpanded;
-                                if (screen.viewSelectorExpanded) {
-                                    screen.viewSelectorPersonalScrollIndex = 0;
-                                    screen.viewSelectorPublicScrollIndex = 0;
-                                }
-                            }
-                    )
-                    .bounds(viewSelectorRect.x(), viewSelectorRect.y(), viewSelectorRect.width(), viewSelectorRect.height())
-                    .build());
+            screen.viewSelectorButton = screen.addScreenButton(IconButton.create(
+                    viewSelectorRect.x(), viewSelectorRect.y(), viewSelectorRect.width(), viewSelectorRect.height(),
+                    Component.translatable("screen.infiniteinventory.view_selector_button"),
+                    button -> {
+                        PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                        screen.viewSelectorExpanded = !screen.viewSelectorExpanded;
+                        if (screen.viewSelectorExpanded) {
+                            screen.viewSelectorPersonalScrollIndex = 0;
+                            screen.viewSelectorPublicScrollIndex = 0;
+                        }
+                    },
+                    RemixIcon.VIEWS
+            ));
         }
 
         PersonalDatabaseLayout.Rect statisticsRect = screen.layout.statisticsButtonRect();
         if (statisticsRect.width() > 0 && statisticsRect.height() > 0) {
-            screen.statisticsButton = screen.addScreenButton(Button.builder(
-                            Component.translatable("screen.infiniteinventory.statistics_button"),
-                            button -> {
-                                PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
-                                screen.statisticsPanelExpanded = !screen.statisticsPanelExpanded;
-                                if (screen.statisticsPanelExpanded) {
-                                    screen.statisticsPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
-                                    screen.statisticsCategoryScrollIndex = 0;
-                                    screen.statisticsModsScrollIndex = 0;
-                                    screen.statisticsTabsScrollIndex = 0;
-                                    screen.statisticsTrendsScrollIndex = 0;
-                                    screen.statisticsLogScrollIndex = 0;
-                                    PacketDistributor.sendToServer(
-                                            new DatabaseStatisticsRequestPayload(screen.statisticsPanelScope));
-                                    PacketDistributor.sendToServer(
-                                            new DatabaseLogRequestPayload(screen.statisticsPanelScope));
-                                }
-                            }
-                    )
-                    .bounds(statisticsRect.x(), statisticsRect.y(), statisticsRect.width(), statisticsRect.height())
-                    .build());
+            screen.statisticsButton = screen.addScreenButton(IconButton.create(
+                    statisticsRect.x(), statisticsRect.y(), statisticsRect.width(), statisticsRect.height(),
+                    Component.translatable("screen.infiniteinventory.statistics_button"),
+                    button -> {
+                        PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
+                        screen.statisticsPanelExpanded = !screen.statisticsPanelExpanded;
+                        if (screen.statisticsPanelExpanded) {
+                            screen.statisticsPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
+                            screen.statisticsCategoryScrollIndex = 0;
+                            screen.statisticsModsScrollIndex = 0;
+                            screen.statisticsTabsScrollIndex = 0;
+                            screen.statisticsTrendsScrollIndex = 0;
+                            screen.statisticsLogScrollIndex = 0;
+                            PacketDistributor.sendToServer(
+                                    new DatabaseStatisticsRequestPayload(screen.statisticsPanelScope));
+                            PacketDistributor.sendToServer(
+                                    new DatabaseLogRequestPayload(screen.statisticsPanelScope));
+                        }
+                    },
+                    RemixIcon.STATISTICS
+            ));
         }
 
         PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
-        screen.personalScopeButton = screen.addScreenButton(Button.builder(
-                        Component.translatable(DatabaseScope.PERSONAL.translationKey()),
-                        button -> {
-                            DatabaseScope currentScope = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
-                            DatabaseScope nextScope = currentScope == DatabaseScope.PUBLIC
-                                    ? DatabaseScope.PERSONAL
-                                    : DatabaseScope.PUBLIC;
-                            PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, nextScope);
-                        }
-                )
-                .bounds(
-                        personalScopeRect.x(),
-                        personalScopeRect.y(),
-                        personalScopeRect.width(),
-                        personalScopeRect.height()
-                )
-                .build());
+        screen.personalScopeButton = screen.addScreenButton(IconButton.create(
+                personalScopeRect.x(),
+                personalScopeRect.y(),
+                personalScopeRect.width(),
+                personalScopeRect.height(),
+                Component.translatable(DatabaseScope.PERSONAL.translationKey()),
+                button -> {
+                    DatabaseScope currentScope = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
+                    DatabaseScope nextScope = currentScope == DatabaseScope.PUBLIC
+                            ? DatabaseScope.PERSONAL
+                            : DatabaseScope.PUBLIC;
+                    PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, nextScope);
+                },
+                RemixIcon.SCOPE_PERSONAL
+        ));
 
         PersonalDatabaseLayout.Rect publicScopeRect = screen.layout.publicScopeButtonRect();
         if (publicScopeRect.width() > 0 && publicScopeRect.height() > 0) {
-            screen.publicScopeButton = screen.addScreenButton(Button.builder(
-                            Component.translatable(DatabaseScope.PUBLIC.translationKey()),
-                            button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC)
-                    )
-                    .bounds(publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height())
-                    .build());
+            screen.publicScopeButton = screen.addScreenButton(IconButton.create(
+                    publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height(),
+                    Component.translatable(DatabaseScope.PUBLIC.translationKey()),
+                    button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC),
+                    RemixIcon.SCOPE_PUBLIC
+            ));
         }
 
         PersonalDatabaseLayout.Rect depositExistingRect = screen.layout.depositExistingButtonRect();
-        screen.depositExistingButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.deposit_existing"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            PersonalDatabaseScreenTargetHelper.openTargetSelector(
-                                    screen,
-                                    PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_EXISTING_BY_TAB,
-                                    -1, -1, ""
-                            );
-                        }
-                )
-                .bounds(depositExistingRect.x(), depositExistingRect.y(), depositExistingRect.width(), depositExistingRect.height())
-                .build());
+        screen.depositExistingButton = screen.addScreenButton(IconButton.create(
+                depositExistingRect.x(), depositExistingRect.y(), depositExistingRect.width(), depositExistingRect.height(),
+                Component.translatable("screen.infiniteinventory.deposit_existing"),
+                button -> {
+                    PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+                    screen.sortDropdownExpanded = false;
+                    screen.pagePickerExpanded = false;
+                    screen.enhancementPanelExpanded = false;
+                    PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+                    PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                            screen,
+                            PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_EXISTING_BY_TAB,
+                            -1, -1, ""
+                    );
+                },
+                RemixIcon.DEPOSIT_EXISTING
+        ));
 
         PersonalDatabaseLayout.Rect depositRect = screen.layout.depositButtonRect();
-        screen.depositButton = screen.addScreenButton(Button.builder(
-                        Component.translatable("screen.infiniteinventory.deposit_all"),
-                        button -> {
-                            PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
-                            screen.sortDropdownExpanded = false;
-                            screen.pagePickerExpanded = false;
-                            screen.enhancementPanelExpanded = false;
-                            PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
-                            DatabaseScopedTabRef directTarget = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTarget(screen);
-                            if (directTarget != null) {
-                                PacketDistributor.sendToServer(new DepositAllPayload(
-                                        screen.databaseMenu.containerId,
-                                        screen.databaseMenu.viewState().sessionId(),
-                                        directTarget.scope(),
-                                        directTarget.tabId()
-                                ));
-                            } else {
-                                PersonalDatabaseScreenTargetHelper.openTargetSelector(
-                                        screen,
-                                        PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
-                                        -1,
-                                        -1,
-                                        ""
-                                );
-                            }
-                        }
-                )
-                .bounds(depositRect.x(), depositRect.y(), depositRect.width(), depositRect.height())
-                .build());
+        screen.depositButton = screen.addScreenButton(IconButton.create(
+                depositRect.x(), depositRect.y(), depositRect.width(), depositRect.height(),
+                Component.translatable("screen.infiniteinventory.deposit_all"),
+                button -> {
+                    PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
+                    screen.sortDropdownExpanded = false;
+                    screen.pagePickerExpanded = false;
+                    screen.enhancementPanelExpanded = false;
+                    PersonalDatabaseScreenTabHelper.closeTopTabPrompt(screen);
+                    DatabaseScopedTabRef directTarget = PersonalDatabaseScreenCommonHelper.resolveSingleStoreTarget(screen);
+                    if (directTarget != null) {
+                        PacketDistributor.sendToServer(new DepositAllPayload(
+                                screen.databaseMenu.containerId,
+                                screen.databaseMenu.viewState().sessionId(),
+                                directTarget.scope(),
+                                directTarget.tabId()
+                        ));
+                    } else {
+                        PersonalDatabaseScreenTargetHelper.openTargetSelector(
+                                screen,
+                                PersonalDatabaseScreenEnums.TargetSelectorMode.DEPOSIT_ALL,
+                                -1,
+                                -1,
+                                ""
+                        );
+                    }
+                },
+                RemixIcon.DEPOSIT
+        ));
 
         screen.accessoriesToggleButton = null;
         if (PersonalDatabaseScreenLayoutHelper.hasAccessorySlots(screen) && screen.layout.accessoryToggleRect().height() > 0) {
             PersonalDatabaseLayout.Rect accessoryToggleRect = screen.layout.accessoryToggleRect();
-            screen.accessoriesToggleButton = screen.addScreenButton(Button.builder(
-                            Component.empty(),
-                            button -> PersonalDatabaseScreenLayoutHelper.toggleAccessoriesPanel(screen)
-                    )
-                    .bounds(
-                            accessoryToggleRect.x(),
-                            accessoryToggleRect.y(),
-                            accessoryToggleRect.width(),
-                            accessoryToggleRect.height()
-                    )
-                    .build());
+            screen.accessoriesToggleButton = screen.addScreenButton(IconButton.create(
+                    accessoryToggleRect.x(),
+                    accessoryToggleRect.y(),
+                    accessoryToggleRect.width(),
+                    accessoryToggleRect.height(),
+                    Component.empty(),
+                    button -> PersonalDatabaseScreenLayoutHelper.toggleAccessoriesPanel(screen),
+                    RemixIcon.ACCESSORIES
+            ));
         }
         PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
     }
@@ -195,28 +191,24 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         for (DatabaseSearchField field : DatabaseSearchField.values()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.advancedSearchRowRect(screen, field);
-            Button toggleButton = screen.addScreenButton(Button.builder(
-                            Component.empty(),
-                            button -> PersonalDatabaseScreenConfigActionHelper.toggleAdvancedSearchField(screen, field)
-                    )
-                    .bounds(
-                            rowRect.x(),
-                            rowRect.y(),
-                            PersonalDatabaseScreen.ADVANCED_SEARCH_TOGGLE_WIDTH,
-                            PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT
-                    )
-                    .build());
-            Button weightButton = screen.addScreenButton(Button.builder(
-                            Component.empty(),
-                            button -> PersonalDatabaseScreenConfigActionHelper.cycleAdvancedSearchWeight(screen, field)
-                    )
-                    .bounds(
-                            rowRect.right() - PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
-                            rowRect.y(),
-                            PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
-                            PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT
-                    )
-                    .build());
+            Button toggleButton = screen.addScreenButton(IconButton.create(
+                    rowRect.x(),
+                    rowRect.y(),
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_TOGGLE_WIDTH,
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT,
+                    Component.empty(),
+                    button -> PersonalDatabaseScreenConfigActionHelper.toggleAdvancedSearchField(screen, field),
+                    RemixIcon.SEARCH_TOGGLE
+            ));
+            Button weightButton = screen.addScreenButton(IconButton.create(
+                    rowRect.right() - PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    rowRect.y(),
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_WEIGHT_WIDTH,
+                    PersonalDatabaseScreen.ADVANCED_SEARCH_ROW_HEIGHT,
+                    Component.empty(),
+                    button -> PersonalDatabaseScreenConfigActionHelper.cycleAdvancedSearchWeight(screen, field),
+                    RemixIcon.SEARCH_WEIGHT
+            ));
             screen.advancedSearchToggleButtons.put(field, toggleButton);
             screen.advancedSearchWeightButtons.put(field, weightButton);
         }
@@ -229,17 +221,15 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
-            Button toggleButton = screen.addScreenButton(Button.builder(
-                            Component.empty(),
-                            button -> PersonalDatabaseScreenConfigActionHelper.toggleEnhancementOption(screen, option)
-                    )
-                    .bounds(
-                            rowRect.x(),
-                            rowRect.y(),
-                            PersonalDatabaseScreen.ENHANCEMENT_TOGGLE_WIDTH,
-                            PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
-                    )
-                    .build());
+            Button toggleButton = screen.addScreenButton(IconButton.create(
+                    rowRect.x(),
+                    rowRect.y(),
+                    PersonalDatabaseScreen.ENHANCEMENT_TOGGLE_WIDTH,
+                    PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT,
+                    Component.empty(),
+                    button -> PersonalDatabaseScreenConfigActionHelper.toggleEnhancementOption(screen, option),
+                    RemixIcon.ENHANCEMENT
+            ));
             screen.enhancementToggleButtons.put(option, toggleButton);
         }
     }
@@ -334,6 +324,9 @@ final class PersonalDatabaseScreenWidgetHelper {
             DatabaseScope nextScope = topTabScopeFilter == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
             screen.personalScopeButton.active = !PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, nextScope).isEmpty();
             screen.personalScopeButton.setMessage(Component.translatable(topTabScopeFilter.translationKey()));
+            if (screen.personalScopeButton instanceof IconButton iconButton) {
+                iconButton.setIcon(topTabScopeFilter == DatabaseScope.PERSONAL ? RemixIcon.SCOPE_PERSONAL : RemixIcon.SCOPE_PUBLIC);
+            }
         }
         if (screen.publicScopeButton != null) {
             screen.publicScopeButton.visible = screen.layout != null && screen.layout.publicScopeButtonRect().width() > 0;
@@ -397,41 +390,47 @@ final class PersonalDatabaseScreenWidgetHelper {
             searchBox.setResponder(value -> PersonalDatabaseScreenLayoutHelper.onPanelSearchChanged(screen, resolvedPanelIndex, value));
             screen.panelSearchBoxes.add(searchBox);
             PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
-            screen.panelSortButtons.add(screen.addScreenButton(Button.builder(Component.empty(), button -> {
+            screen.panelSortButtons.add(screen.addScreenButton(IconButton.create(
+                    sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height(),
+                    Component.empty(),
+                    button -> {
                         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
                         screen.pagePickerExpanded = false;
                         screen.activePagePickerPanelIndex = -1;
                         boolean samePanel = screen.sortDropdownExpanded && screen.activeSortPanelIndex == resolvedPanelIndex;
                         screen.activeSortPanelIndex = resolvedPanelIndex;
                         screen.sortDropdownExpanded = !samePanel;
-                    })
-                    .bounds(sortRect.x(), sortRect.y(), sortRect.width(), sortRect.height())
-                    .build()));
+                    },
+                    RemixIcon.SORT
+            )));
             PersonalDatabaseLayout.Rect previousRect = PersonalDatabaseScreenGeometry.panelPreviousPageButtonRect(screen, panelIndex);
-            screen.panelPreviousPageButtons.add(screen.addScreenButton(Button.builder(
-                            Component.literal("<"),
-                            button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, -1)
-                    )
-                    .bounds(previousRect.x(), previousRect.y(), previousRect.width(), previousRect.height())
-                    .build()));
+            screen.panelPreviousPageButtons.add(screen.addScreenButton(IconButton.create(
+                    previousRect.x(), previousRect.y(), previousRect.width(), previousRect.height(),
+                    Component.literal("<"),
+                    button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, -1),
+                    RemixIcon.PAGE_PREVIOUS
+            )));
             PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
-            screen.panelPageButtons.add(screen.addScreenButton(Button.builder(Component.empty(), button -> {
+            screen.panelPageButtons.add(screen.addScreenButton(IconButton.create(
+                    pageRect.x(), pageRect.y(), pageRect.width(), pageRect.height(),
+                    Component.empty(),
+                    button -> {
                         PersonalDatabaseScreenContextHelper.closeContextMenu(screen);
                         screen.sortDropdownExpanded = false;
                         screen.activeSortPanelIndex = -1;
                         boolean samePanel = screen.pagePickerExpanded && screen.activePagePickerPanelIndex == resolvedPanelIndex;
                         screen.activePagePickerPanelIndex = resolvedPanelIndex;
                         screen.pagePickerExpanded = !samePanel;
-                    })
-                    .bounds(pageRect.x(), pageRect.y(), pageRect.width(), pageRect.height())
-                    .build()));
+                    },
+                    RemixIcon.PAGE_INDICATOR
+            )));
             PersonalDatabaseLayout.Rect nextRect = PersonalDatabaseScreenGeometry.panelNextPageButtonRect(screen, panelIndex);
-            screen.panelNextPageButtons.add(screen.addScreenButton(Button.builder(
-                            Component.literal(">"),
-                            button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, 1)
-                    )
-                    .bounds(nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height())
-                    .build()));
+            screen.panelNextPageButtons.add(screen.addScreenButton(IconButton.create(
+                    nextRect.x(), nextRect.y(), nextRect.width(), nextRect.height(),
+                    Component.literal(">"),
+                    button -> PersonalDatabaseScreenLayoutHelper.changePanelPage(screen, resolvedPanelIndex, 1),
+                    RemixIcon.PAGE_NEXT
+            )));
         }
     }
 

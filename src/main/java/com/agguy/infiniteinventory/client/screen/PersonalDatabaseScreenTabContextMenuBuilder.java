@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseTab;
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 final class PersonalDatabaseScreenTabContextMenuBuilder {
     private PersonalDatabaseScreenTabContextMenuBuilder() {
@@ -94,6 +95,11 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
         return java.util.Collections.unmodifiableList(new java.util.ArrayList<>(items));
     }
 
+    @Nullable
+    static RemixIcon tabContextMenuItemIcon(PersonalDatabaseScreenTabContextMenuItem item) {
+        return RemixIcon.forTabContextMenuAction(item.action());
+    }
+
     static int menuWidth(PersonalDatabaseScreen screen, List<PersonalDatabaseScreenTabContextMenuItem> items) {
         if (screen == null) {
             return PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH;
@@ -108,7 +114,7 @@ final class PersonalDatabaseScreenTabContextMenuBuilder {
             );
             maxTextWidth = Math.max(maxTextWidth, textWidth);
         }
-        return Math.max(PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH, maxTextWidth + 28);
+        return Math.max(PersonalDatabaseScreen.CONTEXT_MENU_MIN_WIDTH, maxTextWidth + 36);
     }
 
     static int menuHeight(List<PersonalDatabaseScreenTabContextMenuItem> items) {
