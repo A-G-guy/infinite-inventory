@@ -127,7 +127,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     Button depositExistingButton;
     Button settingsButton;
     Button viewSelectorButton;
-    Button logButton;
+    Button statisticsButton;
     Button personalScopeButton;
     Button publicScopeButton;
     Button accessoriesToggleButton;
@@ -174,6 +174,14 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean logPanelExpanded;
     DatabaseScope logPanelScope = DatabaseScope.PERSONAL;
     int logPanelScrollIndex;
+    boolean statisticsPanelExpanded;
+    PersonalDatabaseScreenEnums.StatisticsPanelTab activeStatisticsTab = PersonalDatabaseScreenEnums.StatisticsPanelTab.OVERVIEW;
+    DatabaseScope statisticsPanelScope = DatabaseScope.PERSONAL;
+    int statisticsCategoryScrollIndex;
+    int statisticsModsScrollIndex;
+    int statisticsTabsScrollIndex;
+    int statisticsTrendsScrollIndex;
+    int statisticsLogScrollIndex;
     boolean settingsPanelExpanded;
     PersonalDatabaseScreenEnums.SettingsPanelTab activeSettingsTab = PersonalDatabaseScreenEnums.SettingsPanelTab.ADVANCED_SEARCH;
     boolean suppressVanillaTooltipRender;
@@ -342,6 +350,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         }
         if (this.logPanelExpanded) {
             PersonalDatabaseScreenLogHelper.renderLogPanel(this, guiGraphics, mouseX, mouseY);
+        }
+        if (this.statisticsPanelExpanded) {
+            PersonalDatabaseScreenStatisticsHelper.renderStatisticsPanel(this, guiGraphics, mouseX, mouseY);
         }
         PersonalDatabaseScreenRenderHelper.renderScreenTooltips(this, guiGraphics, mouseX, mouseY);
     }

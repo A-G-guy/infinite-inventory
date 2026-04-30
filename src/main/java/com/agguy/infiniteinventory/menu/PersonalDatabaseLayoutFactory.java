@@ -47,9 +47,9 @@ final class PersonalDatabaseLayoutFactory {
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
         int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
         boolean showViewSelector = !compactTopBar && frameRect.width() >= 680;
-        boolean showLogButton = !compactTopBar && frameRect.width() >= 740;
+        boolean showStatisticsButton = !compactTopBar && frameRect.width() >= 740;
         int viewSelectorButtonWidth = showViewSelector ? PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH : 0;
-        int logButtonWidth = showLogButton ? PersonalDatabaseLayout.LOG_BUTTON_WIDTH : 0;
+        int statisticsButtonWidth = showStatisticsButton ? PersonalDatabaseLayout.LOG_BUTTON_WIDTH : 0;
         PersonalDatabaseLayout.Rect settingsButtonRect = new PersonalDatabaseLayout.Rect(
                 toolbarRight - settingsButtonWidth,
                 titleRect.y(),
@@ -57,10 +57,10 @@ final class PersonalDatabaseLayoutFactory {
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
         int nextLeft = settingsButtonRect.x();
-        PersonalDatabaseLayout.Rect logButtonRect = PersonalDatabaseLayout.Rect.empty();
-        if (logButtonWidth > 0) {
-            nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + logButtonWidth;
-            logButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), logButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
+        PersonalDatabaseLayout.Rect statisticsButtonRect = PersonalDatabaseLayout.Rect.empty();
+        if (statisticsButtonWidth > 0) {
+            nextLeft -= PersonalDatabaseLayout.TOOLBAR_GAP + statisticsButtonWidth;
+            statisticsButtonRect = new PersonalDatabaseLayout.Rect(nextLeft, titleRect.y(), statisticsButtonWidth, PersonalDatabaseLayout.CONTROL_HEIGHT);
         }
         PersonalDatabaseLayout.Rect viewSelectorButtonRect = PersonalDatabaseLayout.Rect.empty();
         if (viewSelectorButtonWidth > 0) {
@@ -216,7 +216,7 @@ final class PersonalDatabaseLayoutFactory {
                 depositButtonRect,
                 depositExistingButtonRect,
                 viewSelectorButtonRect,
-                logButtonRect,
+                statisticsButtonRect,
                 pageLabelRect,
                 equipmentPanelRect,
                 accessoryToggleRect,

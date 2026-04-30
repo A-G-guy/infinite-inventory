@@ -13,6 +13,7 @@ import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
 import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseLogRequestPayload;
+import com.agguy.infiniteinventory.network.DatabaseStatisticsRequestPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -64,22 +65,28 @@ final class PersonalDatabaseScreenWidgetHelper {
                     .build());
         }
 
-        PersonalDatabaseLayout.Rect logRect = screen.layout.logButtonRect();
-        if (logRect.width() > 0 && logRect.height() > 0) {
-            screen.logButton = screen.addScreenButton(Button.builder(
-                            Component.translatable("screen.infiniteinventory.log_button"),
+        PersonalDatabaseLayout.Rect statisticsRect = screen.layout.statisticsButtonRect();
+        if (statisticsRect.width() > 0 && statisticsRect.height() > 0) {
+            screen.statisticsButton = screen.addScreenButton(Button.builder(
+                            Component.translatable("screen.infiniteinventory.statistics_button"),
                             button -> {
                                 PersonalDatabaseScreenTargetHelper.closeTransientOverlays(screen);
-                                screen.logPanelExpanded = !screen.logPanelExpanded;
-                                if (screen.logPanelExpanded) {
-                                    screen.logPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
-                                    screen.logPanelScrollIndex = 0;
+                                screen.statisticsPanelExpanded = !screen.statisticsPanelExpanded;
+                                if (screen.statisticsPanelExpanded) {
+                                    screen.statisticsPanelScope = screen.databaseMenu.viewState().query().focusedTab().scope();
+                                    screen.statisticsCategoryScrollIndex = 0;
+                                    screen.statisticsModsScrollIndex = 0;
+                                    screen.statisticsTabsScrollIndex = 0;
+                                    screen.statisticsTrendsScrollIndex = 0;
+                                    screen.statisticsLogScrollIndex = 0;
                                     PacketDistributor.sendToServer(
-                                            new DatabaseLogRequestPayload(screen.logPanelScope));
+                                            new DatabaseStatisticsRequestPayload(screen.statisticsPanelScope));
+                                    PacketDistributor.sendToServer(
+                                            new DatabaseLogRequestPayload(screen.statisticsPanelScope));
                                 }
                             }
                     )
-                    .bounds(logRect.x(), logRect.y(), logRect.width(), logRect.height())
+                    .bounds(statisticsRect.x(), statisticsRect.y(), statisticsRect.width(), statisticsRect.height())
                     .build());
         }
 
@@ -309,12 +316,12 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.viewSelectorButton.active = true;
             screen.viewSelectorButton.setMessage(Component.translatable("screen.infiniteinventory.view_selector_button"));
         }
-        if (screen.logButton != null) {
-            PersonalDatabaseLayout.Rect logRect = screen.layout != null ? screen.layout.logButtonRect() : PersonalDatabaseLayout.Rect.empty();
-            screen.logButton.setPosition(logRect.x(), logRect.y());
-            screen.logButton.visible = logRect.width() > 0 && logRect.height() > 0;
-            screen.logButton.active = true;
-            screen.logButton.setMessage(Component.translatable("screen.infiniteinventory.log_button"));
+        if (screen.statisticsButton != null) {
+            PersonalDatabaseLayout.Rect statisticsRect = screen.layout != null ? screen.layout.statisticsButtonRect() : PersonalDatabaseLayout.Rect.empty();
+            screen.statisticsButton.setPosition(statisticsRect.x(), statisticsRect.y());
+            screen.statisticsButton.visible = statisticsRect.width() > 0 && statisticsRect.height() > 0;
+            screen.statisticsButton.active = true;
+            screen.statisticsButton.setMessage(Component.translatable("screen.infiniteinventory.statistics_button"));
         }
         if (screen.depositExistingButton != null) {
             screen.depositExistingButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;

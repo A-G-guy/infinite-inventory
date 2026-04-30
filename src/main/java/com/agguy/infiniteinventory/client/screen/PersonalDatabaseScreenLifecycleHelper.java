@@ -42,6 +42,14 @@ final class PersonalDatabaseScreenLifecycleHelper {
         screen.customExtractValidationKey = "";
         screen.logPanelExpanded = false;
         screen.logPanelScrollIndex = 0;
+        screen.statisticsPanelExpanded = false;
+        screen.activeStatisticsTab = PersonalDatabaseScreenEnums.StatisticsPanelTab.OVERVIEW;
+        screen.statisticsPanelScope = DatabaseScope.PERSONAL;
+        screen.statisticsCategoryScrollIndex = 0;
+        screen.statisticsModsScrollIndex = 0;
+        screen.statisticsTabsScrollIndex = 0;
+        screen.statisticsTrendsScrollIndex = 0;
+        screen.statisticsLogScrollIndex = 0;
         screen.viewSelectorPersonalScrollIndex = 0;
         screen.viewSelectorPublicScrollIndex = 0;
         screen.managementPersonalScrollIndex = 0;

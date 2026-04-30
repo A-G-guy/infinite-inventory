@@ -29,6 +29,16 @@ public final class NetworkConstants {
     public static final int MAX_QUERY_TAB_STATE_COUNT = 100;
     /** Query 中隐藏顶部标签页的最大数量。 */
     public static final int MAX_QUERY_HIDDEN_TOP_TAB_COUNT = 100;
+    /** 统计快照中分类 breakdown 的最大数量。 */
+    public static final int MAX_STATISTICS_CATEGORY_COUNT = 16;
+    /** 统计快照中命名空间 breakdown 的最大数量。 */
+    public static final int MAX_STATISTICS_NAMESPACE_COUNT = 32;
+    /** 统计快照中标签页 breakdown 的最大数量。 */
+    public static final int MAX_STATISTICS_TAB_COUNT = 48;
+    /** 统计快照中日趋势的最大数量。 */
+    public static final int MAX_STATISTICS_DAILY_TREND_COUNT = 16;
+    /** 统计快照中小时趋势的最大数量。 */
+    public static final int MAX_STATISTICS_HOURLY_TREND_COUNT = 32;
 
     /**
      * 校验列表长度是否在安全范围内。

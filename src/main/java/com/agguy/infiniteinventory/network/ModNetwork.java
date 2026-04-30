@@ -41,9 +41,11 @@ public final class ModNetwork {
         registrar.playToServer(DepositExistingByTabPayload.TYPE, DepositExistingByTabPayload.STREAM_CODEC, ModNetwork::handleDepositExistingByTab);
         registrar.playToServer(OpenEquippedDatabasePayload.TYPE, OpenEquippedDatabasePayload.STREAM_CODEC, ModNetwork::handleOpenEquippedDatabase);
         registrar.playToServer(DatabaseLogRequestPayload.TYPE, DatabaseLogRequestPayload.STREAM_CODEC, ModNetwork::handleLogRequest);
+        registrar.playToServer(DatabaseStatisticsRequestPayload.TYPE, DatabaseStatisticsRequestPayload.STREAM_CODEC, ModNetwork::handleStatisticsRequest);
         registrar.playToServer(DatabaseNotePayload.TYPE, DatabaseNotePayload.STREAM_CODEC, ModNetwork::handleNoteUpdate);
         registrar.playToServer(DatabaseStarPayload.TYPE, DatabaseStarPayload.STREAM_CODEC, ModNetwork::handleStarToggle);
         registrar.playToClient(DatabaseLogSnapshotPayload.TYPE, DatabaseLogSnapshotPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleLogSnapshot(payload)));
+        registrar.playToClient(DatabaseStatisticsSnapshotPayload.TYPE, DatabaseStatisticsSnapshotPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleStatisticsSnapshot(payload)));
         registrar.playToClient(DatabaseDepositConflictPayload.TYPE, DatabaseDepositConflictPayload.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> ClientPayloadHandlers.handleDepositConflict(payload)));
         registrar.playToServer(DatabaseDepositResolvePayload.TYPE, DatabaseDepositResolvePayload.STREAM_CODEC, ModNetwork::handleDepositResolve);
     }
@@ -241,6 +243,25 @@ public final class ModNetwork {
             }
             List<DatabaseLogEntry> entries = PersonalDatabaseService.INSTANCE.getLogEntries(player, scope);
             context.reply(new DatabaseLogSnapshotPayload(scope, entries));
+        });
+    }
+
+    private static void handleStatisticsRequest(DatabaseStatisticsRequestPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                return;
+            }
+            DatabaseScope scope = DatabaseScope.normalize(payload.scope());
+            if (scope == DatabaseScope.PUBLIC && !player.hasPermissions(2)) {
+                context.reply(new DatabaseStatisticsSnapshotPayload(
+                        new com.agguy.infiniteinventory.database.statistics.DatabaseStatisticsSnapshot(
+                                scope, 0, 0, List.of(), List.of(), List.of(), List.of(), List.of()
+                        )
+                ));
+                return;
+            }
+            var snapshot = PersonalDatabaseService.INSTANCE.getStatisticsSnapshot(player, scope);
+            context.reply(new DatabaseStatisticsSnapshotPayload(snapshot));
         });
     }
 

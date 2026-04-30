@@ -8,6 +8,7 @@ import com.agguy.infiniteinventory.database.DatabaseViewState;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseMenu;
 import com.agguy.infiniteinventory.network.DatabaseDepositConflictPayload;
 import com.agguy.infiniteinventory.network.DatabaseLogSnapshotPayload;
+import com.agguy.infiniteinventory.network.DatabaseStatisticsSnapshotPayload;
 import com.agguy.infiniteinventory.network.DatabaseViewerLocalePayload;
 import java.util.EnumMap;
 import java.util.List;
@@ -23,6 +24,7 @@ public final class PersonalDatabaseClient {
     private static long lastSyncedSessionId = Long.MIN_VALUE;
     private static ViewerLanguage lastSyncedViewerLanguage;
     private static final Map<DatabaseScope, List<DatabaseLogEntry>> cachedLogEntries = new EnumMap<>(DatabaseScope.class);
+    private static final Map<DatabaseScope, com.agguy.infiniteinventory.database.statistics.DatabaseStatisticsSnapshot> cachedStatistics = new EnumMap<>(DatabaseScope.class);
     private static DatabaseEnhancementConfig lastKnownEnhancementConfig = DatabaseEnhancementConfig.defaultConfig();
     @Nullable
     private static DatabaseDepositConflictPayload pendingDepositConflict;
@@ -58,6 +60,22 @@ public final class PersonalDatabaseClient {
 
     public static void clearLogCache() {
         cachedLogEntries.clear();
+    }
+
+    public static void applyStatisticsSnapshot(DatabaseStatisticsSnapshotPayload payload) {
+        cachedStatistics.put(DatabaseScope.normalize(payload.snapshot().scope()), payload.snapshot());
+    }
+
+    public static com.agguy.infiniteinventory.database.statistics.DatabaseStatisticsSnapshot getStatisticsSnapshot(DatabaseScope scope) {
+        return cachedStatistics.get(DatabaseScope.normalize(scope));
+    }
+
+    public static boolean hasStatistics(DatabaseScope scope) {
+        return cachedStatistics.containsKey(DatabaseScope.normalize(scope));
+    }
+
+    public static void clearStatisticsCache() {
+        cachedStatistics.clear();
     }
 
     public static void applyDepositConflict(DatabaseDepositConflictPayload payload) {

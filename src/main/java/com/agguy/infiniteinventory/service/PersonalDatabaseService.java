@@ -321,6 +321,23 @@ public final class PersonalDatabaseService {
         return this.resolveDatabaseForMutation(player, scope).logEntries();
     }
 
+    /**
+     * 获取指定作用域下的统计快照，自动使用缓存。
+     *
+     * @param player 请求玩家
+     * @param scope  目标作用域
+     * @return 统计快照
+     */
+    public com.agguy.infiniteinventory.database.statistics.DatabaseStatisticsSnapshot getStatisticsSnapshot(ServerPlayer player, DatabaseScope scope) {
+        StoredItemDatabase database = this.resolveDatabaseForView(player, scope);
+        return StatisticsCache.INSTANCE.getOrCompute(
+                player.getUUID(),
+                DatabaseScope.normalize(scope),
+                database.revision(),
+                () -> PersonalDatabaseServiceStatisticsHelper.buildStatisticsSnapshot(this, player, scope)
+        );
+    }
+
     public long databaseRevisionFor(ServerPlayer player, DatabaseScope scope) {
         return this.resolveDatabaseForView(player, scope).revision();
     }
@@ -421,5 +438,6 @@ public final class PersonalDatabaseService {
                 LOGGER.warn("强制保存数据库数据时发生异常", e);
             }
         }
+        StatisticsCache.INSTANCE.invalidate(player.getUUID(), scope);
     }
 }

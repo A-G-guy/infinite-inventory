@@ -259,7 +259,7 @@ final class PersonalDatabaseScreenLogHelper {
         return false;
     }
 
-    private static int actionColor(DatabaseLogAction action) {
+    static int actionColor(DatabaseLogAction action) {
         return switch (action) {
             case DEPOSIT -> 0xFF2E8B57;
             case EXTRACT -> 0xFFD2691E;
@@ -268,7 +268,7 @@ final class PersonalDatabaseScreenLogHelper {
         };
     }
 
-    private static String formatTabInfo(PersonalDatabaseScreen screen, DatabaseLogEntry entry) {
+    static String formatTabInfo(PersonalDatabaseScreen screen, DatabaseLogEntry entry) {
         String source = resolveTabName(screen, entry.sourceTabId());
         String target = resolveTabName(screen, entry.targetTabId());
         if (source.isEmpty() && target.isEmpty()) {
@@ -283,7 +283,7 @@ final class PersonalDatabaseScreenLogHelper {
         return source + " -> " + target;
     }
 
-    private static String resolveTabName(PersonalDatabaseScreen screen, String tabId) {
+    static String resolveTabName(PersonalDatabaseScreen screen, String tabId) {
         if (tabId == null || tabId.isEmpty()) {
             return "";
         }

@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.network.DatabaseAmountSyncPayload;
 import com.agguy.infiniteinventory.network.DatabaseDepositConflictPayload;
 import com.agguy.infiniteinventory.network.DatabaseLogSnapshotPayload;
 import com.agguy.infiniteinventory.network.DatabaseSnapshotPayload;
+import com.agguy.infiniteinventory.network.DatabaseStatisticsSnapshotPayload;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -48,6 +49,10 @@ public final class ClientPayloadHandlers {
 
     public static void handleDepositConflict(DatabaseDepositConflictPayload payload) {
         PersonalDatabaseClient.applyDepositConflict(payload);
+    }
+
+    public static void handleStatisticsSnapshot(DatabaseStatisticsSnapshotPayload payload) {
+        PersonalDatabaseClient.applyStatisticsSnapshot(payload);
     }
 
     private static List<DatabaseAmountCache.Entry> toCacheEntries(List<DatabaseAmountSyncPayload.AmountEntry> entries) {

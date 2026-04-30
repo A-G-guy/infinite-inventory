@@ -34,4 +34,23 @@ final class PersonalDatabaseScreenEnums {
             return this.translationKey;
         }
     }
+
+    enum StatisticsPanelTab {
+        OVERVIEW("screen.infiniteinventory.statistics.overview"),
+        CATEGORY("screen.infiniteinventory.statistics.category"),
+        MODS("screen.infiniteinventory.statistics.mods"),
+        TABS("screen.infiniteinventory.statistics.tabs"),
+        TRENDS("screen.infiniteinventory.statistics.trends"),
+        LOGS("screen.infiniteinventory.statistics.logs");
+
+        private final String translationKey;
+
+        StatisticsPanelTab(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        public String translationKey() {
+            return this.translationKey;
+        }
+    }
 }

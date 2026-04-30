@@ -34,6 +34,10 @@ final class PersonalDatabaseScreenInteractionHelper {
                 return true;
             }
         }
+        if (screen.statisticsPanelExpanded
+                && PersonalDatabaseScreenStatisticsHelper.handleStatisticsPanelClick(screen, mouseX, mouseY)) {
+            return true;
+        }
         if (screen.logPanelExpanded
                 && PersonalDatabaseScreenLogHelper.handleLogPanelClick(screen, mouseX, mouseY, button)) {
             return true;
@@ -150,6 +154,9 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (screen.customExtractOverlayExpanded) {
+            return true;
+        }
+        if (PersonalDatabaseScreenStatisticsHelper.handleStatisticsPanelScroll(screen, scrollY)) {
             return true;
         }
         if (PersonalDatabaseScreenLogHelper.handleLogPanelScroll(screen, scrollY)) {
