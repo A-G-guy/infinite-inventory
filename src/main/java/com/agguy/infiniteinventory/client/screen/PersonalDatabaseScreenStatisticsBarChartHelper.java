@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
  * 通用条形图渲染辅助类，用于分类、模组、标签页统计。
  */
 final class PersonalDatabaseScreenStatisticsBarChartHelper {
-    private static final int ROW_HEIGHT = 22;
+    static final int ROW_HEIGHT = 22;
     private static final int BAR_HEIGHT = 12;
     private static final int LABEL_WIDTH = 100;
     private static final int VALUE_WIDTH = 60;

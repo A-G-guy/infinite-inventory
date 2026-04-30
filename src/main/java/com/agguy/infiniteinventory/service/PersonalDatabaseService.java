@@ -438,6 +438,6 @@ public final class PersonalDatabaseService {
                 LOGGER.warn("强制保存数据库数据时发生异常", e);
             }
         }
-        StatisticsCache.INSTANCE.invalidate(player.getUUID(), scope);
+        StatisticsCache.INSTANCE.invalidate(player.getUUID(), DatabaseScope.normalize(scope));
     }
 }

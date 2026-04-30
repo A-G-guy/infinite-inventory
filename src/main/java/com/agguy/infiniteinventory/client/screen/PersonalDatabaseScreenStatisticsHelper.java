@@ -255,7 +255,10 @@ final class PersonalDatabaseScreenStatisticsHelper {
 
     private static boolean adjustScroll(PersonalDatabaseScreen screen, int delta, int currentScroll,
             java.util.function.IntConsumer setter, int itemCount) {
-        int maxScroll = Math.max(0, itemCount - 1);
+        int maxVisibleRows = Math.max(1,
+                (PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT - 16)
+                        / PersonalDatabaseScreenStatisticsBarChartHelper.ROW_HEIGHT);
+        int maxScroll = Math.max(0, itemCount - maxVisibleRows);
         int next = Math.max(0, Math.min(maxScroll, currentScroll + delta));
         if (next != currentScroll) {
             setter.accept(next);

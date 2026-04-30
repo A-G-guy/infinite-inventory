@@ -216,6 +216,8 @@
   "screen.infiniteinventory.statistics.daily_change": "Daily Change",
   "screen.infiniteinventory.statistics.daily_trend": "Daily Trend",
   "screen.infiniteinventory.statistics.hourly_trend": "Hourly Trend",
+  "screen.infiniteinventory.statistics.deposit_legend": "In",
+  "screen.infiniteinventory.statistics.extract_legend": "Out",
   "screen.infiniteinventory.statistics.loading": "Loading...",
   "screen.infiniteinventory.statistics.empty": "No data available",
   "screen.infiniteinventory.log.empty": "No operation records",

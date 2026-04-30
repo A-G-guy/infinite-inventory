@@ -162,11 +162,13 @@ final class PersonalDatabaseScreenStatisticsTrendsHelper {
         int legendY = chartRect.y();
         if (legendX >= plotLeft) {
             guiGraphics.fill(legendX, legendY + 4, legendX + 8, legendY + 12, depositColor);
-            guiGraphics.drawString(screen.screenFont(), Component.literal("+"), legendX + 12, legendY + 3,
-                    PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
-            guiGraphics.fill(legendX + 34, legendY + 4, legendX + 42, legendY + 12, extractColor);
-            guiGraphics.drawString(screen.screenFont(), Component.literal("-"), legendX + 46, legendY + 3,
-                    PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
+            guiGraphics.drawString(screen.screenFont(),
+                    Component.translatable("screen.infiniteinventory.statistics.deposit_legend"),
+                    legendX + 12, legendY + 3, PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
+            guiGraphics.fill(legendX + 52, legendY + 4, legendX + 60, legendY + 12, extractColor);
+            guiGraphics.drawString(screen.screenFont(),
+                    Component.translatable("screen.infiniteinventory.statistics.extract_legend"),
+                    legendX + 64, legendY + 3, PersonalDatabaseScreen.OVERLAY_TEXT_COLOR, false);
         }
     }
 

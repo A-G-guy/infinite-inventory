@@ -216,6 +216,8 @@
   "screen.infiniteinventory.statistics.daily_change": "日均变动",
   "screen.infiniteinventory.statistics.daily_trend": "日趋势",
   "screen.infiniteinventory.statistics.hourly_trend": "小时趋势",
+  "screen.infiniteinventory.statistics.deposit_legend": "存入",
+  "screen.infiniteinventory.statistics.extract_legend": "取出",
   "screen.infiniteinventory.statistics.loading": "加载中...",
   "screen.infiniteinventory.statistics.empty": "暂无数据",
   "screen.infiniteinventory.log.empty": "暂无操作记录",
