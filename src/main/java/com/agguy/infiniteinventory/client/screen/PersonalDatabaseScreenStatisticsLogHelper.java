@@ -61,7 +61,7 @@ final class PersonalDatabaseScreenStatisticsLogHelper {
             boolean hovered = mouseY >= rowY && mouseY < rowY + ROW_HEIGHT
                     && mouseX >= listLeft && mouseX < listRight;
             if (hovered) {
-                guiGraphics.fill(listLeft, rowY, listRight, rowY + ROW_HEIGHT, 0x20A89E8C);
+                guiGraphics.fill(listLeft, rowY, listRight, rowY + ROW_HEIGHT, GuiTheme.STATISTICS_LOG_ROW_HOVER);
             }
 
             int y = rowY + (ROW_HEIGHT - screen.screenFont().lineHeight) / 2 + 1;

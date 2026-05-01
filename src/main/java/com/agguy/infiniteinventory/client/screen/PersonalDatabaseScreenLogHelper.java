@@ -261,10 +261,10 @@ final class PersonalDatabaseScreenLogHelper {
 
     static int actionColor(DatabaseLogAction action) {
         return switch (action) {
-            case DEPOSIT -> 0xFF2E8B57;
-            case EXTRACT -> 0xFFD2691E;
-            case TRANSFER -> 0xFF4682B4;
-            case DELETE -> 0xFFCD5C5C;
+            case DEPOSIT -> GuiTheme.LOG_DEPOSIT;
+            case EXTRACT -> GuiTheme.LOG_EXTRACT;
+            case TRANSFER -> GuiTheme.LOG_TRANSFER;
+            case DELETE -> GuiTheme.LOG_DELETE;
         };
     }
 

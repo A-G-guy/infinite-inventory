@@ -12,12 +12,12 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * 统计面板主渲染与交互辅助类。
  */
 final class PersonalDatabaseScreenStatisticsHelper {
-    private static final int NAV_BACKGROUND_COLOR = 0xFFE8E0D0;
-    private static final int NAV_ACTIVE_BACKGROUND = 0xFFD6CBB8;
-    private static final int NAV_HOVER_BACKGROUND = 0xFFF0E8D8;
-    private static final int NAV_ACTIVE_INDICATOR_COLOR = 0xFFF4D58A;
-    private static final int DIVIDER_COLOR = 0x80A89E8C;
-    static final int CONTENT_BACKGROUND_COLOR = 0xFFF5F0E4;
+    private static final int NAV_BACKGROUND_COLOR = GuiTheme.NAV_BACKGROUND;
+    private static final int NAV_ACTIVE_BACKGROUND = GuiTheme.NAV_ACTIVE_BACKGROUND;
+    private static final int NAV_HOVER_BACKGROUND = GuiTheme.NAV_HOVER_BACKGROUND;
+    private static final int NAV_ACTIVE_INDICATOR_COLOR = GuiTheme.NAV_ACTIVE_INDICATOR;
+    private static final int DIVIDER_COLOR = GuiTheme.DIVIDER;
+    static final int CONTENT_BACKGROUND_COLOR = GuiTheme.CONTENT_BACKGROUND;
 
     private PersonalDatabaseScreenStatisticsHelper() {
     }
@@ -41,7 +41,7 @@ final class PersonalDatabaseScreenStatisticsHelper {
 
         // 标题栏背景
         int titleBarBottom = panelRect.y() + PersonalDatabaseScreenStatisticsGeometry.TITLE_BAR_HEIGHT;
-        guiGraphics.fill(panelRect.x(), panelRect.y(), panelRect.right(), titleBarBottom, 0xFFE0D8C8);
+        guiGraphics.fill(panelRect.x(), panelRect.y(), panelRect.right(), titleBarBottom, GuiTheme.TITLE_BAR_BACKGROUND);
         guiGraphics.fill(panelRect.x(), titleBarBottom, panelRect.right(), titleBarBottom + 1, DIVIDER_COLOR);
 
         // 标题

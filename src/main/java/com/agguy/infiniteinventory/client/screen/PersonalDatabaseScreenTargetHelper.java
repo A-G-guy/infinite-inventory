@@ -111,7 +111,7 @@ final class PersonalDatabaseScreenTargetHelper {
                 panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - 8,
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
 
@@ -392,7 +392,7 @@ final class PersonalDatabaseScreenTargetHelper {
         );
         int dividerX = Math.min(rowRect.right() - 2, textX + screen.screenFont().width(label) + 6);
         if (dividerX < rowRect.right() - 2) {
-            guiGraphics.fill(dividerX, rowRect.y() + 10, rowRect.right() - 2, rowRect.y() + 11, 0x70A89E8C);
+            guiGraphics.fill(dividerX, rowRect.y() + 10, rowRect.right() - 2, rowRect.y() + 11, GuiTheme.DIVIDER);
         }
     }
 

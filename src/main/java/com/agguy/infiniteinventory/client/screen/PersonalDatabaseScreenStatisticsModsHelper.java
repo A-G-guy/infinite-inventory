@@ -12,10 +12,7 @@ import net.minecraft.network.chat.Component;
  * 统计面板模组页渲染辅助类。
  */
 final class PersonalDatabaseScreenStatisticsModsHelper {
-    private static final int MOD_COLORS[] = {
-            0xFFE74C3C, 0xFF3498DB, 0xFF2ECC71, 0xFFF39C12,
-            0xFF9B59B6, 0xFF1ABC9C, 0xFFE67E22, 0xFF5DADE2
-    };
+    private static final int MOD_COLORS[] = GuiTheme.CHART_COLORS;
 
     private PersonalDatabaseScreenStatisticsModsHelper() {
     }

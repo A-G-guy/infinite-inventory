@@ -39,7 +39,7 @@ final class PersonalDatabaseScreenViewSelectorHelper {
                 panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - 8,
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         if (!screen.settingsPanelExpanded) {
             PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);

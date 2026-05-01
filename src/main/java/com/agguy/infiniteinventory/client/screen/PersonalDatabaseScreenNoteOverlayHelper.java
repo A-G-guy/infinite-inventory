@@ -137,7 +137,7 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
                 panelRect.y() + OVERLAY_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - OVERLAY_PADDING,
                 panelRect.y() + OVERLAY_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 1,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
         guiGraphics.drawString(
@@ -155,7 +155,7 @@ final class PersonalDatabaseScreenNoteOverlayHelper {
                     Component.translatable("screen.infiniteinventory.note.mixed_hint"),
                     panelRect.x() + OVERLAY_PADDING,
                     hintY,
-                    0xFFE6A817,
+                    GuiTheme.NOTE_MIXED_HINT,
                     false
             );
         }

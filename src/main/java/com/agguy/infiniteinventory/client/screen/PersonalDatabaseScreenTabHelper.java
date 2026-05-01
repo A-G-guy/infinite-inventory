@@ -212,7 +212,7 @@ final class PersonalDatabaseScreenTabHelper {
                     moreRect.x(),
                     moreRect.right(),
                     moreRect.y() + 8,
-                    hovered ? 0x404040 : 0xFFFFFF
+                    hovered ? GuiTheme.MORE_TABS_HOVER_TEXT : GuiTheme.MORE_TABS_TEXT
             );
         }
     }

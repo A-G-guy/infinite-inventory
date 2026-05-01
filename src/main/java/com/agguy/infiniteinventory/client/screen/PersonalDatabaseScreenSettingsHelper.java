@@ -10,12 +10,12 @@ import net.minecraft.network.chat.Component;
  * <p>职责：绘制设置面板框架（左侧导航栏 + 右侧内容区），处理导航切换与面板开关。
  */
 final class PersonalDatabaseScreenSettingsHelper {
-    private static final int NAV_BACKGROUND_COLOR = 0xFFE8E0D0;
-    private static final int NAV_ACTIVE_BACKGROUND = 0xFFD6CBB8;
-    private static final int NAV_HOVER_BACKGROUND = 0xFFF0E8D8;
-    private static final int NAV_ACTIVE_INDICATOR_COLOR = 0xFFF4D58A;
-    private static final int DIVIDER_COLOR = 0x80A89E8C;
-    private static final int TITLE_DIVIDER_COLOR = 0x70A89E8C;
+    private static final int NAV_BACKGROUND_COLOR = GuiTheme.NAV_BACKGROUND;
+    private static final int NAV_ACTIVE_BACKGROUND = GuiTheme.NAV_ACTIVE_BACKGROUND;
+    private static final int NAV_HOVER_BACKGROUND = GuiTheme.NAV_HOVER_BACKGROUND;
+    private static final int NAV_ACTIVE_INDICATOR_COLOR = GuiTheme.NAV_ACTIVE_INDICATOR;
+    private static final int DIVIDER_COLOR = GuiTheme.DIVIDER;
+    private static final int TITLE_DIVIDER_COLOR = GuiTheme.TITLE_DIVIDER;
 
     private PersonalDatabaseScreenSettingsHelper() {
     }

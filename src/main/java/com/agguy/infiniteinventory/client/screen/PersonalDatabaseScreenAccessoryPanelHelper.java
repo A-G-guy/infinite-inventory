@@ -31,7 +31,7 @@ final class PersonalDatabaseScreenAccessoryPanelHelper {
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 1,
                 panelRect.right() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
                 panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT + 2,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         for (int index = 0; index < screen.layout.accessoryGroupLayouts().size(); index++) {
             PersonalDatabaseLayout.AccessoryGroupLayout groupLayout = screen.layout.accessoryGroupLayouts().get(index);
@@ -86,7 +86,7 @@ final class PersonalDatabaseScreenAccessoryPanelHelper {
         PersonalDatabaseLayout.Rect slotRect = hoveredSlot.slotRect();
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 230.0F);
-        guiGraphics.fill(slotRect.x(), slotRect.y(), slotRect.x() + 16, slotRect.y() + 16, 0x52000000);
+        guiGraphics.fill(slotRect.x(), slotRect.y(), slotRect.x() + 16, slotRect.y() + 16, GuiTheme.ACCESSORY_PANEL_HOVER);
         guiGraphics.pose().popPose();
     }
 
@@ -98,17 +98,17 @@ final class PersonalDatabaseScreenAccessoryPanelHelper {
         if (bodyRect.width() <= 0 || bodyRect.height() <= 0) {
             return;
         }
-        int fillColor = groupIndex % 2 == 0 ? 0x2ADCCFB9 : 0x20D4C7B2;
+        int fillColor = groupIndex % 2 == 0 ? GuiTheme.ACCESSORY_ROW_EVEN : GuiTheme.ACCESSORY_ROW_ODD;
         guiGraphics.fill(bodyRect.x(), bodyRect.y(), bodyRect.right(), bodyRect.bottom(), fillColor);
-        guiGraphics.fill(bodyRect.x(), bodyRect.y(), bodyRect.right(), bodyRect.y() + 1, 0x708F7D63);
-        guiGraphics.fill(bodyRect.x(), bodyRect.bottom() - 1, bodyRect.right(), bodyRect.bottom(), 0x60433731);
-        guiGraphics.fill(bodyRect.x(), bodyRect.y(), bodyRect.x() + 1, bodyRect.bottom(), 0x608F7D63);
-        guiGraphics.fill(bodyRect.right() - 1, bodyRect.y(), bodyRect.right(), bodyRect.bottom(), 0x50433731);
+        guiGraphics.fill(bodyRect.x(), bodyRect.y(), bodyRect.right(), bodyRect.y() + 1, GuiTheme.ACCESSORY_BORDER_TOP);
+        guiGraphics.fill(bodyRect.x(), bodyRect.bottom() - 1, bodyRect.right(), bodyRect.bottom(), GuiTheme.ACCESSORY_BORDER_BOTTOM);
+        guiGraphics.fill(bodyRect.x(), bodyRect.y(), bodyRect.x() + 1, bodyRect.bottom(), GuiTheme.ACCESSORY_BORDER_LEFT);
+        guiGraphics.fill(bodyRect.right() - 1, bodyRect.y(), bodyRect.right(), bodyRect.bottom(), GuiTheme.ACCESSORY_BORDER_RIGHT);
         for (int x = bodyRect.x() + PersonalDatabaseLayout.SLOT_SIZE; x < bodyRect.right(); x += PersonalDatabaseLayout.SLOT_SIZE) {
-            guiGraphics.fill(x, bodyRect.y(), x + 1, bodyRect.bottom(), 0x12000000);
+            guiGraphics.fill(x, bodyRect.y(), x + 1, bodyRect.bottom(), GuiTheme.ACCESSORY_GRID_VERTICAL);
         }
         for (int y = bodyRect.y() + PersonalDatabaseLayout.SLOT_SIZE; y < bodyRect.bottom(); y += PersonalDatabaseLayout.SLOT_SIZE) {
-            guiGraphics.fill(bodyRect.x(), y, bodyRect.right(), y + 1, 0x18000000);
+            guiGraphics.fill(bodyRect.x(), y, bodyRect.right(), y + 1, GuiTheme.ACCESSORY_GRID_HORIZONTAL);
         }
     }
 
@@ -136,7 +136,7 @@ final class PersonalDatabaseScreenAccessoryPanelHelper {
         );
         int dividerX = Math.min(headerRect.right() - 2, labelX + screen.screenFont().width(label) + 6);
         if (dividerX < headerRect.right() - 2) {
-            guiGraphics.fill(dividerX, headerRect.y() + 9, headerRect.right() - 2, headerRect.y() + 10, 0x70A89E8C);
+            guiGraphics.fill(dividerX, headerRect.y() + 9, headerRect.right() - 2, headerRect.y() + 10, GuiTheme.DIVIDER);
         }
     }
 }

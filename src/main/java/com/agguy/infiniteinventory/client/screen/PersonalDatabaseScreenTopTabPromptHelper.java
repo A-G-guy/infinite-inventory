@@ -37,7 +37,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
                 panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - 8,
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
 
         boolean canJoin = screen.databaseMenu.viewState().query().visibleTabs().size()
@@ -82,7 +82,7 @@ final class PersonalDatabaseScreenTopTabPromptHelper {
                 panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - 8,
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
 
         List<DatabaseScopedTabRef> visibleTabs = screen.databaseMenu.viewState().query().visibleTabs();

@@ -121,7 +121,7 @@ final class PersonalDatabaseScreenCustomExtractOverlayHelper {
                 panelRect.y() + OVERLAY_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - OVERLAY_PADDING,
                 panelRect.y() + OVERLAY_PADDING + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT + 1,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         PersonalDatabaseScreenOverlayRenderHelper.renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
         guiGraphics.drawString(

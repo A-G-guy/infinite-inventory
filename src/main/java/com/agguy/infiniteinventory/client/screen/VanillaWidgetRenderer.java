@@ -6,19 +6,6 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 final class VanillaWidgetRenderer {
-    private static final int OVERLAY_SHADOW_COLOR = 0x70000000;
-    private static final int OVERLAY_OUTLINE_COLOR = 0xFF433A31;
-    private static final int OVERLAY_BACKGROUND_COLOR = 0xFFF2ECDD;
-    private static final int OVERLAY_TOP_EDGE_COLOR = 0x90FFFDF7;
-    private static final int OVERLAY_BOTTOM_EDGE_COLOR = 0x50261E16;
-    private static final int OVERLAY_ROW_COLOR = 0x80E1D9C9;
-    private static final int OVERLAY_ROW_HOVERED_COLOR = 0xE0D8CFBD;
-    private static final int OVERLAY_ROW_SELECTED_COLOR = 0xE0CDB27A;
-    private static final int OVERLAY_ROW_DIVIDER_COLOR = 0x70A89E8C;
-    private static final int OVERLAY_CHIP_ACTIVE_COLOR = 0xFFF5F0E4;
-    private static final int OVERLAY_CHIP_HOVERED_COLOR = 0xFFE8DDC6;
-    private static final int OVERLAY_CHIP_SELECTED_COLOR = 0xFFD6BB86;
-    private static final int OVERLAY_CHIP_DISABLED_COLOR = 0xFFD3CCBE;
     private static final ResourceLocation PANEL_SPRITE = ResourceLocation.withDefaultNamespace("container/bundle/background");
     private static final ResourceLocation SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/slot");
     private static final ResourceLocation TAB_SPRITE = ResourceLocation.withDefaultNamespace("widget/tab");
@@ -55,10 +42,10 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderTextField(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean focused) {
-        int outlineColor = focused ? 0xFFC49B60 : 0xFF2A2E35;
-        int innerOutlineColor = focused ? 0xFF575E69 : 0xFF3D434B;
-        int fillColor = focused ? 0xFF15191F : 0xFF101419;
-        int topEdgeColor = focused ? 0xA07A8390 : 0x705C6674;
+        int outlineColor = focused ? GuiTheme.TEXT_FIELD_OUTLINE_FOCUSED : GuiTheme.TEXT_FIELD_OUTLINE_UNFOCUSED;
+        int innerOutlineColor = focused ? GuiTheme.TEXT_FIELD_INNER_FOCUSED : GuiTheme.TEXT_FIELD_INNER_UNFOCUSED;
+        int fillColor = focused ? GuiTheme.TEXT_FIELD_FILL_FOCUSED : GuiTheme.TEXT_FIELD_FILL_UNFOCUSED;
+        int topEdgeColor = focused ? GuiTheme.TEXT_FIELD_TOP_FOCUSED : GuiTheme.TEXT_FIELD_TOP_UNFOCUSED;
         guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), outlineColor);
         guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, innerOutlineColor);
         guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.bottom() - 2, fillColor);
@@ -70,25 +57,25 @@ final class VanillaWidgetRenderer {
     }
 
     static void renderSlotSelection(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
-        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0x40E3D0A4);
-        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.y() + 2, 0xFFD6B86E);
-        guiGraphics.fill(rect.x() + 1, rect.bottom() - 2, rect.right() - 1, rect.bottom() - 1, 0xFF8D6F28);
-        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.x() + 2, rect.bottom() - 1, 0xFFD6B86E);
-        guiGraphics.fill(rect.right() - 2, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, 0xFF8D6F28);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, GuiTheme.SLOT_SELECTION_FILL);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.y() + 2, GuiTheme.SLOT_SELECTION_BORDER_LIGHT);
+        guiGraphics.fill(rect.x() + 1, rect.bottom() - 2, rect.right() - 1, rect.bottom() - 1, GuiTheme.SLOT_SELECTION_BORDER_DARK);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.x() + 2, rect.bottom() - 1, GuiTheme.SLOT_SELECTION_BORDER_LIGHT);
+        guiGraphics.fill(rect.right() - 2, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, GuiTheme.SLOT_SELECTION_BORDER_DARK);
     }
 
     static void renderOverlayPanel(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect) {
-        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() + 2, rect.bottom() + 2, OVERLAY_SHADOW_COLOR);
-        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), OVERLAY_OUTLINE_COLOR);
-        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, OVERLAY_BACKGROUND_COLOR);
-        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, OVERLAY_TOP_EDGE_COLOR);
-        guiGraphics.fill(rect.x() + 2, rect.bottom() - 3, rect.right() - 2, rect.bottom() - 2, OVERLAY_BOTTOM_EDGE_COLOR);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() + 2, rect.bottom() + 2, GuiTheme.OVERLAY_SHADOW);
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), GuiTheme.OVERLAY_OUTLINE);
+        guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, GuiTheme.OVERLAY_BACKGROUND);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, GuiTheme.OVERLAY_TOP_EDGE);
+        guiGraphics.fill(rect.x() + 2, rect.bottom() - 3, rect.right() - 2, rect.bottom() - 2, GuiTheme.OVERLAY_BOTTOM_EDGE);
     }
 
     static void renderOverlayRow(GuiGraphics guiGraphics, PersonalDatabaseLayout.Rect rect, boolean hovered, boolean selected) {
-        int fillColor = selected ? OVERLAY_ROW_SELECTED_COLOR : hovered ? OVERLAY_ROW_HOVERED_COLOR : OVERLAY_ROW_COLOR;
+        int fillColor = selected ? GuiTheme.OVERLAY_ROW_SELECTED : hovered ? GuiTheme.OVERLAY_ROW_HOVERED : GuiTheme.OVERLAY_ROW;
         guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), fillColor);
-        guiGraphics.fill(rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), OVERLAY_ROW_DIVIDER_COLOR);
+        guiGraphics.fill(rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), GuiTheme.OVERLAY_ROW_DIVIDER);
     }
 
     static void renderOverlayChip(
@@ -99,13 +86,13 @@ final class VanillaWidgetRenderer {
             boolean enabled
     ) {
         int fillColor = !enabled
-                ? OVERLAY_CHIP_DISABLED_COLOR
-                : selected ? OVERLAY_CHIP_SELECTED_COLOR
-                : hovered ? OVERLAY_CHIP_HOVERED_COLOR
-                : OVERLAY_CHIP_ACTIVE_COLOR;
-        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), OVERLAY_OUTLINE_COLOR);
+                ? GuiTheme.OVERLAY_CHIP_DISABLED
+                : selected ? GuiTheme.OVERLAY_CHIP_SELECTED
+                : hovered ? GuiTheme.OVERLAY_CHIP_HOVERED
+                : GuiTheme.OVERLAY_CHIP_ACTIVE;
+        guiGraphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), GuiTheme.OVERLAY_OUTLINE);
         guiGraphics.fill(rect.x() + 1, rect.y() + 1, rect.right() - 1, rect.bottom() - 1, fillColor);
-        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, OVERLAY_TOP_EDGE_COLOR);
+        guiGraphics.fill(rect.x() + 2, rect.y() + 2, rect.right() - 2, rect.y() + 3, GuiTheme.OVERLAY_TOP_EDGE);
     }
 
     static void renderSearchGlyph(GuiGraphics guiGraphics, int x, int y, int color) {
@@ -148,14 +135,14 @@ final class VanillaWidgetRenderer {
     }
 
     /**
-     * 在浅色背景上渲染 Remix Icon，附加 1px 右下偏移的半透明阴影以提升可读性。
+     * 在暗色背景上渲染 Remix Icon，附加白色半透明发光以提升可读性。
      */
     static void renderRemixIconWithShadow(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
         if (icon == null) {
             return;
         }
-        guiGraphics.setColor(0.0f, 0.0f, 0.0f, 0.35f);
-        guiGraphics.blitSprite(icon.location(), x + 1, y + 1, size, size);
+        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 0.25f);
+        guiGraphics.blitSprite(icon.location(), x - 1, y - 1, size + 2, size + 2);
         guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         guiGraphics.blitSprite(icon.location(), x, y, size, size);
     }

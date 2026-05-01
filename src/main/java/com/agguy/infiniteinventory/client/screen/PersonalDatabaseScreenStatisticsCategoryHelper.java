@@ -14,8 +14,9 @@ import net.minecraft.network.chat.Component;
  */
 final class PersonalDatabaseScreenStatisticsCategoryHelper {
     private static final int CATEGORY_COLORS[] = {
-            0xFF95A5A6, 0xFFE74C3C, 0xFF3498DB, 0xFF2ECC71,
-            0xFFF39C12, 0xFF9B59B6, 0xFF1ABC9C
+            GuiTheme.CHART_COLORS[0], GuiTheme.CHART_COLORS[1], GuiTheme.CHART_COLORS[2],
+            GuiTheme.CHART_COLORS[3], GuiTheme.CHART_COLORS[4], GuiTheme.CHART_COLORS[5],
+            GuiTheme.CHART_COLORS[6]
     };
 
     private PersonalDatabaseScreenStatisticsCategoryHelper() {

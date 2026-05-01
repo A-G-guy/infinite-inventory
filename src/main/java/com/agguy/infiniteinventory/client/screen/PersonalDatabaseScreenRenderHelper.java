@@ -47,7 +47,7 @@ final class PersonalDatabaseScreenRenderHelper {
                 panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
                 panelRect.right() - 8,
                 panelRect.y() + 9 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         guiGraphics.drawWordWrap(
                 screen.screenFont(),
@@ -95,10 +95,10 @@ final class PersonalDatabaseScreenRenderHelper {
         if (accessorySlotLayout != null && accessorySlotLayout.visible()) {
             PersonalDatabaseLayout.Rect slotRect = accessorySlotLayout.slotRect();
             VanillaWidgetRenderer.renderMenuSlot(guiGraphics, slotRect.x(), slotRect.y());
-            guiGraphics.fill(slotRect.x() - 1, slotRect.y() - 1, slotRect.right() + 1, slotRect.y(), 0xB08A7A60);
-            guiGraphics.fill(slotRect.x() - 1, slotRect.bottom(), slotRect.right() + 1, slotRect.bottom() + 1, 0x90382E24);
-            guiGraphics.fill(slotRect.x() - 1, slotRect.y(), slotRect.x(), slotRect.bottom(), 0xB08A7A60);
-            guiGraphics.fill(slotRect.right(), slotRect.y(), slotRect.right() + 1, slotRect.bottom(), 0x90382E24);
+            guiGraphics.fill(slotRect.x() - 1, slotRect.y() - 1, slotRect.right() + 1, slotRect.y(), GuiTheme.ACCESSORY_SLOT_OUTER_LIGHT);
+            guiGraphics.fill(slotRect.x() - 1, slotRect.bottom(), slotRect.right() + 1, slotRect.bottom() + 1, GuiTheme.ACCESSORY_SLOT_OUTER_DARK);
+            guiGraphics.fill(slotRect.x() - 1, slotRect.y(), slotRect.x(), slotRect.bottom(), GuiTheme.ACCESSORY_SLOT_OUTER_LIGHT);
+            guiGraphics.fill(slotRect.right(), slotRect.y(), slotRect.right() + 1, slotRect.bottom(), GuiTheme.ACCESSORY_SLOT_OUTER_DARK);
         }
     }
     static boolean shouldSkipSlotHighlight(PersonalDatabaseScreen screen, Slot slot) {
@@ -129,7 +129,7 @@ final class PersonalDatabaseScreenRenderHelper {
                         viewportLayout.panelRect().y(),
                         viewportLayout.panelRect().right(),
                         viewportLayout.panelRect().bottom(),
-                        0x12000000
+                        GuiTheme.DATABASE_SLOT_HOVER_MASK
                 );
             }
             for (int slotIndex = 0; slotIndex < screen.layout.visibleDatabaseSlotCount(panelIndex); slotIndex++) {
@@ -158,12 +158,12 @@ final class PersonalDatabaseScreenRenderHelper {
                     );
                     if (entry.starred()) {
                         int sx = itemX - 1, sy = itemY - 1;
-                        guiGraphics.fill(sx, sy, sx + 5, sy + 1, 0xFF8B6914);
-                        guiGraphics.fill(sx, sy + 4, sx + 5, sy + 5, 0xFF8B6914);
-                        guiGraphics.fill(sx, sy + 1, sx + 1, sy + 4, 0xFF8B6914);
-                        guiGraphics.fill(sx + 4, sy + 1, sx + 5, sy + 4, 0xFF8B6914);
-                        guiGraphics.fill(sx + 1, sy + 1, sx + 4, sy + 4, 0xFFFFD700);
-                        guiGraphics.fill(sx + 1, sy + 1, sx + 2, sy + 2, 0xFFFFEC8B);
+                        guiGraphics.fill(sx, sy, sx + 5, sy + 1, GuiTheme.STAR_BORDER);
+                        guiGraphics.fill(sx, sy + 4, sx + 5, sy + 5, GuiTheme.STAR_BORDER);
+                        guiGraphics.fill(sx, sy + 1, sx + 1, sy + 4, GuiTheme.STAR_BORDER);
+                        guiGraphics.fill(sx + 4, sy + 1, sx + 5, sy + 4, GuiTheme.STAR_BORDER);
+                        guiGraphics.fill(sx + 1, sy + 1, sx + 4, sy + 4, GuiTheme.STAR_FILL);
+                        guiGraphics.fill(sx + 1, sy + 1, sx + 2, sy + 2, GuiTheme.STAR_HIGHLIGHT);
                     }
                 } else if (slotRect.contains(mouseX, mouseY)) {
                     VanillaWidgetRenderer.renderSlotHighlight(guiGraphics, slotRect);
@@ -193,7 +193,7 @@ final class PersonalDatabaseScreenRenderHelper {
                     gridRect.x(),
                     gridRect.right(),
                     y,
-                    0x7A7A7A
+                    GuiTheme.EMPTY_STATE_TEXT
             );
         }
     }
@@ -368,7 +368,7 @@ final class PersonalDatabaseScreenRenderHelper {
             PersonalDatabaseLayout.Rect searchRect = PersonalDatabaseScreenGeometry.panelSearchFieldRect(screen, panelIndex);
             int iconX = searchRect.x() + 6;
             int iconY = searchRect.y() + (searchRect.height() - PersonalDatabaseScreen.SEARCH_ICON_SIZE) / 2;
-            VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, 0xFFDCD4C8);
+            VanillaWidgetRenderer.renderSearchGlyph(guiGraphics, iconX, iconY, GuiTheme.OVERLAY_MUTED_TEXT);
 
             PersonalDatabaseLayout.Rect sortRect = PersonalDatabaseScreenGeometry.panelSortButtonRect(screen, panelIndex);
             DatabaseSortOption sortOption = PersonalDatabaseScreenCommonHelper.sortOptionForPanel(screen, panelIndex);
@@ -390,13 +390,13 @@ final class PersonalDatabaseScreenRenderHelper {
                     sortRect.right() - 21,
                     sortRect.y() + sortRect.height() / 2,
                     sortOption.direction() == DatabaseSortDirection.ASC,
-                    0xFFD8D0C4
+                    GuiTheme.OVERLAY_MUTED_TEXT
             );
             VanillaWidgetRenderer.renderDropdownIndicator(
                     guiGraphics,
                     sortRect.right() - 9,
                     sortRect.y() + sortRect.height() / 2,
-                    0xFFD8D0C4
+                    GuiTheme.OVERLAY_MUTED_TEXT
             );
 
             PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
@@ -404,13 +404,13 @@ final class PersonalDatabaseScreenRenderHelper {
                     guiGraphics,
                     pageRect.right() - 10,
                     pageRect.y() + pageRect.height() / 2,
-                    0xFFD8D0C4
+                    GuiTheme.OVERLAY_MUTED_TEXT
             );
         }
 
         if (screen.settingsButton != null && screen.layout.settingsButtonRect().width() > 0) {
             PersonalDatabaseLayout.Rect settingsRect = screen.layout.settingsButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, settingsRect.right() - 10, settingsRect.y() + settingsRect.height() / 2, 0xFFD8D0C4);
+            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, settingsRect.right() - 10, settingsRect.y() + settingsRect.height() / 2, GuiTheme.OVERLAY_MUTED_TEXT);
         }
     }
     static void renderDatabaseScaffold(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {

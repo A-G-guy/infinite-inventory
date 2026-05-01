@@ -53,7 +53,7 @@ final class PersonalDatabaseScreenStatisticsBarChartHelper {
             int barWidth = maxValue > 0 ? (int) (BAR_MAX_WIDTH * item.value() / maxValue) : 0;
             int barX = listLeft + LABEL_WIDTH + VALUE_WIDTH + 8;
             int barY = rowY + 3;
-            guiGraphics.fill(barX, barY, barX + BAR_MAX_WIDTH, barY + BAR_HEIGHT, 0x30A89E8C);
+            guiGraphics.fill(barX, barY, barX + BAR_MAX_WIDTH, barY + BAR_HEIGHT, GuiTheme.BAR_CHART_TRACK);
             guiGraphics.fill(barX, barY, barX + barWidth, barY + BAR_HEIGHT, item.color);
 
             String pctStr = String.format("%.1f%%", item.percentage());

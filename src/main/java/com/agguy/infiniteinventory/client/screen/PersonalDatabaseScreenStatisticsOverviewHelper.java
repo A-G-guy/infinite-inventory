@@ -15,8 +15,9 @@ final class PersonalDatabaseScreenStatisticsOverviewHelper {
     private static final int CARD_HEIGHT = 56;
     private static final int CARD_GAP = 8;
     private static final int PIE_COLORS[] = {
-            0xFFE74C3C, 0xFF3498DB, 0xFF2ECC71, 0xFFF39C12,
-            0xFF9B59B6, 0xFF1ABC9C, 0xFFE67E22
+            GuiTheme.CHART_COLORS[0], GuiTheme.CHART_COLORS[1], GuiTheme.CHART_COLORS[2],
+            GuiTheme.CHART_COLORS[3], GuiTheme.CHART_COLORS[4], GuiTheme.CHART_COLORS[5],
+            GuiTheme.CHART_COLORS[6]
     };
 
     private PersonalDatabaseScreenStatisticsOverviewHelper() {
@@ -41,18 +42,18 @@ final class PersonalDatabaseScreenStatisticsOverviewHelper {
         renderCard(screen, guiGraphics, startX, cardY,
                 Component.translatable("screen.infiniteinventory.statistics.total_entries"),
                 formatCompactNumber(snapshot.totalEntries()),
-                0xFF2E8B57);
+                GuiTheme.STATISTICS_DEPOSIT);
 
         renderCard(screen, guiGraphics, startX + CARD_WIDTH + CARD_GAP, cardY,
                 Component.translatable("screen.infiniteinventory.statistics.total_items"),
                 formatCompactNumber(snapshot.totalItems()),
-                0xFF4682B4);
+                GuiTheme.STATISTICS_TOTAL);
 
         long dailyChange = calculateDailyChange(snapshot);
         renderCard(screen, guiGraphics, startX + (CARD_WIDTH + CARD_GAP) * 2, cardY,
                 Component.translatable("screen.infiniteinventory.statistics.daily_change"),
                 (dailyChange >= 0 ? "+" : "") + formatCompactNumber(dailyChange),
-                dailyChange >= 0 ? 0xFF2E8B57 : 0xFFCD5C5C);
+                dailyChange >= 0 ? GuiTheme.STATISTICS_POSITIVE : GuiTheme.STATISTICS_NEGATIVE);
     }
 
     private static void renderCard(PersonalDatabaseScreen screen, GuiGraphics guiGraphics,

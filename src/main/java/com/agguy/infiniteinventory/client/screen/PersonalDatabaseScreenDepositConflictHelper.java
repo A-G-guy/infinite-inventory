@@ -42,7 +42,7 @@ final class PersonalDatabaseScreenDepositConflictHelper {
                 false
         );
         int dividerY1 = panelRect.y() + 8 + PersonalDatabaseScreen.OVERLAY_SECTION_TITLE_HEIGHT;
-        guiGraphics.fill(panelRect.x() + 8, dividerY1, panelRect.right() - 8, dividerY1 + 1, 0x70A89E8C);
+        guiGraphics.fill(panelRect.x() + 8, dividerY1, panelRect.right() - 8, dividerY1 + 1, GuiTheme.DIVIDER);
 
         int itemY = dividerY1 + 8;
         guiGraphics.renderItem(screen.pendingDepositConflict.stack(), panelRect.x() + 12, itemY);
@@ -72,7 +72,7 @@ final class PersonalDatabaseScreenDepositConflictHelper {
         );
 
         int dividerY2 = descY + screen.screenFont().lineHeight + 8;
-        guiGraphics.fill(panelRect.x() + 8, dividerY2, panelRect.right() - 8, dividerY2 + 1, 0x70A89E8C);
+        guiGraphics.fill(panelRect.x() + 8, dividerY2, panelRect.right() - 8, dividerY2 + 1, GuiTheme.DIVIDER);
 
         Component[] optionLabels = {
                 Component.translatable("screen.infiniteinventory.deposit_conflict.cancel"),

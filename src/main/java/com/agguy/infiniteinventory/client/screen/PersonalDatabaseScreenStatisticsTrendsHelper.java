@@ -20,9 +20,9 @@ final class PersonalDatabaseScreenStatisticsTrendsHelper {
             .withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter HOUR_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
             .withZone(ZoneId.systemDefault());
-    private static final int DEPOSIT_COLOR = 0xFF2E8B57;
-    private static final int EXTRACT_COLOR = 0xFFD2691E;
-    private static final int GRID_COLOR = 0x20A89E8C;
+    private static final int DEPOSIT_COLOR = GuiTheme.STATISTICS_DEPOSIT;
+    private static final int EXTRACT_COLOR = GuiTheme.LOG_EXTRACT;
+    private static final int GRID_COLOR = GuiTheme.TREND_GRID;
 
     private PersonalDatabaseScreenStatisticsTrendsHelper() {
     }

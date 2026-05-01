@@ -38,22 +38,22 @@ import org.jetbrains.annotations.Nullable;
  * <p>设计决策：渲染与交互逻辑委托给专门的 Helper 类，本类仅维护 UI 状态机与事件路由。
  */
 public final class PersonalDatabaseScreen extends AbstractContainerScreen<PersonalDatabaseMenu> {
-    static final int OVERLAY_TEXT_COLOR = 0x231C16;
-    static final int OVERLAY_MUTED_TEXT_COLOR = 0x605547;
-    static final int OVERLAY_ACCENT_TEXT_COLOR = 0x234A64;
-    static final int FRAME_TEXT_COLOR = 0xF5F1E6;
-    static final int FRAME_MUTED_TEXT_COLOR = 0xE6DCC2;
-    static final int FRAME_ACCENT_TEXT_COLOR = 0xFFE0A6;
-    static final int FRAME_TEXT_BACKDROP_COLOR = 0x6A16120D;
-    static final int FRAME_TEXT_OUTLINE_COLOR = 0x90765B3B;
-    static final int TEXT_FIELD_TEXT_COLOR = 0xF1ECE3;
-    static final int TEXT_FIELD_MUTED_TEXT_COLOR = 0xB2ABA1;
-    static final int SORT_BUTTON_TEXT_COLOR = 0xECE5D8;
-    static final int SCROLLBAR_TRACK_COLOR = 0x3051463B;
-    static final int SCROLLBAR_THUMB_COLOR = 0xCC7A6447;
-    static final int SCROLLBAR_THUMB_HOVERED_COLOR = 0xE09E825D;
-    static final int TOP_TAB_ACTIVE_TEXT_COLOR = 0xFFF4D58A;
-    static final int TOP_TAB_INACTIVE_TEXT_COLOR = 0xFFF9F4EA;
+    static final int OVERLAY_TEXT_COLOR = GuiTheme.OVERLAY_TEXT;
+    static final int OVERLAY_MUTED_TEXT_COLOR = GuiTheme.OVERLAY_MUTED_TEXT;
+    static final int OVERLAY_ACCENT_TEXT_COLOR = GuiTheme.OVERLAY_ACCENT_TEXT;
+    static final int FRAME_TEXT_COLOR = GuiTheme.FRAME_TEXT;
+    static final int FRAME_MUTED_TEXT_COLOR = GuiTheme.FRAME_MUTED_TEXT;
+    static final int FRAME_ACCENT_TEXT_COLOR = GuiTheme.FRAME_ACCENT_TEXT;
+    static final int FRAME_TEXT_BACKDROP_COLOR = GuiTheme.FRAME_TEXT_BACKDROP;
+    static final int FRAME_TEXT_OUTLINE_COLOR = GuiTheme.FRAME_TEXT_OUTLINE;
+    static final int TEXT_FIELD_TEXT_COLOR = GuiTheme.OVERLAY_TEXT;
+    static final int TEXT_FIELD_MUTED_TEXT_COLOR = GuiTheme.OVERLAY_MUTED_TEXT;
+    static final int SORT_BUTTON_TEXT_COLOR = GuiTheme.OVERLAY_TEXT;
+    static final int SCROLLBAR_TRACK_COLOR = GuiTheme.SCROLLBAR_TRACK;
+    static final int SCROLLBAR_THUMB_COLOR = GuiTheme.SCROLLBAR_THUMB;
+    static final int SCROLLBAR_THUMB_HOVERED_COLOR = GuiTheme.SCROLLBAR_THUMB_HOVERED;
+    static final int TOP_TAB_ACTIVE_TEXT_COLOR = GuiTheme.TOP_TAB_ACTIVE_TEXT;
+    static final int TOP_TAB_INACTIVE_TEXT_COLOR = GuiTheme.TOP_TAB_INACTIVE_TEXT;
     static final int DROPDOWN_ROW_HEIGHT = 20;
     static final int SORT_DROPDOWN_MIN_WIDTH = 168;
     static final int SORT_DROPDOWN_SECTION_GAP = 6;

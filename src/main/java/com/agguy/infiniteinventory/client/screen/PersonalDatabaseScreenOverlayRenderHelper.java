@@ -44,7 +44,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 panelRect.y() + PersonalDatabaseScreen.ADVANCED_SEARCH_PANEL_PADDING
                         + PersonalDatabaseScreen.ADVANCED_SEARCH_TITLE_HEIGHT
                         - 1,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         if (!screen.settingsPanelExpanded) {
             renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
@@ -148,7 +148,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 panelRect.y() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING
                         + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
                         - 1,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         if (!screen.settingsPanelExpanded) {
             renderOverlayCloseButton(screen, guiGraphics, panelRect, mouseX, mouseY);
@@ -225,7 +225,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 guiGraphics,
                 autoStoreRowRect.right() - 9,
                 autoStoreRowRect.y() + autoStoreRowRect.height() / 2,
-                0xFF3F3F3F
+                GuiTheme.OVERLAY_MUTED_TEXT
         );
         guiGraphics.pose().popPose();
     }
@@ -261,7 +261,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
                 dividerY,
                 dropdownRect.right() - 6,
                 dividerY + 1,
-                0x70A89E8C
+                GuiTheme.DIVIDER
         );
         List<DatabaseSortMethod> sortMethods = DatabaseSortDropdownModel.methodOptions();
         for (int index = 0; index < sortMethods.size(); index++) {
