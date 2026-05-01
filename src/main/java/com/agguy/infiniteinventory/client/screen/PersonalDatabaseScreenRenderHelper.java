@@ -277,7 +277,8 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
     static void renderScreenTooltips(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        if (screen.customExtractOverlayExpanded || screen.contextMenuExpanded || screen.tabContextMenuExpanded
+        if (screen.statisticsPanelExpanded || screen.logPanelExpanded
+                || screen.customExtractOverlayExpanded || screen.contextMenuExpanded || screen.tabContextMenuExpanded
                 || screen.sortDropdownExpanded || screen.pagePickerExpanded || screen.advancedSearchExpanded
                 || screen.enhancementPanelExpanded || screen.viewSelectorExpanded || screen.moreTabsExpanded
                 || screen.topTabActionPromptExpanded || screen.topTabReplaceExpanded || screen.tabManagementExpanded
