@@ -17,7 +17,6 @@ final class PersonalDatabaseScreenStatisticsHelper {
     private static final int NAV_HOVER_BACKGROUND = 0xFFF0E8D8;
     private static final int NAV_ACTIVE_INDICATOR_COLOR = 0xFFF4D58A;
     private static final int DIVIDER_COLOR = 0x80A89E8C;
-    private static final int TITLE_DIVIDER_COLOR = 0x70A89E8C;
     static final int CONTENT_BACKGROUND_COLOR = 0xFFF5F0E4;
 
     private PersonalDatabaseScreenStatisticsHelper() {
@@ -31,28 +30,36 @@ final class PersonalDatabaseScreenStatisticsHelper {
         guiGraphics.pose().translate(0.0F, 0.0F, 265.0F);
 
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenStatisticsGeometry.statisticsPanelRect(screen);
-        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
 
         // 全屏遮罩层
         guiGraphics.fill(0, 0, screen.screenWidthValue(), screen.screenHeightValue(), 0xFF000000);
 
+        VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
+
         // 整体背景
         VanillaWidgetRenderer.renderPanel(guiGraphics, panelRect);
+
+        // 标题栏背景
+        int titleBarBottom = panelRect.y() + PersonalDatabaseScreenStatisticsGeometry.TITLE_BAR_HEIGHT;
+        guiGraphics.fill(panelRect.x(), panelRect.y(), panelRect.right(), titleBarBottom, 0xFFE0D8C8);
+        guiGraphics.fill(panelRect.x(), titleBarBottom, panelRect.right(), titleBarBottom + 1, DIVIDER_COLOR);
+
+        // 标题
+        String title = Component.translatable("screen.infiniteinventory.statistics.title").getString();
+        int titleWidth = screen.screenFont().width(title);
+        guiGraphics.drawString(
+                screen.screenFont(),
+                title,
+                panelRect.x() + (panelRect.width() - titleWidth) / 2,
+                panelRect.y() + 10,
+                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
+                false
+        );
 
         // 导航栏背景
         PersonalDatabaseLayout.Rect navRect = PersonalDatabaseScreenStatisticsGeometry.statisticsNavRect(screen);
         guiGraphics.fill(navRect.x(), navRect.y(), navRect.right(), navRect.bottom(), NAV_BACKGROUND_COLOR);
         guiGraphics.fill(navRect.right(), navRect.y(), navRect.right() + 1, navRect.bottom(), DIVIDER_COLOR);
-
-        // 标题
-        guiGraphics.drawString(
-                screen.screenFont(),
-                Component.translatable("screen.infiniteinventory.statistics.title"),
-                panelRect.x() + 12,
-                panelRect.y() + 10,
-                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                false
-        );
 
         // 导航栏
         renderNavBar(screen, guiGraphics, navRect, mouseX, mouseY);
@@ -80,31 +87,6 @@ final class PersonalDatabaseScreenStatisticsHelper {
 
     private static void renderNavBar(PersonalDatabaseScreen screen, GuiGraphics guiGraphics,
             PersonalDatabaseLayout.Rect navRect, int mouseX, int mouseY) {
-        // 标题
-        PersonalDatabaseLayout.Rect titleRect = new PersonalDatabaseLayout.Rect(
-                navRect.x() + PersonalDatabaseScreenStatisticsGeometry.NAV_PADDING,
-                navRect.y() + PersonalDatabaseScreenStatisticsGeometry.NAV_PADDING,
-                navRect.width() - PersonalDatabaseScreenStatisticsGeometry.NAV_PADDING * 2,
-                PersonalDatabaseScreenStatisticsGeometry.NAV_ITEM_HEIGHT
-        );
-        guiGraphics.drawString(
-                screen.screenFont(),
-                Component.translatable("screen.infiniteinventory.statistics.nav_title"),
-                titleRect.x(),
-                titleRect.y() + 5,
-                PersonalDatabaseScreen.OVERLAY_TEXT_COLOR,
-                false
-        );
-
-        // 标题下分割线
-        guiGraphics.fill(
-                titleRect.x(),
-                titleRect.bottom() + 2,
-                titleRect.right(),
-                titleRect.bottom() + 3,
-                TITLE_DIVIDER_COLOR
-        );
-
         // 导航项
         PersonalDatabaseScreenEnums.StatisticsPanelTab[] tabs = PersonalDatabaseScreenEnums.StatisticsPanelTab.values();
         for (int i = 0; i < tabs.length; i++) {
@@ -256,7 +238,8 @@ final class PersonalDatabaseScreenStatisticsHelper {
     private static boolean adjustScroll(PersonalDatabaseScreen screen, int delta, int currentScroll,
             java.util.function.IntConsumer setter, int itemCount) {
         int maxVisibleRows = Math.max(1,
-                (PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT - 16)
+                (PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT
+                        - PersonalDatabaseScreenStatisticsGeometry.TITLE_BAR_HEIGHT - 16)
                         / PersonalDatabaseScreenStatisticsBarChartHelper.ROW_HEIGHT);
         int maxScroll = Math.max(0, itemCount - maxVisibleRows);
         int next = Math.max(0, Math.min(maxScroll, currentScroll + delta));

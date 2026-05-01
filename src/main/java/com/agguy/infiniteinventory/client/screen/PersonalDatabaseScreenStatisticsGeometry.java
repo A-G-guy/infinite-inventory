@@ -9,6 +9,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 final class PersonalDatabaseScreenStatisticsGeometry {
     static final int STATISTICS_PANEL_WIDTH = 560;
     static final int STATISTICS_PANEL_HEIGHT = 380;
+    static final int TITLE_BAR_HEIGHT = 28;
     static final int NAV_WIDTH = 120;
     static final int NAV_ITEM_HEIGHT = 26;
     static final int NAV_PADDING = 8;
@@ -28,8 +29,8 @@ final class PersonalDatabaseScreenStatisticsGeometry {
     static PersonalDatabaseLayout.Rect statisticsNavRect(PersonalDatabaseScreen screen) {
         PersonalDatabaseLayout.Rect panelRect = statisticsPanelRect(screen);
         return new PersonalDatabaseLayout.Rect(
-                panelRect.x(), panelRect.y(),
-                NAV_WIDTH, panelRect.height()
+                panelRect.x(), panelRect.y() + TITLE_BAR_HEIGHT,
+                NAV_WIDTH, Math.max(1, panelRect.height() - TITLE_BAR_HEIGHT)
         );
     }
 
@@ -37,9 +38,9 @@ final class PersonalDatabaseScreenStatisticsGeometry {
         PersonalDatabaseLayout.Rect panelRect = statisticsPanelRect(screen);
         PersonalDatabaseLayout.Rect navRect = statisticsNavRect(screen);
         return new PersonalDatabaseLayout.Rect(
-                navRect.right() + 1, panelRect.y(),
+                navRect.right() + 1, panelRect.y() + TITLE_BAR_HEIGHT,
                 Math.max(1, panelRect.right() - navRect.right() - 1),
-                panelRect.height()
+                Math.max(1, panelRect.height() - TITLE_BAR_HEIGHT)
         );
     }
 
@@ -55,8 +56,7 @@ final class PersonalDatabaseScreenStatisticsGeometry {
 
     static PersonalDatabaseLayout.Rect statisticsNavItemRect(PersonalDatabaseScreen screen, int index) {
         PersonalDatabaseLayout.Rect navRect = statisticsNavRect(screen);
-        int titleBottom = navRect.y() + NAV_PADDING + NAV_ITEM_HEIGHT;
-        int itemY = titleBottom + 4 + index * (NAV_ITEM_HEIGHT + 2);
+        int itemY = navRect.y() + NAV_PADDING + index * (NAV_ITEM_HEIGHT + 2);
         return new PersonalDatabaseLayout.Rect(
                 navRect.x() + NAV_PADDING,
                 itemY,

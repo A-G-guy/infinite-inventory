@@ -125,7 +125,8 @@ final class PersonalDatabaseScreenStatisticsLogHelper {
 
     static boolean handleLogScroll(PersonalDatabaseScreen screen, double scrollY) {
         List<DatabaseLogEntry> entries = PersonalDatabaseClient.getLogEntries(screen.statisticsPanelScope);
-        int availableHeight = PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT - 16;
+        int availableHeight = PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT
+                - PersonalDatabaseScreenStatisticsGeometry.TITLE_BAR_HEIGHT - 16;
         int visibleRows = Math.max(0, availableHeight / ROW_HEIGHT);
         int maxScroll = Math.max(0, entries.size() - visibleRows);
         int delta = (int) -Math.signum(scrollY);

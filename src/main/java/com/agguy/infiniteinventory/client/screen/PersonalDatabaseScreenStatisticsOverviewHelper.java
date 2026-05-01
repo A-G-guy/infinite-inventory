@@ -68,7 +68,7 @@ final class PersonalDatabaseScreenStatisticsOverviewHelper {
     private static void renderPieChart(PersonalDatabaseScreen screen, GuiGraphics guiGraphics,
             DatabaseStatisticsSnapshot snapshot, PersonalDatabaseLayout.Rect contentRect) {
         int centerX = contentRect.x() + contentRect.width() / 2;
-        int centerY = contentRect.y() + 100;
+        int centerY = contentRect.y() + 120;
         int radius = 48;
 
         List<CategoryBreakdown> categories = snapshot.categoryBreakdowns();
@@ -86,9 +86,17 @@ final class PersonalDatabaseScreenStatisticsOverviewHelper {
             currentAngle += sweep;
         }
 
-        // 中心镂空形成圆环
-        guiGraphics.fill(centerX - radius / 2, centerY - radius / 2,
-                centerX + radius / 2, centerY + radius / 2, PersonalDatabaseScreenStatisticsHelper.CONTENT_BACKGROUND_COLOR);
+        // 中心圆形镂空形成圆环
+        int innerRadius = radius / 2;
+        for (int py = centerY - innerRadius; py <= centerY + innerRadius; py++) {
+            for (int px = centerX - innerRadius; px <= centerX + innerRadius; px++) {
+                int dx = px - centerX;
+                int dy = py - centerY;
+                if (dx * dx + dy * dy <= innerRadius * innerRadius) {
+                    guiGraphics.fill(px, py, px + 1, py + 1, PersonalDatabaseScreenStatisticsHelper.CONTENT_BACKGROUND_COLOR);
+                }
+            }
+        }
 
         // 图例
         renderPieLegend(screen, guiGraphics, snapshot, contentRect, centerX, centerY + radius + 20);
@@ -96,7 +104,7 @@ final class PersonalDatabaseScreenStatisticsOverviewHelper {
 
     private static void fillPieSlice(GuiGraphics guiGraphics, int cx, int cy, int radius,
             double startAngleDeg, double sweepDeg, int color) {
-        int segments = Math.max(3, (int) (sweepDeg / 3));
+        int segments = Math.max(3, (int) (sweepDeg / 1.5));
         double startRad = Math.toRadians(startAngleDeg);
         double sweepRad = Math.toRadians(sweepDeg);
         for (int i = 0; i < segments; i++) {

@@ -122,26 +122,24 @@ final class PersonalDatabaseScreenStatisticsTrendsHelper {
 
         int points = depositValues.size();
         if (points > 1 && plotWidth > 0) {
-            int xStep = plotWidth / (points - 1);
-
             for (int i = 0; i < points - 1; i++) {
-                int x1 = plotLeft + xStep * i;
-                int x2 = plotLeft + xStep * (i + 1);
+                int x1 = plotLeft + (plotWidth * i / Math.max(1, points - 1));
+                int x2 = plotLeft + (plotWidth * (i + 1) / Math.max(1, points - 1));
                 int y1 = plotBottom - (int) (plotHeight * depositValues.get(i) / maxValue);
                 int y2 = plotBottom - (int) (plotHeight * depositValues.get(i + 1) / maxValue);
                 drawLine(guiGraphics, x1, y1, x2, y2, depositColor);
             }
 
             for (int i = 0; i < points - 1; i++) {
-                int x1 = plotLeft + xStep * i;
-                int x2 = plotLeft + xStep * (i + 1);
+                int x1 = plotLeft + (plotWidth * i / Math.max(1, points - 1));
+                int x2 = plotLeft + (plotWidth * (i + 1) / Math.max(1, points - 1));
                 int y1 = plotBottom - (int) (plotHeight * extractValues.get(i) / maxValue);
                 int y2 = plotBottom - (int) (plotHeight * extractValues.get(i + 1) / maxValue);
                 drawLine(guiGraphics, x1, y1, x2, y2, extractColor);
             }
 
             for (int i = 0; i < points; i++) {
-                int x = plotLeft + xStep * i;
+                int x = plotLeft + (plotWidth * i / Math.max(1, points - 1));
                 int yDeposit = plotBottom - (int) (plotHeight * depositValues.get(i) / maxValue);
                 int yExtract = plotBottom - (int) (plotHeight * extractValues.get(i) / maxValue);
                 guiGraphics.fill(x - 1, yDeposit - 1, x + 2, yDeposit + 2, depositColor);
