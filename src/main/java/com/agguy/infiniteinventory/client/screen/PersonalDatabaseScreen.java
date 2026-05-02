@@ -201,6 +201,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     DatabaseScope pendingTargetSourceScope = DatabaseScope.PERSONAL;
     int pendingTargetPanelIndex = -1;
     int pendingQuickDepositSlotIndex = -1;
+    boolean pendingQuickDepositSingleOnly = false;
     String managementSelectedTabId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID;
     DatabaseScope managementSelectedScope = DatabaseScope.PERSONAL;
     String pendingIconItemId = com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_CONCRETE_ICON_ITEM_ID;
@@ -245,7 +246,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
 
     record IconChoice(String itemId, ItemStack previewStack, String searchableText, DatabaseCategory category) {
     }
-
     /** 创建数据库屏幕实例。 */
     public PersonalDatabaseScreen(PersonalDatabaseMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);

@@ -252,8 +252,8 @@ public final class PersonalDatabaseMenu extends PersonalDatabaseMenuSupport {
         this.depositHelper.depositExistingByTab(targetScope);
     }
 
-    public void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId) {
-        this.depositHelper.depositInventorySlot(slotIndex, targetScope, targetTabId);
+    public void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId, boolean storeSingleOnly) {
+        this.depositHelper.depositInventorySlot(slotIndex, targetScope, targetTabId, storeSingleOnly);
     }
 
     void sendDepositConflict(DatabaseScope scope, String targetTabId, String existingTabId, ItemStack stack, int slotIndex) {

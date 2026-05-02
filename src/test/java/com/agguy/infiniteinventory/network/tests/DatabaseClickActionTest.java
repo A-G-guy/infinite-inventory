@@ -15,11 +15,13 @@ class DatabaseClickActionTest {
         assertTrue(DatabaseClickAction.STORE_SINGLE.storesSingleItem());
         assertFalse(DatabaseClickAction.STORE_STACK.storesSingleItem());
         assertFalse(DatabaseClickAction.TAKE_SINGLE.isStoreAction());
+        assertFalse(DatabaseClickAction.TAKE_SINGLE_TO_INVENTORY.isStoreAction());
     }
 
     @Test
     void takeActionsShouldResolveExpectedAmounts() {
         assertEquals(1L, DatabaseClickAction.TAKE_SINGLE.resolveRequestedAmount(9L, 64));
+        assertEquals(1L, DatabaseClickAction.TAKE_SINGLE_TO_INVENTORY.resolveRequestedAmount(1000L, 64));
         assertEquals(64L, DatabaseClickAction.TAKE_STACK.resolveRequestedAmount(9L, 64));
         assertEquals(64L, DatabaseClickAction.TAKE_STACK_TO_INVENTORY.resolveRequestedAmount(9L, 64));
         assertEquals(32L, DatabaseClickAction.TAKE_HALF_STACK_TO_INVENTORY.resolveRequestedAmount(9L, 64));
@@ -33,6 +35,7 @@ class DatabaseClickActionTest {
     @Test
     void inventoryExtractionFlagsShouldMatchActions() {
         assertTrue(DatabaseClickAction.TAKE_STACK_TO_INVENTORY.extractsToInventory());
+        assertTrue(DatabaseClickAction.TAKE_SINGLE_TO_INVENTORY.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_HALF_ENTRY_TO_INVENTORY.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_ALL.extractsToInventory());
         assertTrue(DatabaseClickAction.TAKE_ALL.extractsEntireEntry());

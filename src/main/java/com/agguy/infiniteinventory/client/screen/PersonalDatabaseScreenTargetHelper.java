@@ -68,6 +68,7 @@ final class PersonalDatabaseScreenTargetHelper {
         screen.targetSelectorMode = PersonalDatabaseScreenEnums.TargetSelectorMode.NONE;
         screen.pendingTargetPanelIndex = -1;
         screen.pendingQuickDepositSlotIndex = -1;
+        screen.pendingQuickDepositSingleOnly = false;
         screen.pendingTargetSourceTabId = "";
         screen.pendingTargetSourceScope = screen.databaseMenu.viewState().query().focusedTab().scope();
         screen.pendingTargetStoresSingle = false;
@@ -239,13 +240,18 @@ final class PersonalDatabaseScreenTargetHelper {
             case NONE -> Component.translatable("screen.infiniteinventory.target_selector.title");
         };
     }
-
     static boolean handleQuickDepositClick(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
-        if (button != 0 || !net.minecraft.client.gui.screens.Screen.hasShiftDown()
-                || screen.hoveredSlotRef() == null
+        if (button != 0 || screen.hoveredSlotRef() == null
                 || !screen.databaseMenu.getCarried().isEmpty()) {
             return false;
         }
+        boolean shiftDown = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+        boolean altDown = net.minecraft.client.gui.screens.Screen.hasAltDown();
+        if (!shiftDown && !altDown) {
+            return false;
+        }
+        // Shift > Alt 仲裁：两键同按时走 Shift（整组），与仓库面板侧的优先级一致
+        boolean storeSingleOnly = altDown && !shiftDown;
         Slot hoveredSlot = screen.hoveredSlotRef();
         int slotIndex = screen.databaseMenu.slots.indexOf(hoveredSlot);
         if (slotIndex < 0 || !hoveredSlot.hasItem() || !isQuickDepositSlot(screen, slotIndex, hoveredSlot)) {
@@ -258,11 +264,13 @@ final class PersonalDatabaseScreenTargetHelper {
                     screen.databaseMenu.viewState().sessionId(),
                     slotIndex,
                     directTarget.scope(),
-                    directTarget.tabId()
+                    directTarget.tabId(),
+                    storeSingleOnly
             ));
             return true;
         }
         openTargetSelector(screen, PersonalDatabaseScreenEnums.TargetSelectorMode.QUICK_DEPOSIT, -1, slotIndex, "");
+        screen.pendingQuickDepositSingleOnly = storeSingleOnly;
         return true;
     }
 
@@ -305,7 +313,8 @@ final class PersonalDatabaseScreenTargetHelper {
                     screen.databaseMenu.viewState().sessionId(),
                     screen.pendingQuickDepositSlotIndex,
                     targetSelection.scope(),
-                    targetTabId
+                    targetTabId,
+                    screen.pendingQuickDepositSingleOnly
             ));
             case TRANSFER_TAB -> PersonalDatabaseScreenManagementHelper.sendTabMutation(
                     screen,

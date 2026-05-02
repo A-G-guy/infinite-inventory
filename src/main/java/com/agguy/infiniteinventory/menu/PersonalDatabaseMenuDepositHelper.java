@@ -63,11 +63,12 @@ final class PersonalDatabaseMenuDepositHelper {
      * 若槽位为空或服务端玩家不合法则直接返回。
      * 若该物品已存在但存放于其他页签，则向客户端发送冲突提示而非直接存入。
      *
-     * @param slotIndex   背包槽位索引
-     * @param targetScope 目标作用域，可为 null
-     * @param targetTabId 目标标签页标识
+     * @param slotIndex         背包槽位索引
+     * @param targetScope       目标作用域，可为 null
+     * @param targetTabId       目标标签页标识
+     * @param storeSingleOnly   为 true 时仅取出槽位中 1 个物品存入；为 false 时整槽存入
      */
-    void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId) {
+    void depositInventorySlot(int slotIndex, @Nullable DatabaseScope targetScope, String targetTabId, boolean storeSingleOnly) {
         if (!(this.menu.owner instanceof ServerPlayer serverPlayer)) {
             return;
         }
@@ -84,6 +85,17 @@ final class PersonalDatabaseMenuDepositHelper {
         );
         if (conflict != null) {
             this.menu.sendDepositConflict(conflict.scope(), conflict.targetTabId(), conflict.existingTabId(), conflict.stack(), slotIndex);
+            return;
+        }
+        if (storeSingleOnly && slot.getItem().getCount() > 1) {
+            net.minecraft.world.item.ItemStack one = slot.getItem().split(1);
+            if (PersonalDatabaseService.INSTANCE.storeStack(serverPlayer, targetTab.scope(), targetTab.tabId(), one)) {
+                this.menu.broadcastChanges();
+                this.menu.syncAfterScopeMutation(serverPlayer, targetTab.scope());
+            } else {
+                // 回滚：storeStack 失败时把单件归还槽位，避免物品丢失
+                slot.getItem().grow(one.getCount());
+            }
             return;
         }
         if (PersonalDatabaseService.INSTANCE.depositSlot(serverPlayer, targetTab.scope(), targetTab.tabId(), slot)) {

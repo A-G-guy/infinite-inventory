@@ -418,6 +418,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             if (selectionEntry != null) {
                 switch (PersonalDatabasePrimaryClickModel.resolve(
                         Screen.hasShiftDown(),
+                        Screen.hasAltDown(),
                         Screen.hasControlDown()
                 )) {
                     case TAKE_STACK_TO_INVENTORY -> {
@@ -427,6 +428,18 @@ final class PersonalDatabaseScreenInteractionHelper {
                                 panelIndex,
                                 pointerTarget.slotIndex(),
                                 DatabaseClickAction.TAKE_STACK_TO_INVENTORY,
+                                panel.scopedTab().scope(),
+                                panel.tab().id()
+                        );
+                        return true;
+                    }
+                    case TAKE_SINGLE_TO_INVENTORY -> {
+                        screen.selectionGestureModel.clearSelectionGesture();
+                        PersonalDatabaseScreenLayoutHelper.sendDatabaseClick(
+                                screen,
+                                panelIndex,
+                                pointerTarget.slotIndex(),
+                                DatabaseClickAction.TAKE_SINGLE_TO_INVENTORY,
                                 panel.scopedTab().scope(),
                                 panel.tab().id()
                         );

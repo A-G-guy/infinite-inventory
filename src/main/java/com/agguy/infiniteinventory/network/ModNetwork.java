@@ -129,7 +129,7 @@ public final class ModNetwork {
             }
             PersonalDatabaseMenu menu = resolveMenu(player, payload.containerId(), payload.sessionId());
             if (menu != null) {
-                menu.depositInventorySlot(payload.slotIndex(), payload.targetScope(), payload.targetTabId());
+                menu.depositInventorySlot(payload.slotIndex(), payload.targetScope(), payload.targetTabId(), payload.storeSingleOnly());
             }
         });
     }
