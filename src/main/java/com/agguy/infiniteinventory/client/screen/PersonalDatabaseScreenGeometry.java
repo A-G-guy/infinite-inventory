@@ -295,6 +295,34 @@ final class PersonalDatabaseScreenGeometry {
                 && screen.layout.accessoriesPanelRect().contains(mouseX, mouseY);
     }
 
+    /**
+     * 判断给定 Slot 是否被展开后的饰品面板视觉覆盖且自身并非饰品槽。
+     * <p>
+     * Why: 物品图标走 ItemRenderer 实体管线、面板背景走 GuiGraphics.fill UI 管线，
+     * 二者深度交互不可靠，单纯抬高面板的 z 值无法稳定遮蔽底层物品图标。
+     * 在 renderSlot 阶段对被覆盖的非饰品槽直接 early-return 跳过渲染，从根本上避免穿透显示。
+     */
+    static boolean isSlotCoveredByAccessoryPanel(PersonalDatabaseScreen screen, @Nullable Slot slot) {
+        if (slot == null || screen.layout == null || !screen.accessoriesExpanded) {
+            return false;
+        }
+        if (resolveAccessorySlotLayout(screen, slot) != null) {
+            return false;
+        }
+        PersonalDatabaseLayout.Rect panel = screen.layout.accessoriesPanelRect();
+        if (panel.width() <= 0 || panel.height() <= 0) {
+            return false;
+        }
+        int slotLeft = screen.getGuiLeft() + slot.x;
+        int slotTop = screen.getGuiTop() + slot.y;
+        int slotRight = slotLeft + PersonalDatabaseLayout.SLOT_SIZE;
+        int slotBottom = slotTop + PersonalDatabaseLayout.SLOT_SIZE;
+        return slotRight > panel.x()
+                && slotLeft < panel.right()
+                && slotBottom > panel.y()
+                && slotTop < panel.bottom();
+    }
+
     @Nullable
     static PersonalDatabaseLayout.AccessorySlotLayout findHoveredAccessorySlot(
             PersonalDatabaseScreen screen,

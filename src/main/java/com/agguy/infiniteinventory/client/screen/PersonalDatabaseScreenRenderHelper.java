@@ -99,7 +99,8 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
     static boolean shouldSkipSlotHighlight(PersonalDatabaseScreen screen, Slot slot) {
-        return PersonalDatabaseScreenGeometry.resolveAccessorySlotLayout(screen, slot) != null;
+        return PersonalDatabaseScreenGeometry.resolveAccessorySlotLayout(screen, slot) != null
+                || PersonalDatabaseScreenGeometry.isSlotCoveredByAccessoryPanel(screen, slot);
     }
     static void renderAccessoriesPanel(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         PersonalDatabaseScreenAccessoryPanelHelper.renderAccessoriesPanel(screen, guiGraphics);
@@ -276,7 +277,23 @@ final class PersonalDatabaseScreenRenderHelper {
                 || screen.iconPickerExpanded || screen.targetSelectorExpanded) {
             return;
         }
-        screen.invokeSuperRenderTooltip(guiGraphics, mouseX, mouseY);
+        // Why: 饰品面板展开时 vanilla 仍会基于鼠标命中下层 Slot 计算 hoveredSlot；
+        // 若鼠标停在面板背景区或被覆盖的非饰品槽上，super.renderTooltip 会泄漏下层物品提示。
+        // 仅当 hoveredSlot 不是真实饰品槽且被面板矩形覆盖时跳过 vanilla tooltip。
+        boolean suppressVanillaTooltip = false;
+        if (screen.accessoriesExpanded
+                && screen.layout != null
+                && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)) {
+            Slot hoveredSlot = screen.hoveredSlotRef();
+            boolean hoveredIsAccessory = hoveredSlot != null
+                    && PersonalDatabaseScreenGeometry.resolveAccessorySlotLayout(screen, hoveredSlot) != null;
+            if (!hoveredIsAccessory) {
+                suppressVanillaTooltip = true;
+            }
+        }
+        if (!suppressVanillaTooltip) {
+            screen.invokeSuperRenderTooltip(guiGraphics, mouseX, mouseY);
+        }
         PersonalDatabaseLayout.AccessorySlotLayout accessorySlotLayout = PersonalDatabaseScreenGeometry.findHoveredAccessorySlot(
                 screen,
                 mouseX,

@@ -17,7 +17,11 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (button == 0 && !screen.scrollbarDragging
                 && !screen.statisticsPanelExpanded
                 && !screen.settingsPanelExpanded
-                && !screen.logPanelExpanded) {
+                && !screen.logPanelExpanded
+                && !PersonalDatabaseScreenCommonHelper.isAnyTransientOverlayActive(screen)) {
+            // Why: 任意 transient 弹窗显示时，其矩形可能与下层搜索框矩形空间重叠；
+            // 若不在此处跳过，activeSearchTab 会被设置 → 下一 tick syncPanelWidgets
+            // 会把搜索框 setFocused(true)，造成"点击弹窗却聚焦下层搜索框"的穿透感。
             PersonalDatabaseScreenLayoutHelper.updateSearchFocusFromClick(screen, mouseX, mouseY);
         }
         if (button == 0 && PersonalDatabaseScreenScrollbarHelper.beginScrollbarDragIfHit(screen, mouseX, mouseY)) {
@@ -136,7 +140,12 @@ final class PersonalDatabaseScreenInteractionHelper {
             return true;
         }
         if (screen.accessoriesExpanded && PersonalDatabaseScreenGeometry.isWithinAccessoriesPanel(screen, mouseX, mouseY)) {
-            screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            // Why: 仅当点击落在真实饰品槽位上时才转发到原版 Slot 点击逻辑（穿戴/取下饰品）；
+            // 落在面板背景（标题/留白/分组栏/滚动指示器）时直接消费事件，
+            // 防止穿透到下层物品栏的玩家背包/装备槽。
+            if (PersonalDatabaseScreenGeometry.findHoveredAccessorySlot(screen, mouseX, mouseY) != null) {
+                return screen.invokeSuperMouseClicked(mouseX, mouseY, button);
+            }
             return true;
         }
         if (PersonalDatabaseScreenTabHelper.handleTabClick(screen, mouseX, mouseY, button)) {

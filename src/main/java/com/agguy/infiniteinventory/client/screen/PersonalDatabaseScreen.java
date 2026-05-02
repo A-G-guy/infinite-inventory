@@ -382,7 +382,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     /** 渲染单个槽位，先由自定义 Helper 绘制附加装饰，再调用原版槽位渲染。 */
     @Override
     protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
-        if (this.settingsPanelExpanded || this.statisticsPanelExpanded) {
+        if (this.settingsPanelExpanded || this.statisticsPanelExpanded
+                || PersonalDatabaseScreenGeometry.isSlotCoveredByAccessoryPanel(this, slot)) {
             return;
         }
         PersonalDatabaseScreenRenderHelper.renderSlot(this, guiGraphics, slot);

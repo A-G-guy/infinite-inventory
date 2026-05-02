@@ -57,6 +57,33 @@ final class PersonalDatabaseScreenCommonHelper {
         return fitProfile(screen).supportsFullUi();
     }
 
+    /**
+     * 判断当前屏幕上是否有任意 transient 弹窗/抽屉处于展开状态。
+     * <p>
+     * 使用场景：在事件分发的最早阶段（例如 {@code updateSearchFocusFromClick}）需要判断
+     * 是否应跳过会改写底层状态的逻辑，避免点击穿透到下层 UI（如搜索框）。
+     * 后续若新增 overlay/popup，只需在此处补一行布尔值即可保持事件隔离行为一致。
+     */
+    static boolean isAnyTransientOverlayActive(PersonalDatabaseScreen screen) {
+        return screen.viewSelectorExpanded
+                || screen.contextMenuExpanded
+                || screen.tabContextMenuExpanded
+                || screen.noteOverlayExpanded
+                || screen.customExtractOverlayExpanded
+                || screen.advancedSearchExpanded
+                || screen.enhancementPanelExpanded
+                || screen.iconPickerExpanded
+                || screen.targetSelectorExpanded
+                || screen.topTabReplaceExpanded
+                || screen.topTabActionPromptExpanded
+                || screen.moreTabsExpanded
+                || screen.tabManagementExpanded
+                || screen.pagePickerExpanded
+                || screen.depositConflictExpanded
+                || screen.sortDropdownExpanded
+                || screen.accessoriesExpanded;
+    }
+
     static int maxVisiblePanels(PersonalDatabaseScreen screen) {
         return fitProfile(screen).maxVisiblePanels();
     }
