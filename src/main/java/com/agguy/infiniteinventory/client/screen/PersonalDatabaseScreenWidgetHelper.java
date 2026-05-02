@@ -183,13 +183,10 @@ final class PersonalDatabaseScreenWidgetHelper {
     }
 
     private static void switchScope(PersonalDatabaseScreen screen, DatabaseScope target) {
-        DatabaseQuery query = screen.databaseMenu.viewState().query();
-        if (query.scope() == target) {
-            return;
-        }
-        // 立即同步顶部页签过滤，避免等服务端回包导致页签 1 帧错位
+        // 顶部「个人库 / 公共库」按钮只切换顶部页签 bar 的显示过滤，
+        // 不动 query 的 focusedTab / visibleTabs：避免强制迁移焦点页签，
+        // 也避免视图中混合 scope 的 panel 内容被错误重定向。
         PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, target);
-        PersonalDatabaseScreenLayoutHelper.sendQuery(screen, query.retargetScope(target));
     }
 
     static void buildAdvancedSearchButtons(PersonalDatabaseScreen screen) {
@@ -302,12 +299,7 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncWidgetsFromState(PersonalDatabaseScreen screen) {
         DatabaseViewState viewState = screen.databaseMenu.viewState();
         DatabaseQuery query = viewState.query();
-        // 兜底：当 query.scope() 与 client 当前 filter 不一致时强制对齐，
-        // 覆盖所有可能改变 query.scope() 的非 onPress 路径（如服务端推送、未来新增入口）。
-        if (screen.topTabScopeFilter != query.scope()) {
-            PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, query.scope());
-        }
-        PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
+        DatabaseScope topTabFilter = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
         syncPanelWidgets(screen, viewState, query);
         if (screen.settingsButton != null) {
             screen.settingsButton.setMessage(Component.translatable("screen.infiniteinventory.settings_button"));
@@ -327,7 +319,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.statisticsButton.active = true;
             screen.statisticsButton.setMessage(Component.translatable("screen.infiniteinventory.statistics_button"));
         }
-        DatabaseScope currentScope = query.scope();
+        DatabaseScope currentScope = topTabFilter;
         if (screen.personalScopeButton != null) {
             PersonalDatabaseLayout.Rect personalRect = screen.layout != null ? screen.layout.personalScopeButtonRect() : PersonalDatabaseLayout.Rect.empty();
             screen.personalScopeButton.setPosition(personalRect.x(), personalRect.y());
