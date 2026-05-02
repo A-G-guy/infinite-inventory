@@ -2,7 +2,6 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
-import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSortDirection;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
@@ -200,7 +199,6 @@ final class PersonalDatabaseScreenRenderHelper {
             return;
         }
         var viewState = screen.databaseMenu.viewState();
-        renderScopeToggles(screen, guiGraphics, screen.lastMouseX, screen.lastMouseY);
 
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
@@ -452,26 +450,4 @@ final class PersonalDatabaseScreenRenderHelper {
         guiGraphics.drawString(screen.screenFont(), text, x, y, textColor, true);
     }
 
-    private static void renderScopeToggles(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, double mouseX, double mouseY) {
-        if (screen.layout == null) {
-            return;
-        }
-        for (DatabaseScope scope : DatabaseScope.values()) {
-            PersonalDatabaseLayout.Rect rect = scope == DatabaseScope.PERSONAL
-                    ? screen.layout.personalScopeButtonRect()
-                    : screen.layout.publicScopeButtonRect();
-            if (rect.width() <= 0 || rect.height() <= 0) {
-                continue;
-            }
-            boolean selected = screen.databaseMenu.viewState().query().scope() == scope;
-            boolean hovered = rect.contains(mouseX, mouseY);
-            VanillaWidgetRenderer.renderOverlayChip(guiGraphics, rect, hovered, selected, true);
-            String label = Component.translatable(scope.translationKey()).getString();
-            int textWidth = screen.screenFont().width(label);
-            int textX = rect.x() + (rect.width() - textWidth) / 2;
-            int textY = rect.y() + (rect.height() - screen.screenFont().lineHeight) / 2 + 1;
-            int textColor = selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR;
-            guiGraphics.drawString(screen.screenFont(), label, textX, textY, textColor, false);
-        }
-    }
 }

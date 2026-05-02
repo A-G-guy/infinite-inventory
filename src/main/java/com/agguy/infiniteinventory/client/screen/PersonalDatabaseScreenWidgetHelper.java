@@ -5,6 +5,7 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementConfig;
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
@@ -163,30 +164,32 @@ final class PersonalDatabaseScreenWidgetHelper {
         }
         PersonalDatabaseLayout.Rect personalRect = screen.layout.personalScopeButtonRect();
         if (personalRect.width() > 0 && personalRect.height() > 0) {
-            screen.personalScopeButton = screen.addScreenButton(new ScopeToggleButton(
+            screen.personalScopeButton = screen.addScreenButton(IconButton.create(
                     personalRect.x(), personalRect.y(), personalRect.width(), personalRect.height(),
-                    Component.empty(),
+                    Component.translatable(com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL.translationKey()),
                     button -> {
                         DatabaseQuery query = screen.databaseMenu.viewState().query();
                         if (query.scope() != com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL) {
                             PersonalDatabaseScreenLayoutHelper.sendQuery(
                                     screen, query.retargetScope(com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL));
                         }
-                    }
+                    },
+                    RemixIcon.SCOPE_PERSONAL
             ));
         }
         PersonalDatabaseLayout.Rect publicRect = screen.layout.publicScopeButtonRect();
         if (publicRect.width() > 0 && publicRect.height() > 0) {
-            screen.publicScopeButton = screen.addScreenButton(new ScopeToggleButton(
+            screen.publicScopeButton = screen.addScreenButton(IconButton.create(
                     publicRect.x(), publicRect.y(), publicRect.width(), publicRect.height(),
-                    Component.empty(),
+                    Component.translatable(com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC.translationKey()),
                     button -> {
                         DatabaseQuery query = screen.databaseMenu.viewState().query();
                         if (query.scope() != com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC) {
                             PersonalDatabaseScreenLayoutHelper.sendQuery(
                                     screen, query.retargetScope(com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC));
                         }
-                    }
+                    },
+                    RemixIcon.SCOPE_PUBLIC
             ));
         }
     }
@@ -321,11 +324,12 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.statisticsButton.active = true;
             screen.statisticsButton.setMessage(Component.translatable("screen.infiniteinventory.statistics_button"));
         }
+        DatabaseScope currentScope = query.scope();
         if (screen.personalScopeButton != null) {
             PersonalDatabaseLayout.Rect personalRect = screen.layout != null ? screen.layout.personalScopeButtonRect() : PersonalDatabaseLayout.Rect.empty();
             screen.personalScopeButton.setPosition(personalRect.x(), personalRect.y());
             screen.personalScopeButton.visible = personalRect.width() > 0 && personalRect.height() > 0;
-            screen.personalScopeButton.active = true;
+            screen.personalScopeButton.active = currentScope != DatabaseScope.PERSONAL;
             screen.personalScopeButton.setWidth(personalRect.width());
             screen.personalScopeButton.setHeight(personalRect.height());
         }
@@ -333,7 +337,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             PersonalDatabaseLayout.Rect publicRect = screen.layout != null ? screen.layout.publicScopeButtonRect() : PersonalDatabaseLayout.Rect.empty();
             screen.publicScopeButton.setPosition(publicRect.x(), publicRect.y());
             screen.publicScopeButton.visible = publicRect.width() > 0 && publicRect.height() > 0;
-            screen.publicScopeButton.active = true;
+            screen.publicScopeButton.active = currentScope != DatabaseScope.PUBLIC;
             screen.publicScopeButton.setWidth(publicRect.width());
             screen.publicScopeButton.setHeight(publicRect.height());
         }
