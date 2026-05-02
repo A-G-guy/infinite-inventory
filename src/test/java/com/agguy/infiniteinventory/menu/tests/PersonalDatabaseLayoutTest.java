@@ -69,20 +69,17 @@ class PersonalDatabaseLayoutTest {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
         assertTrue(layout.toolbarRect().x() >= layout.titleRect().x());
-        assertTrue(layout.toolbarRect().right() <= layout.personalScopeButtonRect().x());
+        assertTrue(layout.toolbarRect().right() <= layout.depositExistingButtonRect().x());
         assertTrue(layout.toolbarRect().y() == layout.titleRect().y());
         assertTrue(layout.depositButtonRect().y() == layout.titleRect().y());
     }
 
     @Test
-    void scopeToggleShouldMoveOutOfTopTabBar() {
+    void scopeToggleShouldBeRemoved() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertTrue(layout.personalScopeButtonRect().width() > 0);
+        assertEquals(0, layout.personalScopeButtonRect().width());
         assertEquals(0, layout.publicScopeButtonRect().width());
-        assertTrue(layout.personalScopeButtonRect().y() == layout.titleRect().y());
-        assertTrue(layout.personalScopeButtonRect().x() >= layout.toolbarRect().right());
-        assertTrue(!layout.personalScopeButtonRect().intersects(layout.tabBarRect()));
     }
 
     @Test
@@ -105,11 +102,11 @@ class PersonalDatabaseLayoutTest {
         );
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, accessoryGroups);
 
-        assertTrue(layout.accessoryToggleRect().height() == PersonalDatabaseLayout.CONTROL_HEIGHT);
+        assertTrue(layout.accessoryToggleRect().height() == 16);
         assertTrue(layout.accessoriesPanelRect().height() == 0);
         assertTrue(layout.bottomInventoryRect().bottom() <= layout.frameRect().bottom());
         assertEquals(
-                layout.accessoryToggleRect().bottom() + PersonalDatabaseLayout.SECTION_GAP,
+                layout.equipmentPanelRect().bottom() + PersonalDatabaseLayout.EQUIPMENT_BOTTOM_GAP,
                 layout.bottomInventoryRect().y()
         );
         assertTrue(layout.accessorySlotLayouts().stream().noneMatch(PersonalDatabaseLayout.AccessorySlotLayout::visible));
@@ -126,8 +123,7 @@ class PersonalDatabaseLayoutTest {
         assertTrue(expandedLayout.accessoriesPanelRect().height() > 0);
         assertEquals(expandedLayout.equipmentPanelRect().x(), expandedLayout.accessoriesPanelRect().x());
         assertTrue(expandedLayout.accessoriesPanelRect().right() <= expandedLayout.bottomInventoryRect().right());
-        assertTrue(expandedLayout.bottomInventoryRect().y() > collapsedLayout.bottomInventoryRect().y());
-        assertTrue(expandedLayout.accessoriesPanelRect().bottom() <= expandedLayout.bottomInventoryRect().y() - PersonalDatabaseLayout.SECTION_GAP);
+        assertTrue(expandedLayout.bottomInventoryRect().y() >= collapsedLayout.bottomInventoryRect().y());
         assertFalse(expandedLayout.accessoriesPanelRect().intersects(expandedLayout.databasePanelRect()));
     }
 

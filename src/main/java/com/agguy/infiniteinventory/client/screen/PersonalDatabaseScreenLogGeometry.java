@@ -5,7 +5,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 
 final class PersonalDatabaseScreenLogGeometry {
     static final int LOG_PANEL_WIDTH = 560;
-    static final int LOG_PANEL_HEIGHT = 320;
+    static final int LOG_PANEL_HEIGHT = 360;
     static final int LOG_PANEL_ROW_HEIGHT = 20;
     static final int LOG_PANEL_PADDING = 8;
     static final int LOG_SCOPE_TOGGLE_WIDTH = 76;

@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
@@ -16,7 +17,7 @@ import net.minecraft.network.chat.Component;
 final class PersonalDatabaseScreenStatisticsLogHelper {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MM-dd HH:mm")
             .withZone(ZoneId.systemDefault());
-    private static final int ROW_HEIGHT = 20;
+    static final int ROW_HEIGHT = 20;
     private static final int ROW_GAP = 2;
     private static final int ACTION_CHIP_WIDTH = 28;
     private static final int AMOUNT_WIDTH = 40;
@@ -120,7 +121,49 @@ final class PersonalDatabaseScreenStatisticsLogHelper {
     }
 
     static boolean handleLogClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (isScrollbarThumbHit(screen, mouseX, mouseY)) {
+            screen.scrollbarDragging = true;
+            screen.scrollbarDragStartY = (int) mouseY;
+            screen.scrollbarDragStartScrollIndex = screen.statisticsLogScrollIndex;
+            screen.scrollbarDragTarget = PersonalDatabaseScreenEnums.ScrollbarDragTarget.STATS_LOG;
+            return true;
+        }
         return true;
+    }
+
+    static boolean isScrollbarThumbHit(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        var thumb = scrollbarThumbRect(screen);
+        if (thumb == null) {
+            return false;
+        }
+        return thumb.contains(mouseX, mouseY);
+    }
+
+    @Nullable
+    static PersonalDatabaseLayout.Rect scrollbarThumbRect(PersonalDatabaseScreen screen) {
+        List<DatabaseLogEntry> entries = PersonalDatabaseClient.getLogEntries(screen.statisticsPanelScope);
+        if (entries.isEmpty()) {
+            return null;
+        }
+        int availableHeight = PersonalDatabaseScreenStatisticsGeometry.STATISTICS_PANEL_HEIGHT
+                - PersonalDatabaseScreenStatisticsGeometry.TITLE_BAR_HEIGHT - 16;
+        int visibleRows = Math.max(0, availableHeight / ROW_HEIGHT);
+        if (entries.size() <= visibleRows) {
+            return null;
+        }
+        PersonalDatabaseLayout.Rect contentRect = PersonalDatabaseScreenStatisticsGeometry.statisticsContentRect(screen);
+        int listTop = contentRect.y() + 8;
+        int listBottom = contentRect.bottom() - 8;
+        int trackX = contentRect.right() - 8 - SCROLLBAR_WIDTH;
+        int trackTop = listTop;
+        int trackBottom = listBottom;
+        int trackHeight = Math.max(1, trackBottom - trackTop);
+        int thumbHeight = Math.max(8, trackHeight * visibleRows / entries.size());
+        int maxScroll = Math.max(0, entries.size() - visibleRows);
+        int thumbY = maxScroll > 0
+                ? trackTop + (trackHeight - thumbHeight) * screen.statisticsLogScrollIndex / maxScroll
+                : trackTop;
+        return new PersonalDatabaseLayout.Rect(trackX, thumbY, SCROLLBAR_WIDTH, thumbHeight);
     }
 
     static boolean handleLogScroll(PersonalDatabaseScreen screen, double scrollY) {

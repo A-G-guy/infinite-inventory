@@ -408,19 +408,10 @@ final class PersonalDatabaseScreenTabHelper {
             return PersonalDatabaseLayout.Rect.empty();
         }
         PersonalDatabaseLayout.Rect tabBarRect = screen.layout.tabBarRect();
-        PersonalDatabaseLayout.Rect personalButtonRect = screen.layout.personalScopeButtonRect();
-        PersonalDatabaseLayout.Rect publicButtonRect = screen.layout.publicScopeButtonRect();
-        int left = Math.max(
-                tabBarRect.x(),
-                Math.max(buttonRightInsideTabBar(tabBarRect, personalButtonRect), buttonRightInsideTabBar(tabBarRect, publicButtonRect))
-        );
-        if (left > tabBarRect.x()) {
-            left = Math.min(tabBarRect.right() - 1, left + PersonalDatabaseLayout.TAB_GAP);
-        }
         return new PersonalDatabaseLayout.Rect(
-                left,
+                tabBarRect.x(),
                 tabBarRect.y(),
-                Math.max(1, tabBarRect.right() - left),
+                tabBarRect.width(),
                 tabBarRect.height()
         );
     }
@@ -431,13 +422,4 @@ final class PersonalDatabaseScreenTabHelper {
                 : PersonalDatabaseLayout.TAB_GAP;
     }
 
-    private static int buttonRightInsideTabBar(PersonalDatabaseLayout.Rect tabBarRect, PersonalDatabaseLayout.Rect buttonRect) {
-        if (buttonRect.width() <= 0
-                || buttonRect.height() <= 0
-                || buttonRect.bottom() <= tabBarRect.y()
-                || buttonRect.y() >= tabBarRect.bottom()) {
-            return tabBarRect.x();
-        }
-        return Math.min(tabBarRect.right(), buttonRect.right());
-    }
 }

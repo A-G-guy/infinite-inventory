@@ -8,7 +8,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
  */
 final class PersonalDatabaseScreenStatisticsGeometry {
     static final int STATISTICS_PANEL_WIDTH = 560;
-    static final int STATISTICS_PANEL_HEIGHT = 380;
+    static final int STATISTICS_PANEL_HEIGHT = 360;
     static final int TITLE_BAR_HEIGHT = 28;
     static final int NAV_WIDTH = 120;
     static final int NAV_ITEM_HEIGHT = 26;

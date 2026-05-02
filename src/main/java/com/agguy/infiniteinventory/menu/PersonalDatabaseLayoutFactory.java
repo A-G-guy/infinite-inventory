@@ -43,7 +43,6 @@ final class PersonalDatabaseLayoutFactory {
         boolean compactAccessoryLayout = isCompactAccessoryLayout(screenWidth, screenHeight);
         int settingsButtonWidth = compactTopBar ? 48 : 56;
         int depositButtonWidth = resolveCompactWidth(compactTopBar, 76, PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH);
-        int defaultScopeButtonWidth = resolveCompactWidth(compactTopBar, 76, PersonalDatabaseLayout.SCOPE_BUTTON_WIDTH);
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
         int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
         boolean showViewSelector = !compactTopBar && frameRect.width() >= 680;
@@ -81,30 +80,12 @@ final class PersonalDatabaseLayoutFactory {
                 depositButtonWidth,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
-        int scopeButtonWidth = Math.max(
-                1,
-                Math.min(
-                        defaultScopeButtonWidth,
-                        Math.max(
-                                1,
-                                depositButtonRect.x()
-                                        - titleRect.x()
-                                        - titleReservedWidth
-                                        - PersonalDatabaseLayout.TOOLBAR_GAP * 2
-                        )
-                )
-        );
-        PersonalDatabaseLayout.Rect personalScopeButtonRect = new PersonalDatabaseLayout.Rect(
-                depositButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - scopeButtonWidth,
-                titleRect.y(),
-                scopeButtonWidth,
-                PersonalDatabaseLayout.CONTROL_HEIGHT
-        );
+        PersonalDatabaseLayout.Rect personalScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
         PersonalDatabaseLayout.Rect publicScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
         int toolbarLeft = titleRect.x() + titleReservedWidth;
         int toolbarWidth = Math.max(
                 0,
-                personalScopeButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - toolbarLeft
+                depositButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - toolbarLeft
         );
         PersonalDatabaseLayout.Rect toolbarRect = new PersonalDatabaseLayout.Rect(
                 toolbarLeft,
@@ -123,46 +104,22 @@ final class PersonalDatabaseLayoutFactory {
         int playerColumnWidth = Math.max(equipmentWidth, bottomInventoryWidth);
         PersonalDatabaseLayout.Rect equipmentPanelRect = new PersonalDatabaseLayout.Rect(playerColumnX, contentTop, equipmentWidth, equipmentHeight);
         boolean hasAccessorySlots = accessoryGroups != null && !accessoryGroups.isEmpty();
-        boolean reserveAccessoryToggleRow = hasAccessorySlots
-                && canReserveAccessoryToggleRow(frameRect, equipmentPanelRect, bottomInventoryHeight);
         PersonalDatabaseLayout.Rect accessoryToggleRect = !hasAccessorySlots
                 ? PersonalDatabaseLayout.Rect.empty()
-                : reserveAccessoryToggleRow
-                        ? new PersonalDatabaseLayout.Rect(
-                                playerColumnX,
-                                equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP,
-                                playerColumnWidth,
-                                PersonalDatabaseLayout.CONTROL_HEIGHT
-                        )
-                        : new PersonalDatabaseLayout.Rect(
-                                equipmentPanelRect.right() - defaultScopeButtonWidth,
-                                equipmentPanelRect.y(),
-                                defaultScopeButtonWidth,
-                                PersonalDatabaseLayout.CONTROL_HEIGHT
-                        );
-        int collapsedBottomInventoryY = reserveAccessoryToggleRow
-                ? accessoryToggleRect.bottom() + PersonalDatabaseLayout.SECTION_GAP
-                : equipmentPanelRect.bottom() + PersonalDatabaseLayout.SECTION_GAP;
+                : new PersonalDatabaseLayout.Rect(
+                        equipmentPanelRect.right() - 18,
+                        equipmentPanelRect.y() + 2,
+                        16,
+                        16
+                );
+        int collapsedBottomInventoryY = equipmentPanelRect.bottom() + PersonalDatabaseLayout.EQUIPMENT_BOTTOM_GAP;
         PersonalDatabaseLayout.Rect bottomInventoryRect = new PersonalDatabaseLayout.Rect(
                 playerColumnX,
                 collapsedBottomInventoryY,
                 bottomInventoryWidth,
                 bottomInventoryHeight
         );
-        boolean inlineAccessoryOverlay = accessoryToggleRect.height() > 0
-                && accessoryToggleRect.y() <= equipmentPanelRect.y() + 1;
-        if (accessoriesExpanded
-                && hasAccessorySlots
-                && reserveAccessoryToggleRow
-                && !compactAccessoryLayout
-                && !inlineAccessoryOverlay) {
-            bottomInventoryRect = new PersonalDatabaseLayout.Rect(
-                    playerColumnX,
-                    frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING - bottomInventoryHeight,
-                    bottomInventoryWidth,
-                    bottomInventoryHeight
-            );
-        }
+        // 饰品按钮始终内联在装备面板右上角，无需特殊处理底部物品栏位置
         PersonalDatabaseLayout.Rect accessoriesPanelRect = AccessoryDrawerLayoutHelper.createAccessoriesPanelRect(
                 frameRect,
                 equipmentPanelRect,
@@ -369,19 +326,6 @@ final class PersonalDatabaseLayoutFactory {
                 databasePanelRect.bottom() - topRight.bottom() - PersonalDatabaseLayout.VIEWPORT_GAP
         );
         return List.of(topLeft, topRight, bottomLeft, bottomRight);
-    }
-
-    private static boolean canReserveAccessoryToggleRow(
-            PersonalDatabaseLayout.Rect frameRect,
-            PersonalDatabaseLayout.Rect equipmentPanelRect,
-            int bottomInventoryHeight
-    ) {
-        int requiredBottom = equipmentPanelRect.bottom()
-                + PersonalDatabaseLayout.SECTION_GAP
-                + PersonalDatabaseLayout.CONTROL_HEIGHT
-                + PersonalDatabaseLayout.SECTION_GAP
-                + bottomInventoryHeight;
-        return requiredBottom <= frameRect.bottom() - PersonalDatabaseLayout.INNER_PADDING;
     }
 
     private static int resolveCompactWidth(boolean compact, int compactWidth, int normalWidth) {

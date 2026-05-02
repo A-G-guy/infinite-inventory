@@ -34,7 +34,7 @@ final class PersonalDatabaseScreenSettingsHelper {
         PersonalDatabaseLayout.Rect navRect = PersonalDatabaseScreenSettingsGeometry.settingsNavRect(screen);
 
         // 绘制全屏遮罩层阻断下方所有物品显示，使用完全不透明背景防止物品穿透
-        guiGraphics.fill(0, 0, screen.screenWidthValue(), screen.screenHeightValue(), 0xFF000000);
+        guiGraphics.fill(0, 0, screen.screenWidthValue(), screen.screenHeightValue(), 0xC0101010);
 
         // 整体背景
         VanillaWidgetRenderer.renderPanel(guiGraphics, panelRect);

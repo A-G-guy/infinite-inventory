@@ -14,8 +14,11 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
             return true;
         }
-        if (button == 0) {
+        if (button == 0 && !screen.scrollbarDragging) {
             PersonalDatabaseScreenLayoutHelper.updateSearchFocusFromClick(screen, mouseX, mouseY);
+        }
+        if (button == 0 && PersonalDatabaseScreenScrollbarHelper.beginScrollbarDragIfHit(screen, mouseX, mouseY)) {
+            return true;
         }
         if (screen.customExtractOverlayExpanded
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.handleMouseClicked(screen, mouseX, mouseY, button)) {
@@ -215,11 +218,20 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
             return true;
         }
+        if (button == 0 && screen.scrollbarDragging) {
+            PersonalDatabaseScreenScrollbarHelper.updateScrollbarDrag(screen, (int) mouseY);
+            return true;
+        }
         return PersonalDatabaseScreenGestureHelper.mouseDragged(screen, mouseX, mouseY, button, dragX, dragY);
     }
 
     static boolean mouseReleased(PersonalDatabaseScreen screen, double mouseX, double mouseY, int button) {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
+            return true;
+        }
+        if (button == 0 && screen.scrollbarDragging) {
+            screen.scrollbarDragging = false;
+            screen.scrollbarDragTarget = PersonalDatabaseScreenEnums.ScrollbarDragTarget.NONE;
             return true;
         }
         return PersonalDatabaseScreenGestureHelper.mouseReleased(screen, mouseX, mouseY, button);
@@ -229,8 +241,24 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
             return screen.invokeSuperKeyPressed(keyCode, scanCode, modifiers);
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && PersonalDatabaseScreenPopupInteractionHelper.closeTopOverlay(screen)) {
-            return true;
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (screen.statisticsPanelExpanded) {
+                screen.statisticsPanelExpanded = false;
+                return true;
+            }
+            if (screen.settingsPanelExpanded) {
+                PersonalDatabaseScreenSettingsHelper.closeSettingsPanel(screen);
+                return true;
+            }
+            if (PersonalDatabaseScreenPopupInteractionHelper.closeTopOverlay(screen)) {
+                return true;
+            }
+            for (var searchBox : screen.panelSearchBoxes) {
+                if (searchBox.isFocused()) {
+                    searchBox.setFocused(false);
+                    return true;
+                }
+            }
         }
         if (screen.customExtractOverlayExpanded
                 && PersonalDatabaseScreenCustomExtractOverlayHelper.keyPressed(screen, keyCode, scanCode, modifiers)) {

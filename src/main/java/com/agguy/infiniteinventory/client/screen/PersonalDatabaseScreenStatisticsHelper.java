@@ -32,7 +32,7 @@ final class PersonalDatabaseScreenStatisticsHelper {
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenStatisticsGeometry.statisticsPanelRect(screen);
 
         // 全屏遮罩层
-        guiGraphics.fill(0, 0, screen.screenWidthValue(), screen.screenHeightValue(), 0xFF000000);
+        guiGraphics.fill(0, 0, screen.screenWidthValue(), screen.screenHeightValue(), 0xC0101010);
 
         VanillaWidgetRenderer.renderOverlayPanel(guiGraphics, panelRect);
 

@@ -6,7 +6,7 @@ import net.minecraft.util.Mth;
 final class PersonalDatabaseScreenHeaderGeometry {
     private static final int PANEL_HEADER_TITLE_HEIGHT = 12;
     private static final int PANEL_HEADER_ROW_GAP = 2;
-    private static final int PANEL_SORT_BUTTON_WIDTH = 100;
+    private static final int PANEL_SORT_BUTTON_WIDTH = 80;
 
     private PersonalDatabaseScreenHeaderGeometry() {
     }
@@ -35,8 +35,8 @@ final class PersonalDatabaseScreenHeaderGeometry {
 
         int pagerButtonWidth = PersonalDatabaseLayout.PAGE_BUTTON_WIDTH;
         int minPageWidth = 52;
-        int maxPageWidth = 74;
-        int pageWidth = Mth.clamp(headerRect.width() / 5, minPageWidth, maxPageWidth);
+        int maxPageWidth = 64;
+        int pageWidth = Mth.clamp(headerRect.width() / 6, minPageWidth, maxPageWidth);
         int pagerWidth = pagerButtonWidth * 2 + pageWidth + PersonalDatabaseLayout.PAGE_BUTTON_GAP * 2;
         int availableSortWidth = headerRect.width() - pagerWidth - PersonalDatabaseLayout.PAGE_BUTTON_GAP;
         int sortWidth = Math.max(64, Math.min(PANEL_SORT_BUTTON_WIDTH, availableSortWidth));

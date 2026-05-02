@@ -114,7 +114,7 @@ final class PersonalDatabaseScreenRenderHelper {
         if (screen.layout == null) {
             return;
         }
-        if (screen.settingsPanelExpanded) {
+        if (screen.settingsPanelExpanded || screen.statisticsPanelExpanded) {
             return;
         }
         PersonalDatabaseLayout.Rect logPanelRect = screen.logPanelExpanded
@@ -172,7 +172,7 @@ final class PersonalDatabaseScreenRenderHelper {
         }
     }
     static void renderEmptyState(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
-        if (screen.layout == null || screen.settingsPanelExpanded) {
+        if (screen.layout == null || screen.settingsPanelExpanded || screen.statisticsPanelExpanded) {
             return;
         }
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
@@ -375,7 +375,7 @@ final class PersonalDatabaseScreenRenderHelper {
             String sortLabel = PersonalDatabaseScreenCommonHelper.truncateToWidth(
                     screen,
                     PersonalDatabaseScreenCommonHelper.sortButtonLabel(sortOption).getString(),
-                    Math.max(0, sortRect.width() - 28)
+                    Math.max(0, sortRect.width() - 32)
             );
             guiGraphics.drawString(
                     screen.screenFont(),
@@ -387,30 +387,12 @@ final class PersonalDatabaseScreenRenderHelper {
             );
             VanillaWidgetRenderer.renderSortDirectionIndicator(
                     guiGraphics,
-                    sortRect.right() - 21,
+                    sortRect.right() - 16,
                     sortRect.y() + sortRect.height() / 2,
                     sortOption.direction() == DatabaseSortDirection.ASC,
                     GuiTheme.OVERLAY_MUTED_TEXT
             );
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    sortRect.right() - 9,
-                    sortRect.y() + sortRect.height() / 2,
-                    GuiTheme.OVERLAY_MUTED_TEXT
-            );
 
-            PersonalDatabaseLayout.Rect pageRect = PersonalDatabaseScreenGeometry.panelPageButtonRect(screen, panelIndex);
-            VanillaWidgetRenderer.renderDropdownIndicator(
-                    guiGraphics,
-                    pageRect.right() - 10,
-                    pageRect.y() + pageRect.height() / 2,
-                    GuiTheme.OVERLAY_MUTED_TEXT
-            );
-        }
-
-        if (screen.settingsButton != null && screen.layout.settingsButtonRect().width() > 0) {
-            PersonalDatabaseLayout.Rect settingsRect = screen.layout.settingsButtonRect();
-            VanillaWidgetRenderer.renderDropdownIndicator(guiGraphics, settingsRect.right() - 10, settingsRect.y() + settingsRect.height() / 2, GuiTheme.OVERLAY_MUTED_TEXT);
         }
     }
     static void renderDatabaseScaffold(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
@@ -440,7 +422,7 @@ final class PersonalDatabaseScreenRenderHelper {
         if (screen.layout == null) {
             return;
         }
-        if (screen.settingsPanelExpanded) {
+        if (screen.settingsPanelExpanded || screen.statisticsPanelExpanded) {
             return;
         }
         PersonalDatabaseLayout.Rect logPanelRect = screen.logPanelExpanded

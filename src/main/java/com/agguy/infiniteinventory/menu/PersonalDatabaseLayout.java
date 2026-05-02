@@ -42,6 +42,7 @@ public record PersonalDatabaseLayout(
     public static final int CONTROL_HEIGHT = 20;
     public static final int TOOLBAR_GAP = 4;
     public static final int SECTION_GAP = 12;
+    public static final int EQUIPMENT_BOTTOM_GAP = 4;
     public static final int SLOT_SIZE = 18;
     public static final int DATABASE_SLOT_SIZE = 20;
     public static final int GRID_PADDING = 10;

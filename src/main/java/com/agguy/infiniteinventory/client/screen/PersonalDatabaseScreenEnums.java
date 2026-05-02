@@ -35,6 +35,12 @@ final class PersonalDatabaseScreenEnums {
         }
     }
 
+    enum ScrollbarDragTarget {
+        NONE,
+        STATS_LOG,
+        ACCESSORY
+    }
+
     enum StatisticsPanelTab {
         OVERVIEW("screen.infiniteinventory.statistics.overview"),
         CATEGORY("screen.infiniteinventory.statistics.category"),

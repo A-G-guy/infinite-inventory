@@ -6,7 +6,6 @@ import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
 import com.agguy.infiniteinventory.database.DatabaseQuery;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
-import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseSearchConfig;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
 import com.agguy.infiniteinventory.database.DatabaseSearchWeight;
@@ -90,32 +89,7 @@ final class PersonalDatabaseScreenWidgetHelper {
             ));
         }
 
-        PersonalDatabaseLayout.Rect personalScopeRect = screen.layout.personalScopeButtonRect();
-        screen.personalScopeButton = screen.addScreenButton(IconButton.create(
-                personalScopeRect.x(),
-                personalScopeRect.y(),
-                personalScopeRect.width(),
-                personalScopeRect.height(),
-                Component.translatable(DatabaseScope.PERSONAL.translationKey()),
-                button -> {
-                    DatabaseScope currentScope = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
-                    DatabaseScope nextScope = currentScope == DatabaseScope.PUBLIC
-                            ? DatabaseScope.PERSONAL
-                            : DatabaseScope.PUBLIC;
-                    PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, nextScope);
-                },
-                RemixIcon.SCOPE_PERSONAL
-        ));
-
-        PersonalDatabaseLayout.Rect publicScopeRect = screen.layout.publicScopeButtonRect();
-        if (publicScopeRect.width() > 0 && publicScopeRect.height() > 0) {
-            screen.publicScopeButton = screen.addScreenButton(IconButton.create(
-                    publicScopeRect.x(), publicScopeRect.y(), publicScopeRect.width(), publicScopeRect.height(),
-                    Component.translatable(DatabaseScope.PUBLIC.translationKey()),
-                    button -> PersonalDatabaseScreenTabHelper.switchTopTabScopeFilter(screen, DatabaseScope.PUBLIC),
-                    RemixIcon.SCOPE_PUBLIC
-            ));
-        }
+        // 顶部范围过滤按钮已移除，范围切换通过其他方式处理
 
         PersonalDatabaseLayout.Rect depositExistingRect = screen.layout.depositExistingButtonRect();
         screen.depositExistingButton = screen.addScreenButton(IconButton.create(
@@ -293,7 +267,7 @@ final class PersonalDatabaseScreenWidgetHelper {
     static void syncWidgetsFromState(PersonalDatabaseScreen screen) {
         DatabaseViewState viewState = screen.databaseMenu.viewState();
         DatabaseQuery query = viewState.query();
-        DatabaseScope topTabScopeFilter = PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
+        PersonalDatabaseScreenTabHelper.syncTopTabScopeFilter(screen);
         syncPanelWidgets(screen, viewState, query);
         if (screen.settingsButton != null) {
             screen.settingsButton.setMessage(Component.translatable("screen.infiniteinventory.settings_button"));
@@ -319,30 +293,12 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.depositButton != null) {
             screen.depositButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
         }
-        if (screen.personalScopeButton != null) {
-            screen.personalScopeButton.visible = screen.layout != null && screen.layout.personalScopeButtonRect().width() > 0;
-            DatabaseScope nextScope = topTabScopeFilter == DatabaseScope.PUBLIC ? DatabaseScope.PERSONAL : DatabaseScope.PUBLIC;
-            screen.personalScopeButton.active = !PersonalDatabaseScreenCommonHelper.topTabsForScope(screen, nextScope).isEmpty();
-            screen.personalScopeButton.setMessage(Component.translatable(topTabScopeFilter.translationKey()));
-            if (screen.personalScopeButton instanceof IconButton iconButton) {
-                iconButton.setIcon(topTabScopeFilter == DatabaseScope.PERSONAL ? RemixIcon.SCOPE_PERSONAL : RemixIcon.SCOPE_PUBLIC);
-            }
-        }
-        if (screen.publicScopeButton != null) {
-            screen.publicScopeButton.visible = screen.layout != null && screen.layout.publicScopeButtonRect().width() > 0;
-            screen.publicScopeButton.active = topTabScopeFilter != DatabaseScope.PUBLIC;
-            screen.publicScopeButton.setMessage(Component.translatable(DatabaseScope.PUBLIC.translationKey()));
-        }
         if (screen.accessoriesToggleButton != null) {
             screen.accessoriesToggleButton.visible = PersonalDatabaseScreenLayoutHelper.hasAccessorySlots(screen)
                     && screen.layout != null
                     && screen.layout.accessoryToggleRect().height() > 0;
             screen.accessoriesToggleButton.active = PersonalDatabaseScreenLayoutHelper.hasAccessorySlots(screen);
-            screen.accessoriesToggleButton.setMessage(Component.translatable(
-                    screen.accessoriesExpanded
-                            ? "screen.infiniteinventory.accessories_toggle.collapse"
-                            : "screen.infiniteinventory.accessories_toggle.expand"
-            ));
+            screen.accessoriesToggleButton.setMessage(Component.empty());
         }
         syncAdvancedSearchButtons(screen, query);
         syncEnhancementButtons(screen, viewState.enhancementConfig());

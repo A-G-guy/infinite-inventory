@@ -6,6 +6,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -35,7 +36,9 @@ final class PersonalDatabaseScreenStatisticsTabsHelper {
             if (displayName == null || displayName.isBlank()) {
                 displayName = breakdown.tabId();
             }
-            Component label = Component.literal(displayName);
+            Component label = I18n.exists(displayName)
+                    ? Component.translatable(displayName)
+                    : Component.literal(displayName);
             items.add(new PersonalDatabaseScreenStatisticsBarChartHelper.BarChartItem(
                     label, breakdown.itemCount(), breakdown.percentage(), color));
             i++;

@@ -67,7 +67,7 @@ final class IconButton extends Button {
 
         if (this.getMessage().getString().isEmpty()) {
             int iconX = this.getX() + (this.getWidth() - ICON_SIZE) / 2;
-            VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, iconX, iconY, ICON_SIZE);
+            VanillaWidgetRenderer.renderRemixIconWithShadow(guiGraphics, this.icon, iconX, iconY, ICON_SIZE);
             return;
         }
 
@@ -75,7 +75,7 @@ final class IconButton extends Button {
         int totalWidth = ICON_SIZE + ICON_TEXT_GAP + textWidth;
         int contentX = this.getX() + (this.getWidth() - totalWidth) / 2;
 
-        VanillaWidgetRenderer.renderRemixIcon(guiGraphics, this.icon, contentX, iconY, ICON_SIZE);
+        VanillaWidgetRenderer.renderRemixIconWithShadow(guiGraphics, this.icon, contentX, iconY, ICON_SIZE);
         guiGraphics.drawString(font, this.getMessage(), contentX + ICON_SIZE + ICON_TEXT_GAP, textY, color);
     }
 }

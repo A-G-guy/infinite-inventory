@@ -97,7 +97,7 @@ final class VanillaWidgetRenderer {
 
     static void renderSearchGlyph(GuiGraphics guiGraphics, int x, int y, int color) {
         // 使用 RemixIcon 替代手绘像素，color 参数保留以兼容调用方但不再使用
-        renderRemixIcon(guiGraphics, RemixIcon.SEARCH, x, y, 9);
+        renderRemixIconWithShadow(guiGraphics, RemixIcon.SEARCH, x, y, 9);
     }
 
     static void renderDropdownIndicator(GuiGraphics guiGraphics, int centerX, int centerY, int color) {
@@ -116,7 +116,7 @@ final class VanillaWidgetRenderer {
     ) {
         RemixIcon icon = ascending ? RemixIcon.SORT_ASC : RemixIcon.SORT_DESC;
         int size = 14;
-        renderRemixIcon(guiGraphics, icon, centerX - size / 2, centerY - size / 2, size);
+        renderRemixIconWithShadow(guiGraphics, icon, centerX - size / 2, centerY - size / 2, size);
     }
 
     static void renderRemixIcon(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
@@ -141,7 +141,7 @@ final class VanillaWidgetRenderer {
         if (icon == null) {
             return;
         }
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 0.25f);
+        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 0.35f);
         guiGraphics.blitSprite(icon.location(), x - 1, y - 1, size + 2, size + 2);
         guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         guiGraphics.blitSprite(icon.location(), x, y, size, size);

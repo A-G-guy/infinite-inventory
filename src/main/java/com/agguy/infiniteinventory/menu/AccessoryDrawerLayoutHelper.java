@@ -27,7 +27,7 @@ final class AccessoryDrawerLayoutHelper {
         if (totalSlotCount <= 0) {
             return PersonalDatabaseLayout.Rect.empty();
         }
-        boolean inlineToggle = accessoryToggleRect.y() <= equipmentPanelRect.y() + 1;
+        boolean inlineToggle = true;
         boolean overlayMode = compactOverlayFallback || inlineToggle;
         int drawerWidth = resolveDrawerWidth(playerColumnWidth, accessoryGroups);
         int drawerX = equipmentPanelRect.x();

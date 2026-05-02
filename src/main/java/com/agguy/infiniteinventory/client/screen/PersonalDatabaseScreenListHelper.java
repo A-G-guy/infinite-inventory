@@ -1,6 +1,7 @@
 package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
+import javax.annotation.Nullable;
 import net.minecraft.client.gui.GuiGraphics;
 
 final class PersonalDatabaseScreenListHelper {
@@ -36,6 +37,39 @@ final class PersonalDatabaseScreenListHelper {
         guiGraphics.enableScissor(clipRect.x(), clipRect.y(), clipRect.right(), clipRect.bottom());
     }
 
+    static boolean isAccessoryScrollbarThumbHit(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        if (screen.layout == null || !screen.accessoriesExpanded) {
+            return false;
+        }
+        var thumb = scrollbarThumbRect(screen.layout.accessoriesPanelRect(), visibleRange(
+                screen.layout.accessoryTotalRows(),
+                screen.accessoryScrollRow,
+                screen.layout.accessoryVisibleRows()
+        ));
+        return thumb != null && thumb.contains(mouseX, mouseY);
+    }
+
+    @Nullable
+    static PersonalDatabaseLayout.Rect scrollbarThumbRect(PersonalDatabaseLayout.Rect clipRect, VisibleRange visibleRange) {
+        if (clipRect.width() <= 0 || clipRect.height() <= 0) {
+            return null;
+        }
+        if (!visibleRange.hasRowsAbove() && !visibleRange.hasRowsBelow()) {
+            return null;
+        }
+        int trackWidth = 4;
+        int trackLeft = clipRect.right() - trackWidth - 1;
+        int trackTop = clipRect.y() + 2;
+        int trackBottom = clipRect.bottom() - 2;
+        int trackHeight = Math.max(1, trackBottom - trackTop);
+        int maxScrollIndex = Math.max(1, visibleRange.totalRows() - visibleRange.maxVisibleRows());
+        int thumbHeight = Math.max(10, trackHeight * visibleRange.maxVisibleRows() / Math.max(1, visibleRange.totalRows()));
+        thumbHeight = Math.min(trackHeight, thumbHeight);
+        int thumbTravel = Math.max(0, trackHeight - thumbHeight);
+        int thumbTop = trackTop + thumbTravel * visibleRange.scrollIndex() / maxScrollIndex;
+        return new PersonalDatabaseLayout.Rect(trackLeft, thumbTop, trackWidth, thumbHeight);
+    }
+
     static void renderScrollIndicators(
             PersonalDatabaseScreen screen,
             GuiGraphics guiGraphics,
@@ -52,22 +86,13 @@ final class PersonalDatabaseScreenListHelper {
         int trackLeft = clipRect.right() - trackWidth - 1;
         int trackTop = clipRect.y() + 2;
         int trackBottom = clipRect.bottom() - 2;
-        int trackHeight = Math.max(1, trackBottom - trackTop);
         guiGraphics.fill(trackLeft, trackTop, trackLeft + trackWidth, trackBottom, PersonalDatabaseScreen.SCROLLBAR_TRACK_COLOR);
-        int maxScrollIndex = Math.max(1, visibleRange.totalRows() - visibleRange.maxVisibleRows());
-        int thumbHeight = Math.max(10, trackHeight * visibleRange.maxVisibleRows() / Math.max(1, visibleRange.totalRows()));
-        thumbHeight = Math.min(trackHeight, thumbHeight);
-        int thumbTravel = Math.max(0, trackHeight - thumbHeight);
-        int thumbTop = trackTop + thumbTravel * visibleRange.scrollIndex() / maxScrollIndex;
-        guiGraphics.fill(
-                trackLeft,
-                thumbTop,
-                trackLeft + trackWidth,
-                thumbTop + thumbHeight,
-                PersonalDatabaseScreen.SCROLLBAR_THUMB_COLOR
-        );
-        if (thumbHeight >= 12) {
-            guiGraphics.fill(trackLeft, thumbTop, trackLeft + trackWidth, thumbTop + 1, PersonalDatabaseScreen.SCROLLBAR_THUMB_HOVERED_COLOR);
+        var thumb = scrollbarThumbRect(clipRect, visibleRange);
+        if (thumb != null) {
+            guiGraphics.fill(thumb.x(), thumb.y(), thumb.right(), thumb.bottom(), PersonalDatabaseScreen.SCROLLBAR_THUMB_COLOR);
+            if (thumb.height() >= 12) {
+                guiGraphics.fill(thumb.x(), thumb.y(), thumb.right(), thumb.y() + 1, PersonalDatabaseScreen.SCROLLBAR_THUMB_HOVERED_COLOR);
+            }
         }
     }
 

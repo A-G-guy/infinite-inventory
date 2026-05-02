@@ -236,7 +236,10 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     boolean depositConflictExpanded;
     @Nullable
     com.agguy.infiniteinventory.network.DatabaseDepositConflictPayload pendingDepositConflict;
-
+    boolean scrollbarDragging;
+    int scrollbarDragStartY;
+    int scrollbarDragStartScrollIndex;
+    PersonalDatabaseScreenEnums.ScrollbarDragTarget scrollbarDragTarget = PersonalDatabaseScreenEnums.ScrollbarDragTarget.NONE;
     record DatabaseHitResult(int panelIndex, int slotIndex) {
     }
 
@@ -380,7 +383,7 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     /** 渲染单个槽位，先由自定义 Helper 绘制附加装饰，再调用原版槽位渲染。 */
     @Override
     protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
-        if (this.settingsPanelExpanded) {
+        if (this.settingsPanelExpanded || this.statisticsPanelExpanded) {
             return;
         }
         PersonalDatabaseScreenRenderHelper.renderSlot(this, guiGraphics, slot);
