@@ -126,15 +126,13 @@ final class DatabaseQuerySupport {
         for (Map.Entry<DatabaseScopedTabRef, DatabaseTabQueryState> entry : query.tabStates().entrySet()) {
             nextTabStates.put(entry.getKey().withScope(normalizedScope), entry.getValue());
         }
-        java.util.ArrayList<DatabaseScopedTabRef> nextHiddenTopTabs = new java.util.ArrayList<>();
-        for (DatabaseScopedTabRef hiddenTab : query.hiddenTopTabs()) {
-            nextHiddenTopTabs.add(hiddenTab.withScope(normalizedScope));
-        }
+        // hiddenTopTabs 是 per-scope 的隐藏配置：原 scope 的隐藏列表不应被迁移，
+        // 否则切回原 scope 时已隐藏的页签会全部冒出来（典型 bug 现象：「多加几个页签」）。
         return new DatabaseQuery(
                 query.focusedTab().withScope(normalizedScope),
                 query.visibleTabs().stream().map(ref -> ref.withScope(normalizedScope)).toList(),
                 nextTabStates,
-                List.copyOf(nextHiddenTopTabs)
+                query.hiddenTopTabs()
         );
     }
 

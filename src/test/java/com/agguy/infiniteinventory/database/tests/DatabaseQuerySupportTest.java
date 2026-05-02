@@ -211,7 +211,7 @@ class DatabaseQuerySupportTest {
     // ---------- retargetScope ----------
 
     @Test
-    void retargetScopeShouldSwitchAllRefsToNewScope() throws ReflectiveOperationException {
+    void retargetScopeShouldSwitchAllRefsExceptHiddenTopTabs() throws ReflectiveOperationException {
         DatabaseQuery original = new DatabaseQuery(
                 DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "blocks"),
                 List.of(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "blocks")),
@@ -222,7 +222,23 @@ class DatabaseQuerySupportTest {
         assertEquals(DatabaseScope.PUBLIC, retargeted.focusedTab().scope());
         retargeted.visibleTabs().forEach(ref -> assertEquals(DatabaseScope.PUBLIC, ref.scope()));
         retargeted.tabStates().keySet().forEach(ref -> assertEquals(DatabaseScope.PUBLIC, ref.scope()));
-        retargeted.hiddenTopTabs().forEach(ref -> assertEquals(DatabaseScope.PUBLIC, ref.scope()));
+        // hiddenTopTabs 是 per-scope 概念：必须保留原 scope，不应被迁移，否则切回原 scope 时已隐藏页签会冒出来
+        retargeted.hiddenTopTabs().forEach(ref -> assertEquals(DatabaseScope.PERSONAL, ref.scope()));
+    }
+
+    @Test
+    void retargetScopeRoundTripPreservesHiddenAcrossScopes() throws ReflectiveOperationException {
+        DatabaseScopedTabRef hiddenInPersonal = DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "hidden");
+        DatabaseQuery personal = new DatabaseQuery(
+                DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "blocks"),
+                List.of(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "blocks")),
+                Map.of(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, "blocks"), DatabaseTabQueryState.defaultState()),
+                List.of(hiddenInPersonal)
+        );
+        DatabaseQuery toPublic = (DatabaseQuery) RETARGET_SCOPE.invoke(null, personal, DatabaseScope.PUBLIC);
+        DatabaseQuery backToPersonal = (DatabaseQuery) RETARGET_SCOPE.invoke(null, toPublic, DatabaseScope.PERSONAL);
+        assertTrue(toPublic.hiddenTopTabs().contains(hiddenInPersonal));
+        assertTrue(backToPersonal.isTopTabHidden(hiddenInPersonal));
     }
 
     // ---------- queryForScope ----------

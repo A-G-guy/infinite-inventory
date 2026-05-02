@@ -129,14 +129,15 @@ class DatabaseQueryTest {
     }
 
     @Test
-    void retargetScopeShouldMoveHiddenTopTabs() {
+    void retargetScopeShouldKeepHiddenTopTabsPerScope() {
         DatabaseQuery query = this.query(DatabaseScope.PERSONAL, DatabaseTabs.ALL_TAB_ID, DatabaseSortOption.RECENTLY_CHANGED, "", DatabaseSearchConfig.defaultConfig(), 0, DatabaseQuery.DEFAULT_PAGE_SIZE)
                 .withHiddenTopTabToggled(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID));
 
         DatabaseQuery retargeted = query.retargetScope(DatabaseScope.PUBLIC);
 
-        assertTrue(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.FAVORITES_TAB_ID)));
-        assertFalse(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID)));
+        // hiddenTopTabs 是 per-scope 概念：retarget 后原 scope 的隐藏配置应保留，新 scope 不应继承隐藏状态
+        assertTrue(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PERSONAL, DatabaseTabs.FAVORITES_TAB_ID)));
+        assertFalse(retargeted.isTopTabHidden(DatabaseScopedTabRef.concreteTab(DatabaseScope.PUBLIC, DatabaseTabs.FAVORITES_TAB_ID)));
     }
 
     @Test
