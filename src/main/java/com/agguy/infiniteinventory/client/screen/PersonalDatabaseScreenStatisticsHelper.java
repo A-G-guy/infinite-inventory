@@ -158,6 +158,9 @@ final class PersonalDatabaseScreenStatisticsHelper {
     }
 
     static boolean handleStatisticsPanelClick(PersonalDatabaseScreen screen, double mouseX, double mouseY) {
+        for (var searchBox : screen.panelSearchBoxes) {
+            searchBox.setFocused(false);
+        }
         PersonalDatabaseLayout.Rect panelRect = PersonalDatabaseScreenStatisticsGeometry.statisticsPanelRect(screen);
         if (PersonalDatabaseScreenOverlayRenderHelper.isOverlayCloseClicked(panelRect, mouseX, mouseY)) {
             screen.statisticsPanelExpanded = false;

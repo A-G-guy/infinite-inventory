@@ -6,7 +6,7 @@ import net.minecraft.util.Mth;
 final class PersonalDatabaseScreenHeaderGeometry {
     private static final int PANEL_HEADER_TITLE_HEIGHT = 12;
     private static final int PANEL_HEADER_ROW_GAP = 2;
-    private static final int PANEL_SORT_BUTTON_WIDTH = 80;
+    private static final int PANEL_SORT_BUTTON_WIDTH = 72;
 
     private PersonalDatabaseScreenHeaderGeometry() {
     }

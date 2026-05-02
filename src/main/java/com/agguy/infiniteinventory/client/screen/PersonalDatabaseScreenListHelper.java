@@ -41,7 +41,22 @@ final class PersonalDatabaseScreenListHelper {
         if (screen.layout == null || !screen.accessoriesExpanded) {
             return false;
         }
-        var thumb = scrollbarThumbRect(screen.layout.accessoriesPanelRect(), visibleRange(
+        var panelRect = screen.layout.accessoriesPanelRect();
+        var bodyClipRect = new PersonalDatabaseLayout.Rect(
+                panelRect.x() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING,
+                panelRect.y() + PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING
+                        + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
+                        + PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP,
+                Math.max(1, panelRect.width() - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2),
+                Math.max(
+                        1,
+                        panelRect.height()
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_PADDING * 2
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_HEIGHT
+                                - PersonalDatabaseLayout.ACCESSORY_DRAWER_TITLE_GAP
+                )
+        );
+        var thumb = scrollbarThumbRect(bodyClipRect, visibleRange(
                 screen.layout.accessoryTotalRows(),
                 screen.accessoryScrollRow,
                 screen.layout.accessoryVisibleRows()

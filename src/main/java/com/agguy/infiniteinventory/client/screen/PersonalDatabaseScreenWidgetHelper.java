@@ -14,6 +14,7 @@ import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import com.agguy.infiniteinventory.network.DatabaseLogRequestPayload;
 import com.agguy.infiniteinventory.network.DatabaseStatisticsRequestPayload;
 import com.agguy.infiniteinventory.network.DepositAllPayload;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -27,8 +28,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.layout == null) {
             return;
         }
-        screen.personalScopeButton = null;
-        screen.publicScopeButton = null;
+        buildScopeButtons(screen);
         buildPanelWidgets(screen);
 
         buildAdvancedSearchButtons(screen);
@@ -155,6 +155,40 @@ final class PersonalDatabaseScreenWidgetHelper {
             ));
         }
         PersonalDatabaseScreenManagementHelper.ensureManagementWidgets(screen);
+    }
+
+    private static void buildScopeButtons(PersonalDatabaseScreen screen) {
+        if (screen.layout == null) {
+            return;
+        }
+        PersonalDatabaseLayout.Rect personalRect = screen.layout.personalScopeButtonRect();
+        if (personalRect.width() > 0 && personalRect.height() > 0) {
+            screen.personalScopeButton = screen.addScreenButton(new ScopeToggleButton(
+                    personalRect.x(), personalRect.y(), personalRect.width(), personalRect.height(),
+                    Component.empty(),
+                    button -> {
+                        DatabaseQuery query = screen.databaseMenu.viewState().query();
+                        if (query.scope() != com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL) {
+                            PersonalDatabaseScreenLayoutHelper.sendQuery(
+                                    screen, query.retargetScope(com.agguy.infiniteinventory.database.DatabaseScope.PERSONAL));
+                        }
+                    }
+            ));
+        }
+        PersonalDatabaseLayout.Rect publicRect = screen.layout.publicScopeButtonRect();
+        if (publicRect.width() > 0 && publicRect.height() > 0) {
+            screen.publicScopeButton = screen.addScreenButton(new ScopeToggleButton(
+                    publicRect.x(), publicRect.y(), publicRect.width(), publicRect.height(),
+                    Component.empty(),
+                    button -> {
+                        DatabaseQuery query = screen.databaseMenu.viewState().query();
+                        if (query.scope() != com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC) {
+                            PersonalDatabaseScreenLayoutHelper.sendQuery(
+                                    screen, query.retargetScope(com.agguy.infiniteinventory.database.DatabaseScope.PUBLIC));
+                        }
+                    }
+            ));
+        }
     }
 
     static void buildAdvancedSearchButtons(PersonalDatabaseScreen screen) {
@@ -287,6 +321,22 @@ final class PersonalDatabaseScreenWidgetHelper {
             screen.statisticsButton.active = true;
             screen.statisticsButton.setMessage(Component.translatable("screen.infiniteinventory.statistics_button"));
         }
+        if (screen.personalScopeButton != null) {
+            PersonalDatabaseLayout.Rect personalRect = screen.layout != null ? screen.layout.personalScopeButtonRect() : PersonalDatabaseLayout.Rect.empty();
+            screen.personalScopeButton.setPosition(personalRect.x(), personalRect.y());
+            screen.personalScopeButton.visible = personalRect.width() > 0 && personalRect.height() > 0;
+            screen.personalScopeButton.active = true;
+            screen.personalScopeButton.setWidth(personalRect.width());
+            screen.personalScopeButton.setHeight(personalRect.height());
+        }
+        if (screen.publicScopeButton != null) {
+            PersonalDatabaseLayout.Rect publicRect = screen.layout != null ? screen.layout.publicScopeButtonRect() : PersonalDatabaseLayout.Rect.empty();
+            screen.publicScopeButton.setPosition(publicRect.x(), publicRect.y());
+            screen.publicScopeButton.visible = publicRect.width() > 0 && publicRect.height() > 0;
+            screen.publicScopeButton.active = true;
+            screen.publicScopeButton.setWidth(publicRect.width());
+            screen.publicScopeButton.setHeight(publicRect.height());
+        }
         if (screen.depositExistingButton != null) {
             screen.depositExistingButton.active = screen.minecraftClient() != null && screen.minecraftClient().player != null;
         }
@@ -357,7 +407,7 @@ final class PersonalDatabaseScreenWidgetHelper {
                         screen.activeSortPanelIndex = resolvedPanelIndex;
                         screen.sortDropdownExpanded = !samePanel;
                     },
-                    RemixIcon.SORT
+                    null
             )));
             PersonalDatabaseLayout.Rect previousRect = PersonalDatabaseScreenGeometry.panelPreviousPageButtonRect(screen, panelIndex);
             screen.panelPreviousPageButtons.add(screen.addScreenButton(IconButton.create(

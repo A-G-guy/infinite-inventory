@@ -135,14 +135,19 @@ final class VanillaWidgetRenderer {
     }
 
     /**
-     * 在暗色背景上渲染 Remix Icon，附加白色半透明发光以提升可读性。
+     * 在暗色背景上渲染 Remix Icon，附加黑色阴影与白色微光以提升可读性。
      */
     static void renderRemixIconWithShadow(GuiGraphics guiGraphics, @Nullable RemixIcon icon, int x, int y, int size) {
         if (icon == null) {
             return;
         }
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 0.35f);
+        // 第一层：黑色外阴影，暗色背景上提供轮廓
+        guiGraphics.setColor(0.0f, 0.0f, 0.0f, 0.45f);
+        guiGraphics.blitSprite(icon.location(), x - 2, y - 2, size + 4, size + 4);
+        // 第二层：白色微光，亮色背景上提供发光
+        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 0.30f);
         guiGraphics.blitSprite(icon.location(), x - 1, y - 1, size + 2, size + 2);
+        // 第三层：原图标本体
         guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         guiGraphics.blitSprite(icon.location(), x, y, size, size);
     }

@@ -75,11 +75,15 @@ class PersonalDatabaseLayoutTest {
     }
 
     @Test
-    void scopeToggleShouldBeRemoved() {
+    void scopeToggleShouldHaveProperDimensionsAndAlignment() {
         PersonalDatabaseLayout layout = PersonalDatabaseLayout.create(1280, 720, INVENTORY_WIDTH, INVENTORY_HEIGHT, INVENTORY_WIDTH, INVENTORY_HEIGHT, List.of());
 
-        assertEquals(0, layout.personalScopeButtonRect().width());
-        assertEquals(0, layout.publicScopeButtonRect().width());
+        assertTrue(layout.personalScopeButtonRect().width() > 0);
+        assertTrue(layout.publicScopeButtonRect().width() > 0);
+        assertEquals(layout.personalScopeButtonRect().y(), layout.titleRect().y());
+        assertEquals(layout.publicScopeButtonRect().y(), layout.titleRect().y());
+        assertTrue(layout.publicScopeButtonRect().x() > layout.personalScopeButtonRect().right());
+        assertTrue(layout.toolbarRect().x() >= layout.publicScopeButtonRect().right());
     }
 
     @Test

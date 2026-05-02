@@ -14,7 +14,10 @@ final class PersonalDatabaseScreenInteractionHelper {
         if (!PersonalDatabaseScreenCommonHelper.supportsFullUi(screen)) {
             return true;
         }
-        if (button == 0 && !screen.scrollbarDragging) {
+        if (button == 0 && !screen.scrollbarDragging
+                && !screen.statisticsPanelExpanded
+                && !screen.settingsPanelExpanded
+                && !screen.logPanelExpanded) {
             PersonalDatabaseScreenLayoutHelper.updateSearchFocusFromClick(screen, mouseX, mouseY);
         }
         if (button == 0 && PersonalDatabaseScreenScrollbarHelper.beginScrollbarDragIfHit(screen, mouseX, mouseY)) {

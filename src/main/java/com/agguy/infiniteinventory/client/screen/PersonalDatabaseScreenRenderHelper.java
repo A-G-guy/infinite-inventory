@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.client.DatabaseAmountCache;
 import com.agguy.infiniteinventory.database.DatabasePanelView;
+import com.agguy.infiniteinventory.database.DatabaseScope;
 import com.agguy.infiniteinventory.database.DatabaseScopedTabRef;
 import com.agguy.infiniteinventory.database.DatabaseSortDirection;
 import com.agguy.infiniteinventory.database.DatabaseSortOption;
@@ -78,9 +79,6 @@ final class PersonalDatabaseScreenRenderHelper {
                 screen.layout.bottomInventoryRect().x(),
                 screen.layout.bottomInventoryRect().y()
         );
-        if (screen.accessoriesExpanded) {
-            renderAccessoriesPanel(screen, guiGraphics, mouseX, mouseY);
-        }
 
         renderDatabaseSlots(screen, guiGraphics);
         renderDatabaseEntries(screen, guiGraphics, mouseX, mouseY);
@@ -202,55 +200,50 @@ final class PersonalDatabaseScreenRenderHelper {
             return;
         }
         var viewState = screen.databaseMenu.viewState();
-        renderFrameBadgeText(
-                screen,
-                guiGraphics,
-                screen.databaseScreenTitle.getString(),
-                screen.layout.titleRect().x(),
-                screen.layout.titleRect().y() + 5,
-                PersonalDatabaseScreen.FRAME_TEXT_COLOR
-        );
+        renderScopeToggles(screen, guiGraphics, screen.lastMouseX, screen.lastMouseY);
 
         for (int panelIndex = 0; panelIndex < PersonalDatabaseScreenCommonHelper.currentPanels(screen).size(); panelIndex++) {
             DatabasePanelView panel = PersonalDatabaseScreenCommonHelper.currentPanels(screen).get(panelIndex);
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
             PersonalDatabaseLayout.Rect titleRect = viewportLayout.headerRect();
+            String titleText = PersonalDatabaseScreenCommonHelper.viewTitleLabel(screen, panel.scopedTab()).getString();
+            int titleColor = viewState.query().focusedTab().equals(panel.scopedTab())
+                    ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
+                    : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR;
             renderFrameBadgeText(
                     screen,
                     guiGraphics,
                     PersonalDatabaseScreenCommonHelper.truncateToWidth(
                             screen,
-                            PersonalDatabaseScreenCommonHelper.viewTitleLabel(screen, panel.scopedTab()).getString(),
+                            titleText,
                             Math.max(0, titleRect.width() - 8)
                     ),
                     titleRect.x(),
                     titleRect.y(),
-                    viewState.query().focusedTab().equals(panel.scopedTab())
-                            ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR
-                            : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR
+                    titleColor
             );
-        }
-
-        if (screen.layout.toolbarRect().width() > 0) {
-            String toolbarStats = Component.translatable(
+            // 内联统计标签：条目 / 总量
+            String inlineStats = Component.translatable(
                     "screen.infiniteinventory.total_entries",
-                    CompactNumberFormatter.format(viewState.totalEntries())
-            ).getString() + "   " + Component.translatable(
+                    CompactNumberFormatter.format(panel.totalEntries())
+            ).getString() + "  " + Component.translatable(
                     "screen.infiniteinventory.total_items",
-                    CompactNumberFormatter.format(viewState.totalItems())
+                    CompactNumberFormatter.format(panel.totalItems())
             ).getString();
-            renderFrameBadgeText(
-                    screen,
-                    guiGraphics,
-                    PersonalDatabaseScreenCommonHelper.truncateToWidth(
-                            screen,
-                            toolbarStats,
-                            screen.layout.toolbarRect().width()
-                    ),
-                    screen.layout.toolbarRect().x(),
-                    screen.layout.toolbarRect().y() + 5,
-                    PersonalDatabaseScreen.FRAME_MUTED_TEXT_COLOR
-            );
+            int titleTextWidth = screen.screenFont().width(titleText);
+            int statsTextWidth = screen.screenFont().width(inlineStats);
+            int availableWidth = Math.max(0, titleRect.width() - titleTextWidth - 12);
+            if (availableWidth > 24 && statsTextWidth > 0) {
+                int statsX = titleRect.x() + titleTextWidth + 8;
+                guiGraphics.drawString(
+                        screen.screenFont(),
+                        PersonalDatabaseScreenCommonHelper.truncateToWidth(screen, inlineStats, availableWidth),
+                        statsX,
+                        titleRect.y() + 1,
+                        PersonalDatabaseScreen.FRAME_MUTED_TEXT_COLOR,
+                        true
+                );
+            }
         }
     }
     static void renderSearchHint(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
@@ -387,7 +380,7 @@ final class PersonalDatabaseScreenRenderHelper {
             );
             VanillaWidgetRenderer.renderSortDirectionIndicator(
                     guiGraphics,
-                    sortRect.right() - 16,
+                    sortRect.right() - 14,
                     sortRect.y() + sortRect.height() / 2,
                     sortOption.direction() == DatabaseSortDirection.ASC,
                     GuiTheme.OVERLAY_MUTED_TEXT
@@ -404,19 +397,6 @@ final class PersonalDatabaseScreenRenderHelper {
             PersonalDatabaseLayout.DatabaseViewportLayout viewportLayout = screen.layout.databaseViewportLayout(panelIndex);
             VanillaWidgetRenderer.renderPanel(guiGraphics, viewportLayout.panelRect());
         }
-        renderFrameBadgeText(
-                screen,
-                guiGraphics,
-                Component.translatable(screen.databaseMenu.viewState().query().visibleTabs().stream()
-                        .map(com.agguy.infiniteinventory.database.DatabaseScopedTabRef::scope)
-                        .distinct()
-                        .count() > 1L
-                        ? "screen.infiniteinventory.database.section.mixed"
-                        : screen.databaseMenu.viewState().query().scope().sectionTranslationKey()).getString(),
-                screen.layout.databasePanelRect().x() + PersonalDatabaseLayout.GRID_PADDING,
-                screen.layout.databasePanelRect().y() - 14,
-                PersonalDatabaseScreen.FRAME_TEXT_COLOR
-        );
     }
     static void renderDatabaseSlots(PersonalDatabaseScreen screen, GuiGraphics guiGraphics) {
         if (screen.layout == null) {
@@ -470,5 +450,28 @@ final class PersonalDatabaseScreenRenderHelper {
         guiGraphics.fill(left, top, right, bottom, PersonalDatabaseScreen.FRAME_TEXT_BACKDROP_COLOR);
         guiGraphics.fill(left, bottom - 1, right, bottom, PersonalDatabaseScreen.FRAME_TEXT_OUTLINE_COLOR);
         guiGraphics.drawString(screen.screenFont(), text, x, y, textColor, true);
+    }
+
+    private static void renderScopeToggles(PersonalDatabaseScreen screen, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        if (screen.layout == null) {
+            return;
+        }
+        for (DatabaseScope scope : DatabaseScope.values()) {
+            PersonalDatabaseLayout.Rect rect = scope == DatabaseScope.PERSONAL
+                    ? screen.layout.personalScopeButtonRect()
+                    : screen.layout.publicScopeButtonRect();
+            if (rect.width() <= 0 || rect.height() <= 0) {
+                continue;
+            }
+            boolean selected = screen.databaseMenu.viewState().query().scope() == scope;
+            boolean hovered = rect.contains(mouseX, mouseY);
+            VanillaWidgetRenderer.renderOverlayChip(guiGraphics, rect, hovered, selected, true);
+            String label = Component.translatable(scope.translationKey()).getString();
+            int textWidth = screen.screenFont().width(label);
+            int textX = rect.x() + (rect.width() - textWidth) / 2;
+            int textY = rect.y() + (rect.height() - screen.screenFont().lineHeight) / 2 + 1;
+            int textColor = selected ? PersonalDatabaseScreen.OVERLAY_ACCENT_TEXT_COLOR : PersonalDatabaseScreen.OVERLAY_TEXT_COLOR;
+            guiGraphics.drawString(screen.screenFont(), label, textX, textY, textColor, false);
+        }
     }
 }

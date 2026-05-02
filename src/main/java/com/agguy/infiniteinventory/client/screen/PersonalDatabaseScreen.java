@@ -241,11 +241,8 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
     int scrollbarDragStartY;
     int scrollbarDragStartScrollIndex;
     PersonalDatabaseScreenEnums.ScrollbarDragTarget scrollbarDragTarget = PersonalDatabaseScreenEnums.ScrollbarDragTarget.NONE;
-    record DatabaseHitResult(int panelIndex, int slotIndex) {
-    }
-
-    record IconChoice(String itemId, ItemStack previewStack, String searchableText, DatabaseCategory category) {
-    }
+    record DatabaseHitResult(int panelIndex, int slotIndex) {}
+    record IconChoice(String itemId, ItemStack previewStack, String searchableText, DatabaseCategory category) {}
     /** 创建数据库屏幕实例。 */
     public PersonalDatabaseScreen(PersonalDatabaseMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -254,7 +251,6 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
         this.inventoryLabelY = Integer.MAX_VALUE;
         this.titleLabelY = Integer.MAX_VALUE;
     }
-
     /** 初始化屏幕尺寸与所有 UI 控件，在屏幕首次显示时调用。 */
     @Override
     protected void init() {
@@ -294,6 +290,9 @@ public final class PersonalDatabaseScreen extends AbstractContainerScreen<Person
             super.render(guiGraphics, mouseX, mouseY, partialTick);
         } finally {
             this.suppressVanillaTooltipRender = false;
+        }
+        if (this.accessoriesExpanded) {
+            PersonalDatabaseScreenRenderHelper.renderAccessoriesPanel(this, guiGraphics, mouseX, mouseY);
         }
         PersonalDatabaseScreenRenderHelper.renderAccessorySlotHover(this, guiGraphics, mouseX, mouseY);
         PersonalDatabaseScreenRenderHelper.renderToolbarOverlays(this, guiGraphics);

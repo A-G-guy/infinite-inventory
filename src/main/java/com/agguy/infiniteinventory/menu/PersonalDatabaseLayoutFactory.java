@@ -44,7 +44,6 @@ final class PersonalDatabaseLayoutFactory {
         int settingsButtonWidth = compactTopBar ? 48 : 56;
         int depositButtonWidth = resolveCompactWidth(compactTopBar, 76, PersonalDatabaseLayout.DEPOSIT_BUTTON_WIDTH);
         int toolbarRight = frameRect.right() - PersonalDatabaseLayout.INNER_PADDING;
-        int titleReservedWidth = compactTopBar ? 72 : Math.max(132, Math.min(172, frameRect.width() / 5));
         boolean showViewSelector = !compactTopBar && frameRect.width() >= 680;
         boolean showStatisticsButton = !compactTopBar && frameRect.width() >= 740;
         int viewSelectorButtonWidth = showViewSelector ? PersonalDatabaseLayout.VIEW_SELECTOR_BUTTON_WIDTH : 0;
@@ -80,9 +79,20 @@ final class PersonalDatabaseLayoutFactory {
                 depositButtonWidth,
                 PersonalDatabaseLayout.CONTROL_HEIGHT
         );
-        PersonalDatabaseLayout.Rect personalScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
-        PersonalDatabaseLayout.Rect publicScopeButtonRect = PersonalDatabaseLayout.Rect.empty();
-        int toolbarLeft = titleRect.x() + titleReservedWidth;
+        int scopeButtonWidth = compactTopBar ? 56 : 68;
+        PersonalDatabaseLayout.Rect personalScopeButtonRect = new PersonalDatabaseLayout.Rect(
+                titleRect.x(),
+                titleRect.y(),
+                scopeButtonWidth,
+                PersonalDatabaseLayout.CONTROL_HEIGHT
+        );
+        PersonalDatabaseLayout.Rect publicScopeButtonRect = new PersonalDatabaseLayout.Rect(
+                personalScopeButtonRect.right() + PersonalDatabaseLayout.TOOLBAR_GAP,
+                titleRect.y(),
+                scopeButtonWidth,
+                PersonalDatabaseLayout.CONTROL_HEIGHT
+        );
+        int toolbarLeft = publicScopeButtonRect.right() + PersonalDatabaseLayout.TOOLBAR_GAP;
         int toolbarWidth = Math.max(
                 0,
                 depositButtonRect.x() - PersonalDatabaseLayout.TOOLBAR_GAP - toolbarLeft
