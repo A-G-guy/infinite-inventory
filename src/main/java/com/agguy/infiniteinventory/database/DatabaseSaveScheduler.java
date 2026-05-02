@@ -4,10 +4,10 @@ import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/** 将高频数据变更的磁盘 I/O 合并到 3 秒窗口内执行，兼顾数据安全与性能。 */
+/** 将系统级数据变更的磁盘 I/O 延迟到 10 秒窗口内批量执行，兼顾数据安全与性能。 */
 final class DatabaseSaveScheduler {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final long FORCE_SAVE_INTERVAL_MILLIS = 3000L;
+    private static final long FORCE_SAVE_INTERVAL_MILLIS = 10000L;
 
     private boolean pending = false;
     private long lastSavedAtMillis = 0L;

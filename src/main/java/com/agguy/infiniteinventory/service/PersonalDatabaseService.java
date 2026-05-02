@@ -426,11 +426,15 @@ public final class PersonalDatabaseService {
             storage.prunePersonalDatabase(player.getUUID());
         }
         storage.setDirty();
-        storage.requestForceSave();
         boolean deltaSent = PersonalDatabaseServiceSyncHelper.syncAmountDeltasToPlayer(this, player, scope);
         if (!deltaSent) {
             PersonalDatabaseServiceSyncHelper.syncFullAmountsToPlayer(this, player);
         }
         StatisticsCache.INSTANCE.invalidate(player.getUUID(), DatabaseScope.normalize(scope));
+    }
+
+    void markScopeDirtyAndSave(ServerPlayer player, DatabaseScope scope) {
+        this.markScopeDirty(player, scope);
+        DatabaseStorageSavedData.get(player.server).requestForceSave();
     }
 }

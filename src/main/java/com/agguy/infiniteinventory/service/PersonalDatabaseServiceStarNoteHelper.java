@@ -31,7 +31,7 @@ final class PersonalDatabaseServiceStarNoteHelper {
             return;
         }
         service.resolveDatabaseForMutation(player, scope).setNote(key, note);
-        service.markScopeDirty(player, scope);
+        service.markScopeDirtyAndSave(player, scope);
     }
 
     /**
@@ -62,7 +62,7 @@ final class PersonalDatabaseServiceStarNoteHelper {
         }
         boolean changed = service.resolveDatabaseForMutation(player, scope).toggleStar(key);
         if (changed) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
         }
         return changed;
     }
@@ -83,7 +83,7 @@ final class PersonalDatabaseServiceStarNoteHelper {
         }
         boolean changed = service.resolveDatabaseForMutation(player, scope).setStarred(key, starred);
         if (changed) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
         }
         return changed;
     }

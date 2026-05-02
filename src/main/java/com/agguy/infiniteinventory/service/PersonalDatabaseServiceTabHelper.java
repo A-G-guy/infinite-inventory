@@ -33,7 +33,7 @@ final class PersonalDatabaseServiceTabHelper {
     static boolean createTab(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String name, String iconItemId) {
         DatabaseTabDirectory tabDirectory = service.resolveTabsForMutation(player, scope);
         tabDirectory.addCustomTab(name, iconItemId);
-        service.markScopeDirty(player, scope);
+        service.markScopeDirtyAndSave(player, scope);
         return true;
     }
 
@@ -43,7 +43,7 @@ final class PersonalDatabaseServiceTabHelper {
     static boolean renameTab(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String tabId, String name) {
         boolean changed = service.resolveTabsForMutation(player, scope).renameTab(tabId, name);
         if (changed) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
         }
         return changed;
     }
@@ -54,7 +54,7 @@ final class PersonalDatabaseServiceTabHelper {
     static boolean updateTabIcon(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String tabId, String iconItemId) {
         boolean changed = service.resolveTabsForMutation(player, scope).updateTabIcon(tabId, iconItemId);
         if (changed) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
         }
         return changed;
     }
@@ -65,7 +65,7 @@ final class PersonalDatabaseServiceTabHelper {
     static boolean moveTab(PersonalDatabaseService service, ServerPlayer player, DatabaseScope scope, String tabId, int direction) {
         boolean changed = service.resolveTabsForMutation(player, scope).moveTab(tabId, direction);
         if (changed) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
         }
         return changed;
     }
@@ -103,7 +103,7 @@ final class PersonalDatabaseServiceTabHelper {
             preferences.setAutoStoreTarget(new DatabaseAutoStoreTarget(normalizedScope, resolvedTargetTabId));
         }
         if (databaseChanged || directoryChanged) {
-            service.markScopeDirty(player, scope);
+            service.markScopeDirtyAndSave(player, scope);
             for (Map.Entry<StoredStackKey, Long> entry : entriesToDelete.entrySet()) {
                 PersonalDatabaseServiceLogHelper.recordLog(service, player, scope, DatabaseLogAction.DELETE,
                         entry.getKey().displayStack(), entry.getValue(), normalizedTabId, resolvedTargetTabId, null);
