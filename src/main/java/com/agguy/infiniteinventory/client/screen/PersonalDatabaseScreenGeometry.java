@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.client.screen;
 
 import com.agguy.infiniteinventory.database.DatabaseEnhancementOption;
 import com.agguy.infiniteinventory.database.DatabaseSearchField;
+import java.util.List;
 import com.agguy.infiniteinventory.menu.PersonalDatabaseLayout;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.Slot;
@@ -136,7 +137,7 @@ final class PersonalDatabaseScreenGeometry {
         int rowY = panelRect.y()
                 + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING
                 + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
-                + DatabaseEnhancementOption.orderedValues().size()
+                + DatabaseEnhancementOption.uiVisibleValues().size()
                 * (PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT + PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP);
         return new PersonalDatabaseLayout.Rect(
                 panelRect.x() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
@@ -256,18 +257,23 @@ final class PersonalDatabaseScreenGeometry {
         }
         int height = PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING * 2
                 + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
-                + DatabaseEnhancementOption.orderedValues().size() * PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
-                + Math.max(0, DatabaseEnhancementOption.orderedValues().size()) * PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP
+                + DatabaseEnhancementOption.uiVisibleValues().size() * PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT
+                + Math.max(0, DatabaseEnhancementOption.uiVisibleValues().size()) * PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP
                 + PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT;
         return centeredOverlayRect(screen, PersonalDatabaseScreen.ENHANCEMENT_PANEL_WIDTH, height);
     }
 
     static PersonalDatabaseLayout.Rect enhancementRowRect(PersonalDatabaseScreen screen, DatabaseEnhancementOption option) {
         PersonalDatabaseLayout.Rect panelRect = enhancementPanelRect(screen);
+        List<DatabaseEnhancementOption> visibleOptions = DatabaseEnhancementOption.uiVisibleValues();
+        int index = visibleOptions.indexOf(option);
+        if (index < 0) {
+            return PersonalDatabaseLayout.Rect.empty();
+        }
         int rowY = panelRect.y()
                 + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING
                 + PersonalDatabaseScreen.ENHANCEMENT_TITLE_HEIGHT
-                + option.ordinal() * (PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT + PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP);
+                + index * (PersonalDatabaseScreen.ENHANCEMENT_ROW_HEIGHT + PersonalDatabaseScreen.ENHANCEMENT_ROW_GAP);
         return new PersonalDatabaseLayout.Rect(
                 panelRect.x() + PersonalDatabaseScreen.ENHANCEMENT_PANEL_PADDING,
                 rowY,

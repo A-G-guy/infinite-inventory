@@ -193,7 +193,7 @@ final class PersonalDatabaseScreenWidgetHelper {
         if (screen.layout == null) {
             return;
         }
-        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.uiVisibleValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             Button toggleButton = screen.addScreenButton(IconButton.create(
                     rowRect.x(),
@@ -242,7 +242,7 @@ final class PersonalDatabaseScreenWidgetHelper {
 
     static void syncEnhancementButtons(PersonalDatabaseScreen screen, DatabaseEnhancementConfig config) {
         boolean visible = screen.settingsPanelExpanded && screen.activeSettingsTab == PersonalDatabaseScreenEnums.SettingsPanelTab.ENHANCEMENT;
-        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.uiVisibleValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             Button toggleButton = screen.enhancementToggleButtons.get(option);
             if (toggleButton != null) {

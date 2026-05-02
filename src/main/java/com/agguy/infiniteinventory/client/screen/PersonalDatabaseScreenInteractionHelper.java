@@ -112,7 +112,7 @@ final class PersonalDatabaseScreenInteractionHelper {
             if (PersonalDatabaseScreenTargetHelper.handleEnhancementPanelClick(screen, mouseX, mouseY)) {
                 return true;
             }
-            for (var option : com.agguy.infiniteinventory.database.DatabaseEnhancementOption.orderedValues()) {
+            for (var option : com.agguy.infiniteinventory.database.DatabaseEnhancementOption.uiVisibleValues()) {
                 var toggleButton = screen.enhancementToggleButtons.get(option);
                 if (toggleButton != null && toggleButton.mouseClicked(mouseX, mouseY, button)) {
                     return true;

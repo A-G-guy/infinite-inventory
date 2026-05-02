@@ -13,17 +13,11 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
-
 /**
  * 世界存档级数据库持久化管理器，统管公共/个人数据库与标签目录的存储、加载、迁移备份及滚动备份策略。
  *
- * <p>设计意图：Minecraft 的 {@link SavedData} 机制天然适合作为跨会话的全局状态容器。
- * 本类将模组中所有需要持久化的核心数据（物品数据库、标签目录、迁移状态）收敛到单一事实来源，
- * 避免数据散落在多个文件或内存对象中导致的同步与一致性难题。</p>
- *
- * <p>在系统中的位置：位于数据持久化层最顶层，向下委托给 {@link StoredItemDatabase}、
- * {@link DatabaseTabDirectory} 等对象完成具体序列化，向上通过 {@link #get(MinecraftServer)}
- * 为服务端逻辑提供统一入口。滚动备份与迁移备份的触发由 {@link DatabaseBackupManager} 协调。</p>
+ * <p>设计意图：Minecraft 的 {@link SavedData} 机制天然适合作为跨会话的全局状态容器，
+ * 本类将所有需要持久化的核心数据收敛到单一事实来源。</p>
  */
 public final class DatabaseStorageSavedData extends SavedData {
     public static final int CURRENT_SCHEMA_VERSION = 2;
@@ -51,6 +45,7 @@ public final class DatabaseStorageSavedData extends SavedData {
 
     private long lastAutomaticBackupAtMillis;
     private PendingMigrationBackup pendingMigrationBackup;
+    private final DatabaseSaveScheduler saveScheduler = new DatabaseSaveScheduler();
 
     private DatabaseStorageSavedData() {
     }
@@ -90,6 +85,14 @@ public final class DatabaseStorageSavedData extends SavedData {
         DatabaseStorageSavedData data = overworld.getDataStorage().computeIfAbsent(factory, DATA_NAME);
         DatabaseBackupManager.flushPendingMigrationBackup(server, data);
         return data;
+    }
+
+    public void requestForceSave() {
+        this.saveScheduler.request();
+    }
+
+    public boolean tryForceSave(MinecraftServer server) {
+        return this.saveScheduler.trySave(server);
     }
 
     /**

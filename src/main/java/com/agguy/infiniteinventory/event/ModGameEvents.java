@@ -2,6 +2,7 @@ package com.agguy.infiniteinventory.event;
 
 import com.agguy.infiniteinventory.InfiniteInventory;
 import com.agguy.infiniteinventory.database.DatabaseBackupManager;
+import com.agguy.infiniteinventory.database.DatabaseStorageSavedData;
 import com.agguy.infiniteinventory.registry.ModItems;
 import com.agguy.infiniteinventory.service.PersonalDatabaseService;
 import java.util.Map;
@@ -75,6 +76,7 @@ public final class ModGameEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         DatabaseBackupManager.maybeCreateRollingBackup(event.getServer());
+        DatabaseStorageSavedData.get(event.getServer()).tryForceSave(event.getServer());
         autoStoreCounters.clear();
     }
 

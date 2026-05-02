@@ -21,7 +21,6 @@
   "screen.infiniteinventory.enhancement.auto_store_target": "自动入库目标",
   "screen.infiniteinventory.enhancement.option.auto_store_picked_up_items": "拾取物品自动入库",
   "screen.infiniteinventory.enhancement.option.show_amount_in_tooltip": "悬浮提示显示库存数量",
-  "screen.infiniteinventory.enhancement.option.force_save_on_critical_mutation": "关键变更时强制保存",
   "screen.infiniteinventory.search_field.display_name": "显示名称",
   "screen.infiniteinventory.search_field.item_id": "物品 ID",
   "screen.infiniteinventory.search_field.pinyin": "拼音",

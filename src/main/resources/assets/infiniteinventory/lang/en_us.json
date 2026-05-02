@@ -21,7 +21,6 @@
   "screen.infiniteinventory.enhancement.auto_store_target": "Auto-store Target",
   "screen.infiniteinventory.enhancement.option.auto_store_picked_up_items": "Auto-store picked-up items",
   "screen.infiniteinventory.enhancement.option.show_amount_in_tooltip": "Show amount in tooltip",
-  "screen.infiniteinventory.enhancement.option.force_save_on_critical_mutation": "Force save on critical mutation",
   "screen.infiniteinventory.search_field.display_name": "Display Name",
   "screen.infiniteinventory.search_field.item_id": "Item ID",
   "screen.infiniteinventory.search_field.pinyin": "Pinyin",

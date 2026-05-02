@@ -155,7 +155,7 @@ final class PersonalDatabaseScreenOverlayRenderHelper {
         }
 
         DatabaseEnhancementConfig config = screen.databaseMenu.viewState().enhancementConfig();
-        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.orderedValues()) {
+        for (DatabaseEnhancementOption option : DatabaseEnhancementOption.uiVisibleValues()) {
             PersonalDatabaseLayout.Rect rowRect = PersonalDatabaseScreenGeometry.enhancementRowRect(screen, option);
             PersonalDatabaseLayout.Rect toggleRect = new PersonalDatabaseLayout.Rect(
                     rowRect.x(),

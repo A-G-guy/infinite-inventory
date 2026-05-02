@@ -8,6 +8,10 @@ public enum DatabaseEnhancementOption {
     FORCE_SAVE_ON_CRITICAL_MUTATION("screen.infiniteinventory.enhancement.option.force_save_on_critical_mutation");
 
     private static final List<DatabaseEnhancementOption> ORDERED_VALUES = List.of(values());
+    private static final List<DatabaseEnhancementOption> UI_VISIBLE_VALUES = List.of(
+            AUTO_STORE_PICKED_UP_ITEMS,
+            SHOW_AMOUNT_IN_TOOLTIP
+    );
 
     private final String translationKey;
 
@@ -21,5 +25,9 @@ public enum DatabaseEnhancementOption {
 
     public static List<DatabaseEnhancementOption> orderedValues() {
         return ORDERED_VALUES;
+    }
+
+    public static List<DatabaseEnhancementOption> uiVisibleValues() {
+        return UI_VISIBLE_VALUES;
     }
 }
