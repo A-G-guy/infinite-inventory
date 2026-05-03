@@ -51,7 +51,7 @@ final class AccessoriesCompatBridgeImpl implements AccessoriesCompatBridge {
 
         List<AccessorySlotGroup> groups = new ArrayList<>();
         List<SlotType> slotTypes = EntitySlotLoader.getEntitySlots(player).values().stream()
-                .sorted(Comparator.naturalOrder())
+                .sorted(java.util.Comparator.comparing(SlotType::name))
                 .toList();
         for (SlotType slotType : slotTypes) {
             var container = capability.getContainer(slotType);
