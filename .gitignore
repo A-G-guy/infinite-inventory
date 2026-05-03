@@ -32,6 +32,8 @@ bin/
 
 ### Local Project Instructions ###
 AGENTS.md
+CLAUDE.md
+.claude/
 
 ### Mac OS ###
 .DS_Store
