@@ -21,6 +21,7 @@ import com.agguy.infiniteinventory.network.DatabaseSelectionAction;
 import com.agguy.infiniteinventory.registry.ModAttachments;
 import com.agguy.infiniteinventory.registry.ModItems;
 import java.util.List;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -62,11 +63,19 @@ public final class PersonalDatabaseService {
      * @param player 要打开界面的服务端玩家，不可为 null
      */
     public void open(ServerPlayer player) {
-        PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
-        player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
-        if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
-            menu.syncViewToClient();
-            PersonalDatabaseServiceSyncHelper.notifyViewerAboutUnresolvedEntries(player, menu.activeScope());
+        try {
+            PersonalDatabaseServiceMigrationHelper.ensureLegacyPersonalMigration(this, player);
+            player.openMenu(new PersonalDatabaseMenuProvider(player, this.getViewPreferences(player)));
+            if (player.containerMenu instanceof PersonalDatabaseMenu menu) {
+                menu.syncViewToClient();
+                PersonalDatabaseServiceSyncHelper.notifyViewerAboutUnresolvedEntries(player, menu.activeScope());
+            } else {
+                LOGGER.error("玩家 {} 的数据库菜单未能成功打开（containerMenu 类型不匹配）", player.getGameProfile().getName());
+                player.sendSystemMessage(Component.translatable("message.infiniteinventory.database.open_failed"));
+            }
+        } catch (Exception exception) {
+            LOGGER.error("玩家 {} 打开数据库菜单时发生异常", player.getGameProfile().getName(), exception);
+            player.sendSystemMessage(Component.translatable("message.infiniteinventory.database.open_failed"));
         }
     }
 

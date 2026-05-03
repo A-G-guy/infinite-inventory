@@ -56,9 +56,11 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
     protected static final int BOTTOM_SECTION_INVENTORY_X = 8;
     protected static final int BOTTOM_SECTION_INVENTORY_Y = 1;
     protected static final int BOTTOM_SECTION_HOTBAR_Y = 59;
-    // 兼容性说明：Slot.x / Slot.y 是 protected 字段，无公共 setter。NeoForge 通过 --add-opens
-    // 开放了反射权限。若未来字段更名或改为 final，findSlotField 会在类初始化时抛出异常。
+    // 兼容性说明：Slot.x/y 可能因映射或权限问题无法反射。若失败则 findSlotField 返回 null，
+    // moveSlot 跳过坐标修改，菜单仍可正常使用。
+    @Nullable
     protected static final Field SLOT_X_FIELD = findSlotField("x");
+    @Nullable
     protected static final Field SLOT_Y_FIELD = findSlotField("y");
     protected final CraftingContainer craftSlots = new TransientCraftingContainer(this, 2, 2);
     protected final ResultContainer resultSlots = new ResultContainer();
@@ -291,9 +293,11 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         return this.currentPages.get(panelIndex).entryAt(pageSlotIndex);
     }
 
-    // 反射修改 Slot 坐标以响应布局变化。若失败说明 --add-opens 被破坏或字段不兼容，
-    // 此时抛出 IllegalStateException 确保问题立即暴露，而非静默忽略。
+    // 反射修改 Slot 坐标。若字段为 null 或访问被拒绝则静默跳过，确保菜单仍可正常使用。
     protected void moveSlot(int slotIndex, int x, int y) {
+        if (SLOT_X_FIELD == null || SLOT_Y_FIELD == null) {
+            return;
+        }
         Slot slot = this.slots.get(slotIndex);
         try {
             SLOT_X_FIELD.setInt(slot, x);
@@ -302,16 +306,18 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
             throw new IllegalStateException("Failed to reposition slot " + slotIndex, exception);
         }
     }
-
-    // 反射获取 Slot 坐标字段。失败时抛出 ExceptionInInitializerError，防止字段不可达时
-    // 继续运行导致更隐蔽的 GUI 错位。
+    // 反射获取 Slot 坐标字段。失败时返回 null 由 moveSlot 降级处理，避免类加载崩溃。
+    @Nullable
     private static Field findSlotField(String fieldName) {
         try {
             Field field = Slot.class.getDeclaredField(fieldName);
             field.setAccessible(true);
             return field;
         } catch (ReflectiveOperationException exception) {
-            throw new ExceptionInInitializerError(exception);
+            org.apache.logging.log4j.LogManager.getLogger().warn(
+                    "无法通过反射获取 Slot.{} 字段，饰品栏槽位动态布局将被禁用", fieldName, exception
+            );
+            return null;
         }
     }
 
@@ -339,11 +345,8 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         this.publicQuery = DatabaseQuery.normalizeForScope(DatabaseScope.PUBLIC, this.query);
         this.activeScope = this.query.scope();
         this.viewState = new DatabaseViewState(
-                this.containerId,
-                normalizedState.sessionId(),
-                this.query,
-                normalizedState.enhancementConfig(),
-                normalizedState.autoStoreTarget(),
+                this.containerId, normalizedState.sessionId(), this.query,
+                normalizedState.enhancementConfig(), normalizedState.autoStoreTarget(),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of(com.agguy.infiniteinventory.database.DatabaseTabs.allTab(), com.agguy.infiniteinventory.database.DatabaseTabs.defaultConcreteTab()),
                 List.of()
@@ -424,9 +427,7 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
         }
         return DatabaseScopedTabRef.concreteTab(DatabaseScope.defaultScope(), com.agguy.infiniteinventory.database.DatabaseTabs.DEFAULT_TAB_ID);
     }
-
     protected abstract void syncViewToClient();
-
     protected static final class EquipmentDisplaySlot extends Slot {
         private final LivingEntity owner;
         private final EquipmentSlot slotType;
@@ -477,7 +478,6 @@ abstract class PersonalDatabaseMenuSupport extends RecipeBookMenu<CraftingInput,
             return Pair.of(InventoryMenu.BLOCK_ATLAS, this.emptyIcon);
         }
     }
-
     protected static final class OffhandDisplaySlot extends Slot {
         private final Player owner;
 

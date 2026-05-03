@@ -227,7 +227,16 @@ public final class ModNetwork {
             if (!backEquipped) {
                 return;
             }
-            PersonalDatabaseService.INSTANCE.open(player);
+            try {
+                PersonalDatabaseService.INSTANCE.open(player);
+            } catch (Exception exception) {
+                org.apache.logging.log4j.LogManager.getLogger().error(
+                        "玩家 {} 通过快捷键打开数据库菜单失败", player.getGameProfile().getName(), exception
+                );
+                player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                        "message.infiniteinventory.database.open_failed"
+                ));
+            }
         });
     }
 

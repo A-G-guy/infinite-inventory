@@ -24,24 +24,28 @@ public final class PersonalDatabaseServiceMigrationHelper {
             ServerPlayer player,
             DatabaseStorageSavedData storage
     ) {
-        PlayerDatabaseAttachment legacyDatabase = service.getLegacyPersonalDatabase(player);
-        if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
-            pruneStaleMigrationState(storage, player.getUUID());
-            return;
+        try {
+            PlayerDatabaseAttachment legacyDatabase = service.getLegacyPersonalDatabase(player);
+            if (legacyDatabase.entryCount() == 0 && legacyDatabase.unresolvedEntryCount() == 0) {
+                pruneStaleMigrationState(storage, player.getUUID());
+                return;
+            }
+            UUID playerId = player.getUUID();
+            int legacyEntryCount = legacyDatabase.entryCount() + legacyDatabase.unresolvedEntryCount();
+            if (!storage.hasPersonalDatabase(playerId)) {
+                storage.personalDatabase(playerId).mergeFrom(legacyDatabase);
+                storage.recordMigrationState(playerId, new LegacyMigrationState(
+                        LegacyMigrationState.Status.PENDING_CLEANUP,
+                        System.currentTimeMillis(),
+                        legacyEntryCount
+                ));
+                storage.setDirty();
+                LOGGER.info("已将玩家 {} 的旧个人数据库导入统一存储，等待迁移备份完成后清理旧附件", player.getGameProfile().getName());
+            }
+            tryFinalizeLegacyCleanup(player, storage, legacyDatabase, legacyEntryCount);
+        } catch (Exception exception) {
+            LOGGER.error("玩家 {} 的旧个人数据库迁移失败，已跳过以避免阻塞菜单打开", player.getGameProfile().getName(), exception);
         }
-        UUID playerId = player.getUUID();
-        int legacyEntryCount = legacyDatabase.entryCount() + legacyDatabase.unresolvedEntryCount();
-        if (!storage.hasPersonalDatabase(playerId)) {
-            storage.personalDatabase(playerId).mergeFrom(legacyDatabase);
-            storage.recordMigrationState(playerId, new LegacyMigrationState(
-                    LegacyMigrationState.Status.PENDING_CLEANUP,
-                    System.currentTimeMillis(),
-                    legacyEntryCount
-            ));
-            storage.setDirty();
-            LOGGER.info("已将玩家 {} 的旧个人数据库导入统一存储，等待迁移备份完成后清理旧附件", player.getGameProfile().getName());
-        }
-        tryFinalizeLegacyCleanup(player, storage, legacyDatabase, legacyEntryCount);
     }
 
     private static void tryFinalizeLegacyCleanup(

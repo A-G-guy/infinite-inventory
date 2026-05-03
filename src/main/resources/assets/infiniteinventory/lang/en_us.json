@@ -238,5 +238,6 @@
   "screen.infiniteinventory.deposit_conflict.description": "This item is currently stored in %s",
   "screen.infiniteinventory.deposit_conflict.cancel": "Cancel",
   "screen.infiniteinventory.deposit_conflict.move_to_target": "Deposit and move all to target category",
-  "screen.infiniteinventory.deposit_conflict.keep_in_source": "Deposit to original category"
+  "screen.infiniteinventory.deposit_conflict.keep_in_source": "Deposit to original category",
+  "message.infiniteinventory.database.open_failed": "Failed to open the database. Please check the server logs or contact an administrator."
 }
