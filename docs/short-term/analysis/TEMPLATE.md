@@ -1,3 +1,7 @@
+---
+last_modified: "2026-07-07 18:51"
+---
+
 # 问题分析文档模板
 
 > 命名规范：`YYYY-MM-DD_HH-mm-<slug>.md`
